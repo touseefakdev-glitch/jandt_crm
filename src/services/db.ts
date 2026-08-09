@@ -46,7 +46,13 @@ import {
   TeamFormInput,
   CategoryFormInput,
   BrandFormInput,
-  ShiftConfigInput
+  ShiftConfigInput,
+  ImportJob,
+  ImportType,
+  ImportStrategy,
+  ImportJobStatus,
+  ImportErrorItem,
+  ImportDuplicateItem
 } from '../types';
 import { notificationService } from './notificationService';
 import { permissions } from './permissions';
@@ -1082,6 +1088,9 @@ class LocalDatabaseService {
   private systemSettingsKey = 'jt_crm_system_settings';
   private auditLogsKey = 'jt_crm_audit_logs';
 
+  // Step 11 CSV Import System Key
+  private importJobsKey = 'jt_crm_import_jobs';
+
   constructor() {
     this.init();
   }
@@ -1229,8 +1238,10 @@ class LocalDatabaseService {
           c.company_name.toLowerCase().includes(query) ||
           (c.contact_person && c.contact_person.toLowerCase().includes(query)) ||
           (c.phone && c.phone.toLowerCase().includes(query)) ||
+          (c.whatsapp_number && c.whatsapp_number.toLowerCase().includes(query)) ||
           (c.email && c.email.toLowerCase().includes(query)) ||
-          (c.city && c.city.toLowerCase().includes(query))
+          (c.city && c.city.toLowerCase().includes(query)) ||
+          (c.route && c.route.toLowerCase().includes(query))
         );
       }
 
@@ -1272,9 +1283,11 @@ class LocalDatabaseService {
       company_name: input.company_name.trim(),
       contact_person: input.contact_person?.trim() || null,
       phone: input.phone?.trim() || null,
+      whatsapp_number: input.whatsapp_number?.trim() || null,
       email: input.email?.trim() || null,
       address: input.address?.trim() || null,
       city: input.city?.trim() || null,
+      route: input.route?.trim() || null,
       country: input.country?.trim() || 'USA',
       notes: input.notes?.trim() || null,
       status: input.status || 'active',
@@ -1307,9 +1320,11 @@ class LocalDatabaseService {
       company_name: input.company_name.trim(),
       contact_person: input.contact_person?.trim() || null,
       phone: input.phone?.trim() || null,
+      whatsapp_number: input.whatsapp_number !== undefined ? (input.whatsapp_number?.trim() || null) : existing.whatsapp_number,
       email: input.email?.trim() || null,
       address: input.address?.trim() || null,
       city: input.city?.trim() || null,
+      route: input.route !== undefined ? (input.route?.trim() || null) : existing.route,
       country: input.country?.trim() || 'USA',
       notes: input.notes?.trim() || null,
       status: input.status || existing.status,
@@ -3616,6 +3631,69 @@ class LocalDatabaseService {
         timestamp: new Date().toISOString(),
         ...entry,
       };
+    }
+  }
+
+  // --- Step 11: CSV Import Jobs Methods ---
+
+  public getImportJobs(filters: {
+    searchTerm?: string;
+    import_type?: string;
+    status?: string;
+  } = {}): ImportJob[] {
+    try {
+      const data = storageGet(this.importJobsKey);
+      let list: ImportJob[] = data ? JSON.parse(data) : [];
+      const users = this.getUsers();
+
+      list = list.map(job => ({
+        ...job,
+        created_by_profile: job.created_by ? users.find(u => u.id === job.created_by) || null : null,
+      }));
+
+      if (filters.import_type && filters.import_type !== 'all') {
+        list = list.filter(j => j.import_type === filters.import_type);
+      }
+      if (filters.status && filters.status !== 'all') {
+        list = list.filter(j => j.status === filters.status);
+      }
+      if (filters.searchTerm && filters.searchTerm.trim()) {
+        const q = filters.searchTerm.toLowerCase().trim();
+        list = list.filter(j =>
+          j.file_name.toLowerCase().includes(q) ||
+          j.import_type.toLowerCase().includes(q) ||
+          j.import_strategy.toLowerCase().includes(q) ||
+          (j.created_by_profile && j.created_by_profile.full_name.toLowerCase().includes(q))
+        );
+      }
+
+      return list.sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime());
+    } catch {
+      return [];
+    }
+  }
+
+  public getImportJobById(id: string): ImportJob | null {
+    const jobs = this.getImportJobs();
+    return jobs.find(j => j.id === id) || null;
+  }
+
+  public saveImportJob(job: ImportJob): ImportJob {
+    try {
+      const data = storageGet(this.importJobsKey);
+      const list: ImportJob[] = data ? JSON.parse(data) : [];
+      const index = list.findIndex(j => j.id === job.id);
+
+      if (index >= 0) {
+        list[index] = job;
+      } else {
+        list.unshift(job);
+      }
+
+      storageSet(this.importJobsKey, JSON.stringify(list));
+      return job;
+    } catch {
+      return job;
     }
   }
 

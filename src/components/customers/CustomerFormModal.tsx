@@ -22,9 +22,11 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
   const [companyName, setCompanyName] = useState('');
   const [contactPerson, setContactPerson] = useState('');
   const [phone, setPhone] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
+  const [route, setRoute] = useState('');
   const [country, setCountry] = useState('USA');
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
@@ -39,9 +41,11 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       setCompanyName(customerToEdit.company_name || '');
       setContactPerson(customerToEdit.contact_person || '');
       setPhone(customerToEdit.phone || '');
+      setWhatsappNumber(customerToEdit.whatsapp_number || '');
       setEmail(customerToEdit.email || '');
       setAddress(customerToEdit.address || '');
       setCity(customerToEdit.city || '');
+      setRoute(customerToEdit.route || '');
       setCountry(customerToEdit.country || 'USA');
       setNotes(customerToEdit.notes || '');
       setStatus(customerToEdit.status || 'active');
@@ -50,9 +54,11 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       setCompanyName('');
       setContactPerson('');
       setPhone('');
+      setWhatsappNumber('');
       setEmail('');
       setAddress('');
       setCity('');
+      setRoute('');
       setCountry('USA');
       setNotes('');
       setStatus('active');
@@ -77,13 +83,6 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       }
     }
 
-    if (phone.trim()) {
-      const phoneClean = phone.replace(/[^0-9+()-\s]/g, '');
-      if (phoneClean.length < 7) {
-        errs.phone = 'Please enter a valid telephone number.';
-      }
-    }
-
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -96,9 +95,11 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       company_name: companyName,
       contact_person: contactPerson,
       phone,
+      whatsapp_number: whatsappNumber,
       email,
       address,
       city,
+      route,
       country,
       notes,
       status,
@@ -144,7 +145,7 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
           </Select>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Input
             label="Contact Person"
             value={contactPerson}
@@ -155,17 +156,20 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
           <Input
             label="Phone Number"
             value={phone}
-            onChange={(e) => {
-              setPhone(e.target.value);
-              if (errors.phone) setErrors((prev) => ({ ...prev, phone: '' }));
-            }}
-            placeholder="e.g. +1 (555) 234-5678"
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="e.g. 03001234567"
             icon={<Phone className="w-4 h-4" />}
-            error={errors.phone}
+          />
+          <Input
+            label="WhatsApp Number"
+            value={whatsappNumber}
+            onChange={(e) => setWhatsappNumber(e.target.value)}
+            placeholder="e.g. 03001234567"
+            icon={<Phone className="w-4 h-4 text-emerald-600" />}
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <Input
             label="Email Address"
             type="email"
@@ -182,7 +186,14 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
             label="City"
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            placeholder="e.g. Chicago"
+            placeholder="e.g. Peshawar"
+            icon={<MapPin className="w-4 h-4" />}
+          />
+          <Input
+            label="Route"
+            value={route}
+            onChange={(e) => setRoute(e.target.value)}
+            placeholder="e.g. Route 1"
             icon={<MapPin className="w-4 h-4" />}
           />
           <Input

@@ -32,6 +32,12 @@ export class PermissionsService {
     return user?.role === 'admin';
   }
 
+  public static canPerformImport(user: UserProfile | null): PermissionCheckResult {
+    if (!user) return { allowed: false, reason: 'Authentication required.' };
+    if (user.role === 'admin') return { allowed: true };
+    return { allowed: false, reason: 'Only System Administrators can perform bulk CSV data imports.' };
+  }
+
   // --- Product & Availability Permissions ---
   public static canViewProducts(user: UserProfile | null): boolean {
     return !!user;

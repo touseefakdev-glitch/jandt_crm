@@ -7,6 +7,49 @@ and this project adheres to Semantic Versioning.
 
 ---
 
+## [1.10.0] - 2026-08-10
+
+### Added
+- **CSV Import System for Products & Customers (Step 11)**: Built a complete, production-grade CSV import system allowing authorized Administrators to import product catalog items and customer accounts with full validation, duplicate detection, strategy selection, preview, error report downloads, import history, audit logging, and availability change notifications under the **NO INVENTORY** architecture.
+- **NO INVENTORY Architecture Enforced**:
+  - Product CSV import manages product catalog display names, categories, SKUs, and availability status (`Available` / `Out of Stock`) only.
+  - Stock quantity, warehouse stock, reserved quantity, reorder level, and inventory movement are explicitly excluded.
+- **Customer & Product Schema Extension**:
+  - Extended `Customer` entity and database table with `whatsapp_number` and `route` string fields.
+  - Preserved phone numbers and WhatsApp numbers strictly as text strings (never converted to numeric/integer types) to retain leading zeros, country codes, and formatting.
+  - Created `import_jobs` table and `ImportJob` interface.
+- **CSV Parser & Validation Engine (`src/utils/csvImporter.ts`)**:
+  - PapaParse integration supporting standard UTF-8 CSVs, BOM stripping, and quote handling.
+  - Max 5MB file upload size protection with error messaging.
+  - Header validation enforcing required fields:
+    - Products: `product_name`, `category`, `sku`, `availability`
+    - Customers: `customer_name`, `whatsapp_number`, `phone_number`, `city`, `route`
+  - Normalized product availability values (`Available` / `Out of Stock`).
+  - Row-level validation reporting exact row numbers and failure reasons.
+  - SKU duplicate detection within CSV file and against database catalog.
+  - Customer contact duplicate candidate detection.
+  - Downloadable CSV import templates (`products_import_template.csv`, `customers_import_template.csv`).
+  - Downloadable Error Report CSV (`product_import_errors.csv`, `customer_import_errors.csv`).
+- **Import Strategies**:
+  - `Create New Only` (Default): Creates non-existing records; skips existing SKUs or customer matches.
+  - `Update Existing`: Overwrites matched records with imported CSV values.
+  - `Skip Existing`: Leaves matched records untouched without raising errors.
+- **Product Availability Notification Rules**:
+  - Updating existing products from `Available` ➔ `Out of Stock` triggers system-wide `🔴 Product Out of Stock Alert`.
+  - Updating existing products from `Out of Stock` ➔ `Available` triggers system-wide `🟢 Product Available Again`.
+  - Unchanged status or initial creation of out-of-stock products does NOT dispatch notifications.
+- **Admin Data Import Pages (`src/pages/admin/AdminImport.tsx` & `AdminImportHistory.tsx`)**:
+  - Interactive 5-step wizard: 1. Select Type ➔ 2. Upload CSV ➔ 3. Validate & Preview ➔ 4. Confirm ➔ 5. Results.
+  - Pre-import preview displaying total rows, valid records, errors, duplicates, strategy selector, and error export.
+  - Confirmation modal detailing execution counts before database transactions.
+  - Import History page (`/admin/import/history`) listing past import jobs, status badges, strategy, row counts, user, and error download.
+- **RBAC Authorization (`src/services/permissions.ts`)**:
+  - Enforced `PermissionsService.canPerformImport` restricting import routes, file uploads, and bulk operations strictly to Admin role.
+- **System Audit Logging**:
+  - Recorded immutable audit log events for `import_products` and `import_customers` actions.
+
+---
+
 ## [1.9.0] - 2026-08-09
 
 ### Added

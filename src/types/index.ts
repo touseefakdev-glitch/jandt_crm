@@ -32,9 +32,11 @@ export interface Customer {
   company_name: string;
   contact_person: string | null;
   phone: string | null;
+  whatsapp_number?: string | null;
   email: string | null;
   address: string | null;
   city: string | null;
+  route?: string | null;
   country: string | null;
   notes: string | null;
   status: CustomerStatus;
@@ -50,9 +52,11 @@ export interface CustomerFormInput {
   company_name: string;
   contact_person?: string;
   phone?: string;
+  whatsapp_number?: string;
   email?: string;
   address?: string;
   city?: string;
+  route?: string;
   country?: string;
   notes?: string;
   status?: CustomerStatus;
@@ -508,7 +512,9 @@ export type AuditActionType =
   | 'product_brand_updated'
   | 'shift_handover_submitted' 
   | 'shift_handover_acknowledged' 
-  | 'settings_updated';
+  | 'settings_updated'
+  | 'import_products'
+  | 'import_customers';
 
 export type AuditEntityType = 
   | 'user' 
@@ -522,7 +528,8 @@ export type AuditEntityType =
   | 'product_brand' 
   | 'shift' 
   | 'shift_handover' 
-  | 'system_settings';
+  | 'system_settings'
+  | 'import_job';
 
 export interface AuditLog {
   id: string;
@@ -571,5 +578,47 @@ export interface ShiftConfigInput {
   end_time: string;
   status: ShiftStatus;
 }
+
+// --- Step 11: CSV Import System Types ---
+
+export type ImportType = 'products' | 'customers';
+
+export type ImportStrategy = 'create_new_only' | 'update_existing' | 'skip_existing';
+
+export type ImportJobStatus = 'pending' | 'processing' | 'completed' | 'completed_with_errors' | 'failed';
+
+export interface ImportErrorItem {
+  row: number;
+  data: Record<string, string>;
+  error: string;
+}
+
+export interface ImportDuplicateItem {
+  row: number;
+  data: Record<string, string>;
+  existing_id: string;
+  existing_name: string;
+  existing_identifier: string; // SKU or Phone/WhatsApp
+  reason: string;
+}
+
+export interface ImportJob {
+  id: string;
+  import_type: ImportType;
+  file_name: string;
+  import_strategy: ImportStrategy;
+  total_rows: number;
+  created_count: number;
+  updated_count: number;
+  skipped_count: number;
+  failed_count: number;
+  status: ImportJobStatus;
+  started_at: string;
+  completed_at: string | null;
+  created_by: string | null;
+  created_by_profile?: UserProfile | null;
+  errors?: ImportErrorItem[];
+}
+
 
 

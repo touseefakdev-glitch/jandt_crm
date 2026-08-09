@@ -194,6 +194,10 @@ export const CustomerDetail: React.FC = () => {
                     <span className="text-xs text-slate-500 font-semibold block uppercase">Telephone</span>
                     <span className="font-semibold text-slate-900 font-mono mt-0.5 block">{customer.phone || <span className="text-slate-400 italic">Not specified</span>}</span>
                   </div>
+                  <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-100">
+                    <span className="text-xs text-slate-500 font-semibold block uppercase">WhatsApp Number</span>
+                    <span className="font-semibold text-emerald-700 font-mono mt-0.5 block">{customer.whatsapp_number || <span className="text-slate-400 italic">Not specified</span>}</span>
+                  </div>
                   <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-100 sm:col-span-2">
                     <span className="text-xs text-slate-500 font-semibold block uppercase">Email Address</span>
                     <span className="font-semibold text-slate-900 font-mono mt-0.5 block">
@@ -217,8 +221,8 @@ export const CustomerDetail: React.FC = () => {
                     <span className="font-medium text-slate-900 mt-0.5 block">{customer.address || <span className="text-slate-400 italic">No street address recorded</span>}</span>
                   </div>
                   <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-100">
-                    <span className="text-xs text-slate-500 font-semibold block uppercase">City & Country</span>
-                    <span className="font-medium text-slate-900 mt-0.5 block">{customer.city || 'N/A'}, {customer.country || 'USA'}</span>
+                    <span className="text-xs text-slate-500 font-semibold block uppercase">City & Route</span>
+                    <span className="font-medium text-slate-900 mt-0.5 block">{customer.city || 'N/A'} {customer.route ? `(${customer.route})` : ''}</span>
                   </div>
                 </div>
               </CardBody>

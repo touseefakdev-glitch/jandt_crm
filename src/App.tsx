@@ -28,6 +28,8 @@ import { AdminProductBrands } from './pages/admin/AdminProductBrands';
 import { AdminShifts } from './pages/admin/AdminShifts';
 import { AdminSettings } from './pages/admin/AdminSettings';
 import { AdminAuditLogs } from './pages/admin/AdminAuditLogs';
+import { AdminImport } from './pages/admin/AdminImport';
+import { AdminImportHistory } from './pages/admin/AdminImportHistory';
 
 export const App: React.FC = () => {
   return (
@@ -68,6 +70,8 @@ export const App: React.FC = () => {
               <Route path="users/:id" element={<AdminUserProfile />} />
               <Route path="teams" element={<AdminTeams />} />
               <Route path="roles" element={<AdminRoles />} />
+              <Route path="import" element={<AdminImport />} />
+              <Route path="import/history" element={<AdminImportHistory />} />
               <Route path="query-categories" element={<AdminQueryCategories />} />
               <Route path="product-categories" element={<AdminProductCategories />} />
               <Route path="product-brands" element={<AdminProductBrands />} />

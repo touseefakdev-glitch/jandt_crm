@@ -271,7 +271,9 @@ Notifications are driven by a centralized event dispatcher (`NotificationService
 | `/out-of-stock` | Full View & Restore Availability | View Out of Stock Alerts & Reasons | View Out of Stock Alerts & Reasons |
 | `/notifications` | Full Access (Own Notifications) | Full Access (Own Notifications) | Full Access (Own Notifications) |
 | `/shift-handover` | Full Access (View All, Create, Acknowledge, Audit) | View Team Handovers, Add Order Items | Full Shift Operations (Create, Select Pending, Acknowledge, Complete Items) |
-| `/admin` | Full Access (Dashboard, Users, Teams, Roles Matrix, Categories, Brands, Shifts, Settings, Audit Logs) | Access Restricted 🚫 | Access Restricted 🚫 |
+| `/admin` | Full Access (Dashboard, Users, Teams, Roles Matrix, Data Import, Import History, Categories, Brands, Shifts, Settings, Audit Logs) | Access Restricted 🚫 | Access Restricted 🚫 |
+| `/admin/import` | Full Access (Upload, Validate, Preview, Confirm, Execute CSV Imports) | Access Restricted 🚫 | Access Restricted 🚫 |
+| `/admin/import/history` | Full Access (View Import History & Download Error Reports) | Access Restricted 🚫 | Access Restricted 🚫 |
 
 ---
 
@@ -289,10 +291,76 @@ Notifications are driven by a centralized event dispatcher (`NotificationService
 - `/out-of-stock`: Dedicated Out-of-Stock alerts list view.
 - `/notifications`: Full Notifications & Alerts management center page.
 - `/shift-handover`: Complete Shift Handover & Team Operations center.
-- `/admin`: Centralized Admin Control Center (`/admin` Dashboard, `/admin/users`, `/admin/users/:id`, `/admin/teams`, `/admin/roles`, `/admin/query-categories`, `/admin/product-categories`, `/admin/product-brands`, `/admin/shifts`, `/admin/settings`, `/admin/audit-logs`).
+- `/admin`: Centralized Admin Control Center (`/admin` Dashboard, `/admin/users`, `/admin/users/:id`, `/admin/teams`, `/admin/roles`, `/admin/import`, `/admin/import/history`, `/admin/query-categories`, `/admin/product-categories`, `/admin/product-brands`, `/admin/shifts`, `/admin/settings`, `/admin/audit-logs`).
+
+---
+
+## CSV Import System
+
+> **CRITICAL BUSINESS RULE — NO INVENTORY TRACKING**:
+> Product import manages product catalog and availability only. It does NOT create or maintain inventory quantities, physical stock balances, or warehouse movements. Product availability (`Available` / `Out of Stock`) is informational only.
+
+### Product CSV Import
+Fields:
+- `product_name`: Required. Product display name.
+- `category`: Required. Product category name (resolved or created dynamically).
+- `sku`: Required. Must be unique across catalog and CSV file.
+- `availability`: Required. Allowed values: `Available`, `Out of Stock`.
+
+### Customer CSV Import
+Fields:
+- `customer_name`: Required. Company or business customer display name.
+- `whatsapp_number`: Optional. Preserved strictly as string/text (never converted to integer).
+- `phone_number`: Optional. Preserved strictly as string/text (never converted to integer).
+- `city`: Optional. City location text.
+- `route`: Optional. Operational delivery route text.
+
+### CSV Validation
+Upload validation enforces file existence, `.csv` format check, UTF-8 BOM stripping, 5MB file size ceiling, header row existence, and required header presence. Invalid rows raise detailed row-level error messages with row numbers.
+
+### Duplicate Detection
+- **Products**: SKU uniqueness is checked against the uploaded CSV rows and active database products.
+- **Customers**: Contact numbers (phone/WhatsApp) and business names are matched against existing records to flag candidate duplicates for Admin review.
+
+### Import Strategies
+1. **Create New Only** (Default & safest): Creates non-existing records; skips existing SKUs or customer matches.
+2. **Update Existing**: Updates matched records with imported CSV values.
+3. **Skip Existing**: Leaves matched records unchanged without erroring.
+
+### Import Preview
+Interactive pre-import preview displaying total rows, valid records count, row-level validation errors, duplicate matches, preview table, strategy selector, and error report export.
+
+### Import Confirmation
+Mandatory confirmation modal detailing execution counts (Create, Update, Skip, Error) before committing transactions to the database.
+
+### Import Results
+Post-import dashboard presenting exact breakdown (Total Processed, Created, Updated, Skipped, Failed) with direct links to view products/customers, download error reports, or start a new import.
+
+### Import Error Reports
+Exportable CSV file (`product_import_errors.csv`, `customer_import_errors.csv`) containing original row index, original row data, and specific error reason.
+
+### Import History
+Centralized audit history table (`/admin/import/history`) listing past `import_jobs`, strategy used, timestamp, row counts, admin user profile, and error report downloads.
+
+### Import Audit Logging
+Every import event records an immutable system audit log entry under `import_products` or `import_customers` actions.
+
+### Product Availability Import Rules
+When using `Update Existing` strategy:
+- Updating status from `Available` ➔ `Out of Stock` triggers system-wide `🔴 Product Out of Stock Alert` notification.
+- Updating status from `Out of Stock` ➔ `Available` triggers system-wide `🟢 Product Available Again` notification.
+- Unchanged availability status does NOT trigger notifications.
+- New products imported as `Out of Stock` do NOT trigger change notifications.
+
+### Customer Matching Rules
+Matches customers by phone, WhatsApp, or exact company name + phone/WhatsApp combination without silently merging or corrupting existing order/query relationships.
+
+### Security
+Strict server-side and permission engine RBAC check (`PermissionsService.canPerformImport`) ensuring only System Administrators can access import routes and perform bulk updates.
 
 ---
 
 ## Change Log
 All technical changes are logged in [CHANGELOG.md](file:///c:/Users/TIW%20COMPUTER/Desktop/CRM/CHANGELOG.md).
+
 

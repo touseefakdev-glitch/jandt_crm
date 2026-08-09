@@ -120,9 +120,11 @@ CREATE TABLE IF NOT EXISTS public.customers (
     company_name VARCHAR(255) NOT NULL,
     contact_person VARCHAR(255),
     phone VARCHAR(50),
+    whatsapp_number VARCHAR(50),
     email VARCHAR(255),
     address TEXT,
     city VARCHAR(100),
+    route VARCHAR(100),
     country VARCHAR(100) DEFAULT 'USA',
     notes TEXT,
     status customer_status NOT NULL DEFAULT 'active',
@@ -854,4 +856,23 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.system_settings (id, company_name, crm_title, timezone, date_format, currency_symbol, pagination_limit, updated_by) VALUES
     ('00000000-0000-0000-0000-0000000000a1', 'J&T Supplies', 'J&T Supplies CRM', 'America/Vancouver', 'MMM D, YYYY h:mm A', '$', 10, 'a1111111-1111-1111-1111-111111111111')
 ON CONFLICT (id) DO NOTHING;
+
+-- Import Jobs Table (Step 11 CSV Import System)
+CREATE TABLE IF NOT EXISTS public.import_jobs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    import_type VARCHAR(50) NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    import_strategy VARCHAR(50) NOT NULL DEFAULT 'create_new_only',
+    total_rows INTEGER NOT NULL DEFAULT 0,
+    created_count INTEGER NOT NULL DEFAULT 0,
+    updated_count INTEGER NOT NULL DEFAULT 0,
+    skipped_count INTEGER NOT NULL DEFAULT 0,
+    failed_count INTEGER NOT NULL DEFAULT 0,
+    status VARCHAR(50) NOT NULL DEFAULT 'completed',
+    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at TIMESTAMPTZ,
+    created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    errors_json TEXT
+);
+
 

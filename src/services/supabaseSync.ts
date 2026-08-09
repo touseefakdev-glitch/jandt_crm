@@ -8,69 +8,84 @@ export const supabase =
     ? createClient(supabaseUrl, supabaseAnonKey)
     : null;
 
-// localStorage key → Supabase table name mapping
+// localStorage key → Supabase table name mapping ordered by FK dependencies
 export const TABLE_MAP: Record<string, string> = {
+  // Level 1: Taxonomies & Teams
   jt_crm_teams:              'teams',
-  jt_crm_users:              'profiles',
-  jt_crm_customers:          'customers',
   jt_crm_query_categories:   'query_categories',
-  jt_crm_queries:            'customer_queries',
-  jt_crm_query_activities:   'query_activities',
-  jt_crm_query_notes:        'query_internal_notes',
-  jt_crm_query_attachments:  'query_attachments',
+  jt_crm_product_categories: 'product_categories',
+  jt_crm_product_brands:     'product_brands',
+
+  // Level 2: Profiles & Shifts
+  jt_crm_users:              'profiles',
+  jt_crm_shifts:             'shifts',
+
+  // Level 3: Customers, Products, Notifications & Handovers
+  jt_crm_customers:          'customers',
+  jt_crm_products:           'products',
   jt_crm_notifications:      'notifications',
+  jt_crm_handovers:          'shift_handovers',
+
+  // Level 4: Orders & Order Sub-Entities
   jt_crm_orders:             'orders',
   jt_crm_order_items:        'order_items',
   jt_crm_order_history:      'order_status_history',
   jt_crm_order_documents:    'order_documents',
-  jt_crm_product_categories: 'product_categories',
-  jt_crm_product_brands:     'product_brands',
-  jt_crm_products:           'products',
-  jt_crm_product_history:    'product_availability_history',
-  jt_crm_shifts:             'shifts',
-  jt_crm_handovers:          'shift_handovers',
+
+  // Level 5: Customer Queries & Query Sub-Entities
+  jt_crm_queries:            'customer_queries',
+  jt_crm_query_activities:   'query_activities',
+  jt_crm_query_notes:        'query_internal_notes',
+  jt_crm_query_attachments:  'query_attachments',
   jt_crm_handover_items:     'shift_handover_items',
-  jt_crm_audit_logs:         'audit_logs',
+  jt_crm_product_history:    'product_availability_history',
+
+  // Level 6: System & Logs
   jt_crm_system_settings:    'system_settings',
+  jt_crm_audit_logs:         'audit_logs',
 };
 
-// =============================================================================
-// In-memory data store (Supabase-first)
-//
-// Business data is no longer persisted to localStorage. All reads are served
-// from this in-memory store, which is hydrated from Supabase (initializeFromSupabase,
-// called after a successful Supabase sign-in) and written through to Supabase
-// (debounced + serialized) on every mutation via storageSet.
-// =============================================================================
-
+// In-memory data store cache backed by localStorage & Supabase sync
 const memoryStore = new Map<string, string>();
 const previousRowIds = new Map<string, Set<string>>();
 const syncTimers = new Map<string, number>();
 let syncQueue: Promise<void> = Promise.resolve();
 
-// Matches the canonical Postgres UUID format used by Supabase primary keys.
-// Demo seed records in db.ts use non-UUID ids (e.g. 'prod-0001-...') and are
-// intentionally local-only; the authoritative DB seed lives in database/schema.sql.
+// Regex matching standard Postgres UUID format
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Read a stored table/object from the in-memory store. */
+/** Read a stored table/object from in-memory cache, falling back to localStorage. */
 export function storageGet(key: string): string | null {
-  return memoryStore.has(key) ? memoryStore.get(key)! : null;
+  if (memoryStore.has(key)) {
+    return memoryStore.get(key)!;
+  }
+  const fromLs = localStorage.getItem(key);
+  if (fromLs !== null) {
+    memoryStore.set(key, fromLs);
+    return fromLs;
+  }
+  return null;
 }
 
-/**
- * Write a table/object to the in-memory store and schedule a write-through to
- * Supabase. Callers remain synchronous; the Supabase write is debounced so rapid
- * local mutations coalesce into a single upsert of the final state.
- */
+/** Write to memoryStore AND localStorage, AND schedule write-through to Supabase. */
 export function storageSet(key: string, value: string): void {
   memoryStore.set(key, value);
+  try {
+    localStorage.setItem(key, value);
+  } catch (e) {
+    console.warn('[Storage] localStorage.setItem failed:', e);
+  }
   scheduleTableSync(key, value);
 }
 
-/** Sets the in-memory store WITHOUT triggering a Supabase write (seeding / hydration). */
+/** Prime memoryStore AND localStorage without triggering a Supabase write. */
 export function storagePrime(key: string, value: string): void {
   memoryStore.set(key, value);
+  try {
+    localStorage.setItem(key, value);
+  } catch (e) {
+    console.warn('[Storage] localStorage.setItem failed:', e);
+  }
 }
 
 export function storageClear(): void {
@@ -88,7 +103,6 @@ function scheduleTableSync(key: string, value: string): void {
     key,
     window.setTimeout(() => {
       syncTimers.delete(key);
-      // Serialize writes to preserve parent→child FK ordering (e.g. orders before order_items).
       syncQueue = syncQueue
         .then(() => syncTableToSupabase(key, value))
         .catch((err) => console.error('[Supabase] write failed:', err));
@@ -127,7 +141,7 @@ async function syncTableToSupabase(key: string, value: string): Promise<void> {
     return;
   }
 
-  // Remove rows that were previously synced but no longer exist locally.
+  // Remove rows that were deleted locally
   const currentIds = new Set(validRows.map((row) => row.id as string));
   const previous = previousRowIds.get(key);
   if (previous && previous.size > 0) {
@@ -144,12 +158,11 @@ async function syncTableToSupabase(key: string, value: string): Promise<void> {
 function sanitizeRow(table: string, row: Record<string, unknown>): Record<string, unknown> {
   const clean: Record<string, unknown> = { ...row };
 
-  // Legacy alias not present in the notifications schema
+  // Alias field not present in database table
   if (table === 'notifications') delete clean['user_id'];
 
   Object.keys(clean).forEach((k) => {
     const v = clean[k];
-    // JSON.parse never produces Date objects, so any object/array value is a join
     if (v !== null && typeof v === 'object') {
       delete clean[k];
     }
@@ -161,9 +174,7 @@ function sanitizeRow(table: string, row: Record<string, unknown>): Record<string
 // --- Hydration ----------------------------------------------------------------
 
 /**
- * Loads all Supabase tables into the in-memory store so the sync LocalDatabaseService
- * facade serves live data. Must run AFTER authentication so RLS SELECT policies apply.
- * Tables that fail or are empty keep their current (seeded) contents.
+ * Loads all Supabase tables into memory and localStorage.
  */
 export async function initializeFromSupabase(): Promise<void> {
   if (!supabase) return;

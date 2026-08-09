@@ -29,22 +29,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       try {
         if (supabase) {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user?.email) {
-            const profile = localDb.getUserByEmail(session.user.email);
+          await initializeFromSupabase();
+        }
+
+        const savedSession = localStorage.getItem(SESSION_KEY);
+        if (savedSession) {
+          const { userId } = JSON.parse(savedSession);
+          const profile = localDb.getUserById(userId);
+          if (profile && profile.is_active) {
             setUser(profile);
-          }
-        } else {
-          // Local storage session check
-          const savedSession = localStorage.getItem(SESSION_KEY);
-          if (savedSession) {
-            const { userId } = JSON.parse(savedSession);
-            const profile = localDb.getUserById(userId);
-            if (profile && profile.is_active) {
-              setUser(profile);
-            } else {
-              localStorage.removeItem(SESSION_KEY);
-            }
+          } else {
+            localStorage.removeItem(SESSION_KEY);
           }
         }
       } catch (err) {
@@ -62,54 +57,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     try {
       if (supabase) {
-        const { data, error: authError } = await supabase.auth.signInWithPassword({
-          email,
-          password: _password || 'password123',
-        });
-
-        if (authError) {
-          // Fallback to local DB check if Supabase error occurs
-          const localUser = localDb.getUserByEmail(email);
-          if (localUser) {
-            if (!localUser.is_active) {
-              setError('Account is inactive. Please contact your system administrator.');
-              return false;
-            }
-            setUser(localUser);
-            localStorage.setItem(SESSION_KEY, JSON.stringify({ userId: localUser.id }));
-            return true;
-          }
-          setError(authError.message);
-          return false;
-        }
-
-        if (data.user?.email) {
-          const profile = localDb.getUserByEmail(data.user.email);
-          if (profile) {
-            // Live data layer: hydrate the in-memory store from Supabase tables
-            await initializeFromSupabase();
-            setUser(profile);
-            return true;
-          }
-        }
-      } else {
-        // Local DB Auth
-        const localUser = localDb.getUserByEmail(email);
-        if (!localUser) {
-          setError('Invalid credentials. No user found with this email address.');
-          return false;
-        }
-
-        if (!localUser.is_active) {
-          setError('Your account is currently inactive. Please contact an Administrator.');
-          return false;
-        }
-
-        setUser(localUser);
-        localStorage.setItem(SESSION_KEY, JSON.stringify({ userId: localUser.id }));
-        return true;
+        await initializeFromSupabase();
       }
-      return false;
+
+      const localUser = localDb.getUserByEmail(email);
+      if (!localUser) {
+        setError('Invalid credentials. No user found with this email address.');
+        return false;
+      }
+
+      if (!localUser.is_active) {
+        setError('Your account is currently inactive. Please contact an Administrator.');
+        return false;
+      }
+
+      setUser(localUser);
+      localStorage.setItem(SESSION_KEY, JSON.stringify({ userId: localUser.id }));
+      return true;
     } catch (err: any) {
       setError(err.message || 'An unexpected authentication error occurred.');
       return false;
@@ -122,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       if (supabase) {
-        await supabase.auth.signOut();
+        await supabase.auth.signOut().catch(() => {});
       }
       localStorage.removeItem(SESSION_KEY);
       storageClear();

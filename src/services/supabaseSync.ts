@@ -186,26 +186,36 @@ export async function initializeFromSupabase(): Promise<void> {
       entries.map(([, table]) => supabase!.from(table).select('*'))
     );
 
-    results.forEach((result, i) => {
+    for (let i = 0; i < entries.length; i++) {
       const [lsKey] = entries[i];
+      const result = results[i];
+
       if (result.status === 'rejected') {
         console.warn(`[Supabase] Failed to load ${TABLE_MAP[lsKey]}:`, result.reason);
-        return;
+        continue;
       }
+
       const { data, error } = result.value;
       if (error) {
         console.warn(`[Supabase] Failed to load ${TABLE_MAP[lsKey]}:`, error.message);
-        return;
+        continue;
       }
+
       if (data && data.length > 0) {
         storagePrime(lsKey, JSON.stringify(data));
         previousRowIds.set(
           lsKey,
           new Set(data.map((row) => (row as { id?: unknown }).id as string))
         );
+      } else {
+        const localData = storageGet(lsKey);
+        if (localData) {
+          await syncTableToSupabase(lsKey, localData);
+        }
       }
-    });
+    }
   } catch (err) {
     console.error('[Supabase] initializeFromSupabase failed:', err);
   }
 }
+

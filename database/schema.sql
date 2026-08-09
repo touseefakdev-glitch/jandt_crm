@@ -678,3 +678,42 @@ INSERT INTO public.customer_queries
         'a1111111-1111-1111-1111-111111111111'
     )
 ON CONFLICT (query_number) DO NOTHING;
+
+-- Order Items
+INSERT INTO public.order_items (id, order_id, product_id, product_name_snapshot, sku_snapshot, quantity, unit_price, discount, tax, line_total, notes) VALUES
+    ('00000000-0000-0000-0007-000000000001', '00000000-0000-0000-0005-000000000001', '00000000-0000-0000-0004-000000000001', 'ProClean Heavy-Duty Degreaser 5Gal', 'IND-CLEAN-500', 10, 145.00, 50.00, 140.00, 1540.00, 'Standard 5gal drum packaging.'),
+    ('00000000-0000-0000-0007-000000000002', '00000000-0000-0000-0005-000000000002', '00000000-0000-0000-0004-000000000002', 'PackGuard Heavy Stretch Film 80 Gauge', 'PKG-FILM-80G', 40, 65.00, 100.00, 270.00, 2970.00, 'Palletized 4-roll bundles.')
+ON CONFLICT (id) DO NOTHING;
+
+-- Order Status History
+INSERT INTO public.order_status_history (id, order_id, previous_status, new_status, action, notes, performed_by) VALUES
+    ('00000000-0000-0000-0008-000000000001', '00000000-0000-0000-0005-000000000001', NULL, 'order_received', 'Order Received', 'Initial customer order registered.', 'b2222222-2222-2222-2222-222222222222')
+ON CONFLICT (id) DO NOTHING;
+
+-- Order Documents
+INSERT INTO public.order_documents (id, order_id, document_type, file_name, file_path, uploaded_by) VALUES
+    ('00000000-0000-0000-0009-000000000001', '00000000-0000-0000-0005-000000000001', 'sales_order', 'Sales_Order_ORD-000001.pdf', '/documents/ORD-000001/Sales_Order_ORD-000001.pdf', 'b2222222-2222-2222-2222-222222222222')
+ON CONFLICT (id) DO NOTHING;
+
+-- Query Activities
+INSERT INTO public.query_activities (id, query_id, event_type, previous_value, new_value, description, performed_by) VALUES
+    ('00000000-0000-0000-0014-000000000001', '00000000-0000-0000-0006-000000000001', 'query_created', NULL, 'open', 'Query QRY-000001 created for customer', 'b2222222-2222-2222-2222-222222222222'),
+    ('00000000-0000-0000-0014-000000000002', '00000000-0000-0000-0006-000000000001', 'status_change', 'open', 'in_progress', 'Query status changed from Open to In Progress', 'c3333333-3333-3333-3333-333333333333')
+ON CONFLICT (id) DO NOTHING;
+
+-- Query Notes
+INSERT INTO public.query_internal_notes (id, query_id, note, author_id) VALUES
+    ('00000000-0000-0000-0015-000000000001', '00000000-0000-0000-0006-000000000001', 'Initial carrier contact established with Chicago dispatch terminal manager.', 'c3333333-3333-3333-3333-333333333333')
+ON CONFLICT (id) DO NOTHING;
+
+-- Notifications
+INSERT INTO public.notifications (id, recipient_user_id, actor_user_id, notification_type, title, message, entity_type, entity_id, priority, link_path) VALUES
+    ('00000000-0000-0000-0016-000000000001', 'c3333333-3333-3333-3333-333333333333', 'a1111111-1111-1111-1111-111111111111', 'query.assigned', '🎫 Support Ticket Assigned', 'Query QRY-000001 for Apex Industrial Logistics has been assigned to your support queue. Priority: HIGH', 'query', '00000000-0000-0000-0006-000000000001', 'high', '/queries/00000000-0000-0000-0006-000000000001'),
+    ('00000000-0000-0000-0016-000000000002', 'b2222222-2222-2222-2222-222222222222', 'a1111111-1111-1111-1111-111111111111', 'product.availability_changed', '🔴 Product Out of Stock Alert', 'Product PKG-FILM-80G (PackGuard Heavy Stretch Film) is now OUT OF STOCK. Reason: Resupply resin delay.', 'product', '00000000-0000-0000-0004-000000000002', 'high', '/products/00000000-0000-0000-0004-000000000002')
+ON CONFLICT (id) DO NOTHING;
+
+-- System Settings
+INSERT INTO public.system_settings (id, company_name, crm_title, timezone, date_format, currency_symbol, pagination_limit, updated_by) VALUES
+    ('00000000-0000-0000-0000-0000000000a1', 'J&T Supplies', 'J&T Supplies CRM', 'America/New_York', 'MMM D, YYYY h:mm A', '$', 10, 'a1111111-1111-1111-1111-111111111111')
+ON CONFLICT (id) DO NOTHING;
+

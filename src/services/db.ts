@@ -82,8 +82,8 @@ export const SEED_TEAMS: Team[] = [
 export const SEED_USERS: UserProfile[] = [
   {
     id: 'a1111111-1111-1111-1111-111111111111',
-    email: 'admin@jt-supplies.com',
-    full_name: 'Sarah Jenkins',
+    email: 'admin@jtsupplies.com',
+    full_name: 'Sarah Connor (Admin)',
     role: 'admin',
     team_id: '11111111-1111-1111-1111-111111111111',
     team: SEED_TEAMS[0],
@@ -93,8 +93,8 @@ export const SEED_USERS: UserProfile[] = [
   },
   {
     id: 'b2222222-2222-2222-2222-222222222222',
-    email: 'sales@jt-supplies.com',
-    full_name: 'Marcus Vance',
+    email: 'sales@jtsupplies.com',
+    full_name: 'Alex Mercer (Sales)',
     role: 'sales_agent',
     team_id: '11111111-1111-1111-1111-111111111111',
     team: SEED_TEAMS[0],
@@ -104,8 +104,8 @@ export const SEED_USERS: UserProfile[] = [
   },
   {
     id: 'c3333333-3333-3333-3333-333333333333',
-    email: 'support@jt-supplies.com',
-    full_name: 'Elena Rostova',
+    email: 'support@jtsupplies.com',
+    full_name: 'Elena Rostova (Support)',
     role: 'support_agent',
     team_id: '22222222-2222-2222-2222-222222222222',
     team: SEED_TEAMS[1],
@@ -120,7 +120,7 @@ export const SEED_CUSTOMERS: Customer[] = [
   {
     id: '10000000-0000-0000-0000-000000000001',
     customer_code: 'CUST-000001',
-    company_name: 'Apex Industrial Supplies',
+    company_name: 'Apex Industrial Dynamics',
     contact_person: 'Marcus Vance',
     phone: '+1 (555) 234-5678',
     email: 'm.vance@apexind.com',
@@ -223,26 +223,26 @@ export const SEED_CUSTOMERS: Customer[] = [
 
 // Initial Query Categories Seed Data
 export const SEED_CATEGORIES: QueryCategory[] = [
-  { id: 'cat-0001-0000-0000-000000000001', name: 'Order Issue', description: 'Order discrepancies, wrong quantities, or missing order confirmation', is_active: true, created_at: new Date('2026-01-01').toISOString() },
-  { id: 'cat-0002-0000-0000-000000000002', name: 'Delivery Issue', description: 'Carrier delays, damaged packaging, or incorrect delivery address', is_active: true, created_at: new Date('2026-01-01').toISOString() },
-  { id: 'cat-0003-0000-0000-000000000003', name: 'Invoice Issue', description: 'Billing errors, tax exempt status, or missing commercial invoices', is_active: true, created_at: new Date('2026-01-01').toISOString() },
-  { id: 'cat-0004-0000-0000-000000000004', name: 'Product Issue', description: 'Defective items, technical specifications, or quality assurance inquiries', is_active: true, created_at: new Date('2026-01-01').toISOString() },
-  { id: 'cat-0005-0000-0000-000000000005', name: 'Stock Availability', description: 'Product availability inquiries, backorder lead times, or stock restock dates', is_active: true, created_at: new Date('2026-01-01').toISOString() },
-  { id: 'cat-0006-0000-0000-000000000006', name: 'Payment Issue', description: 'Payment gateway failures, wire transfer confirmations, or credit terms', is_active: true, created_at: new Date('2026-01-01').toISOString() },
-  { id: 'cat-0007-0000-0000-000000000007', name: 'Customer Information', description: 'Account contact details, address updates, or tax exemption status', is_active: true, created_at: new Date('2026-01-01').toISOString() },
-  { id: 'cat-0008-0000-0000-000000000008', name: 'General Inquiry', description: 'General business inquiries, catalog requests, or support shift info', is_active: true, created_at: new Date('2026-01-01').toISOString() },
-  { id: 'cat-0009-0000-0000-000000000009', name: 'Other', description: 'Uncategorized customer tickets requiring agent evaluation', is_active: true, created_at: new Date('2026-01-01').toISOString() },
+  { id: '00000000-0000-0000-0001-000000000001', name: 'Order Issue', description: 'Order discrepancies, wrong quantities, or missing order confirmation', is_active: true, created_at: new Date('2026-01-01').toISOString() },
+  { id: '00000000-0000-0000-0001-000000000002', name: 'Delivery Issue', description: 'Carrier delays, damaged packaging, or incorrect delivery address', is_active: true, created_at: new Date('2026-01-01').toISOString() },
+  { id: '00000000-0000-0000-0001-000000000003', name: 'Invoice Issue', description: 'Billing errors, tax exempt status, or missing commercial invoices', is_active: true, created_at: new Date('2026-01-01').toISOString() },
+  { id: '00000000-0000-0000-0001-000000000004', name: 'Product Issue', description: 'Defective items, technical specifications, or quality assurance inquiries', is_active: true, created_at: new Date('2026-01-01').toISOString() },
+  { id: '00000000-0000-0000-0001-000000000005', name: 'Stock Availability', description: 'Product availability inquiries, backorder lead times, or stock restock dates', is_active: true, created_at: new Date('2026-01-01').toISOString() },
+  { id: '00000000-0000-0000-0001-000000000006', name: 'Payment Issue', description: 'Payment gateway failures, wire transfer confirmations, or credit terms', is_active: true, created_at: new Date('2026-01-01').toISOString() },
+  { id: '00000000-0000-0000-0001-000000000007', name: 'Customer Information', description: 'Account contact details, address updates, or tax exemption status', is_active: true, created_at: new Date('2026-01-01').toISOString() },
+  { id: '00000000-0000-0000-0001-000000000008', name: 'General Inquiry', description: 'General business inquiries, catalog requests, or support shift info', is_active: true, created_at: new Date('2026-01-01').toISOString() },
+  { id: '00000000-0000-0000-0001-000000000009', name: 'Other', description: 'Uncategorized customer tickets requiring agent evaluation', is_active: true, created_at: new Date('2026-01-01').toISOString() },
 ];
 
 // Initial Customer Queries Seed Data
 export const SEED_QUERIES: CustomerQuery[] = [
   {
-    id: 'qry-10000000-0000-0000-0000-000000000001',
+    id: '00000000-0000-0000-0006-000000000001',
     query_number: 'QRY-000001',
     customer_id: '10000000-0000-0000-0000-000000000001',
     subject: 'Urgent Delivery Status for Hydraulic Degreaser Order',
     description: 'Customer requested immediate delivery tracking for order ORD-000001. Carrier shipment appears delayed near Chicago hub.',
-    category_id: 'cat-0002-0000-0000-000000000002',
+    category_id: '00000000-0000-0000-0001-000000000002',
     priority: 'high',
     status: 'in_progress',
     assigned_to: 'c3333333-3333-3333-3333-333333333333',
@@ -260,13 +260,13 @@ export const SEED_QUERIES: CustomerQuery[] = [
     internal_notes: 'Contacted carrier logistics manager. Rescheduled delivery for tomorrow morning shift.',
   },
   {
-    id: 'qry-10000000-0000-0000-0000-000000000002',
+    id: '00000000-0000-0000-0006-000000000002',
     query_number: 'QRY-000002',
     customer_id: '10000000-0000-0000-0000-000000000002',
     subject: 'Availability Inquiry for Heavy Stretch Film 80G',
     description: 'Vanguard Freight wants to place a bulk order of 200 rolls of PackGuard Heavy Stretch Film 80G. Product is marked Out of Stock.',
-    category_id: 'cat-0005-0000-0000-000000000005',
-    product_id: 'prod-0002-0000-0000-000000000002',
+    category_id: '00000000-0000-0000-0001-000000000005',
+    product_id: '00000000-0000-0000-0004-000000000002',
     priority: 'urgent',
     status: 'waiting_customer',
     assigned_to: 'c3333333-3333-3333-3333-333333333333',
@@ -284,13 +284,13 @@ export const SEED_QUERIES: CustomerQuery[] = [
     internal_notes: 'Notified customer that supplier resin shortage is resolving. Expected availability date sent.',
   },
   {
-    id: 'qry-10000000-0000-0000-0000-000000000003',
+    id: '00000000-0000-0000-0006-000000000003',
     query_number: 'QRY-000003',
     customer_id: '10000000-0000-0000-0000-000000000003',
     subject: 'Sterile Glove Certificate of Compliance',
     description: 'Horizon Healthcare requested formal QA compliance documentation for SafeShield Nitrile Gloves.',
-    category_id: 'cat-0004-0000-0000-000000000004',
-    product_id: 'prod-0003-0000-0000-000000000003',
+    category_id: '00000000-0000-0000-0001-000000000004',
+    product_id: '00000000-0000-0000-0004-000000000003',
     priority: 'medium',
     status: 'resolved',
     assigned_to: 'c3333333-3333-3333-3333-333333333333',
@@ -311,8 +311,8 @@ export const SEED_QUERIES: CustomerQuery[] = [
 
 export const SEED_ACTIVITIES: QueryActivity[] = [
   {
-    id: 'act-1',
-    query_id: 'qry-10000000-0000-0000-0000-000000000001',
+    id: '00000000-0000-0000-0014-000000000001',
+    query_id: '00000000-0000-0000-0006-000000000001',
     event_type: 'query_created',
     previous_value: null,
     new_value: 'open',
@@ -321,8 +321,8 @@ export const SEED_ACTIVITIES: QueryActivity[] = [
     created_at: new Date(Date.now() - 3600000 * 24 * 3).toISOString(),
   },
   {
-    id: 'act-2',
-    query_id: 'qry-10000000-0000-0000-0000-000000000001',
+    id: '00000000-0000-0000-0014-000000000002',
+    query_id: '00000000-0000-0000-0006-000000000001',
     event_type: 'status_change',
     previous_value: 'open',
     new_value: 'in_progress',
@@ -334,8 +334,8 @@ export const SEED_ACTIVITIES: QueryActivity[] = [
 
 export const SEED_NOTES: QueryInternalNote[] = [
   {
-    id: 'note-1',
-    query_id: 'qry-10000000-0000-0000-0000-000000000001',
+    id: '00000000-0000-0000-0015-000000000001',
+    query_id: '00000000-0000-0000-0006-000000000001',
     note: 'Initial carrier contact established with Chicago dispatch terminal manager.',
     author_id: 'c3333333-3333-3333-3333-333333333333',
     created_at: new Date(Date.now() - 3600000 * 24 * 2).toISOString(),
@@ -344,7 +344,7 @@ export const SEED_NOTES: QueryInternalNote[] = [
 
 export const SEED_NOTIFICATIONS: CRMNotification[] = [
   {
-    id: 'notif-1',
+    id: '00000000-0000-0000-0016-000000000001',
     recipient_user_id: 'c3333333-3333-3333-3333-333333333333',
     user_id: 'c3333333-3333-3333-3333-333333333333',
     actor_user_id: 'a1111111-1111-1111-1111-111111111111',
@@ -352,15 +352,15 @@ export const SEED_NOTIFICATIONS: CRMNotification[] = [
     title: '🎫 Support Ticket Assigned',
     message: 'Query QRY-000001 for Apex Industrial Logistics has been assigned to your support queue. Priority: HIGH',
     entity_type: 'query',
-    entity_id: 'qry-10000000-0000-0000-0000-000000000001',
+    entity_id: '00000000-0000-0000-0006-000000000001',
     priority: 'high',
-    link_path: '/queries/qry-10000000-0000-0000-0000-000000000001',
+    link_path: '/queries/00000000-0000-0000-0006-000000000001',
     is_read: false,
     read_at: null,
     created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
   },
   {
-    id: 'notif-2',
+    id: '00000000-0000-0000-0016-000000000002',
     recipient_user_id: 'b2222222-2222-2222-2222-222222222222',
     user_id: 'b2222222-2222-2222-2222-222222222222',
     actor_user_id: 'a1111111-1111-1111-1111-111111111111',
@@ -368,50 +368,18 @@ export const SEED_NOTIFICATIONS: CRMNotification[] = [
     title: '🔴 Product Out of Stock Alert',
     message: 'Product PKG-FILM-80G (PackGuard Heavy Stretch Film) is now OUT OF STOCK. Reason: Resupply resin delay.',
     entity_type: 'product',
-    entity_id: 'prod-0002-0000-0000-000000000002',
+    entity_id: '00000000-0000-0000-0004-000000000002',
     priority: 'high',
-    link_path: '/products/prod-0002-0000-0000-000000000002',
+    link_path: '/products/00000000-0000-0000-0004-000000000002',
     is_read: false,
     read_at: null,
     created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-  },
-  {
-    id: 'notif-3',
-    recipient_user_id: 'c3333333-3333-3333-3333-333333333333',
-    user_id: 'c3333333-3333-3333-3333-333333333333',
-    actor_user_id: 'a1111111-1111-1111-1111-111111111111',
-    notification_type: 'query.urgent_created',
-    title: '🔴 URGENT Support Ticket Created',
-    message: 'Urgent Ticket QRY-000002 created for Titan Manufacturing: "Freight damage on pallet delivery"',
-    entity_type: 'query',
-    entity_id: 'qry-10000000-0000-0000-0000-000000000002',
-    priority: 'urgent',
-    link_path: '/queries/qry-10000000-0000-0000-0000-000000000002',
-    is_read: false,
-    read_at: null,
-    created_at: new Date(Date.now() - 3600000 * 1).toISOString(),
-  },
-  {
-    id: 'notif-4',
-    recipient_user_id: 'b2222222-2222-2222-2222-222222222222',
-    user_id: 'b2222222-2222-2222-2222-222222222222',
-    actor_user_id: 'a1111111-1111-1111-1111-111111111111',
-    notification_type: 'order.status_changed',
-    title: '🚚 Order Waiting for Freight Dispatch',
-    message: 'Order ORD-000001 (Apex Industrial Logistics) is invoiced and awaiting dispatch.',
-    entity_type: 'order',
-    entity_id: 'ord-10000000-0000-0000-0000-000000000001',
-    priority: 'high',
-    link_path: '/orders/ord-10000000-0000-0000-0000-000000000001',
-    is_read: false,
-    read_at: null,
-    created_at: new Date(Date.now() - 3600000 * 3).toISOString(),
   },
 ];
 
 export const SEED_ORDERS: Order[] = [
   {
-    id: 'ord-10000000-0000-0000-0000-000000000001',
+    id: '00000000-0000-0000-0005-000000000001',
     order_number: 'ORD-000001',
     customer_id: '10000000-0000-0000-0000-000000000001',
     sales_agent_id: 'b2222222-2222-2222-2222-222222222222',
@@ -438,7 +406,7 @@ export const SEED_ORDERS: Order[] = [
     cancelled_by: null,
   },
   {
-    id: 'ord-10000000-0000-0000-0000-000000000002',
+    id: '00000000-0000-0000-0005-000000000002',
     order_number: 'ORD-000002',
     customer_id: '10000000-0000-0000-0000-000000000002',
     sales_agent_id: 'b2222222-2222-2222-2222-222222222222',
@@ -465,7 +433,7 @@ export const SEED_ORDERS: Order[] = [
     cancelled_by: null,
   },
   {
-    id: 'ord-10000000-0000-0000-0000-000000000003',
+    id: '00000000-0000-0000-0005-000000000003',
     order_number: 'ORD-000003',
     customer_id: '10000000-0000-0000-0000-000000000003',
     sales_agent_id: 'a1111111-1111-1111-1111-111111111111',
@@ -492,7 +460,7 @@ export const SEED_ORDERS: Order[] = [
     cancelled_by: null,
   },
   {
-    id: 'ord-10000000-0000-0000-0000-000000000004',
+    id: '00000000-0000-0000-0005-000000000004',
     order_number: 'ORD-000004',
     customer_id: '10000000-0000-0000-0000-000000000004',
     sales_agent_id: 'b2222222-2222-2222-2222-222222222222',
@@ -522,9 +490,9 @@ export const SEED_ORDERS: Order[] = [
 
 export const SEED_ORDER_ITEMS: OrderItem[] = [
   {
-    id: 'item-1',
-    order_id: 'ord-10000000-0000-0000-0000-000000000001',
-    product_id: 'prod-0001-0000-0000-000000000001',
+    id: '00000000-0000-0000-0007-000000000001',
+    order_id: '00000000-0000-0000-0005-000000000001',
+    product_id: '00000000-0000-0000-0004-000000000001',
     product_name_snapshot: 'ProClean Heavy-Duty Degreaser 5Gal',
     sku_snapshot: 'IND-CLEAN-500',
     quantity: 10,
@@ -537,9 +505,9 @@ export const SEED_ORDER_ITEMS: OrderItem[] = [
     updated_at: new Date(Date.now() - 3600000 * 24 * 4).toISOString(),
   },
   {
-    id: 'item-2',
-    order_id: 'ord-10000000-0000-0000-0000-000000000002',
-    product_id: 'prod-0002-0000-0000-000000000002',
+    id: '00000000-0000-0000-0007-000000000002',
+    order_id: '00000000-0000-0000-0005-000000000002',
+    product_id: '00000000-0000-0000-0004-000000000002',
     product_name_snapshot: 'PackGuard Heavy Stretch Film 80 Gauge',
     sku_snapshot: 'PKG-FILM-80G',
     quantity: 40,
@@ -555,8 +523,8 @@ export const SEED_ORDER_ITEMS: OrderItem[] = [
 
 export const SEED_ORDER_HISTORY: OrderStatusHistory[] = [
   {
-    id: 'oh-1',
-    order_id: 'ord-10000000-0000-0000-0000-000000000001',
+    id: '00000000-0000-0000-0008-000000000001',
+    order_id: '00000000-0000-0000-0005-000000000001',
     previous_status: null,
     new_status: 'order_received',
     action: 'Order Received',
@@ -568,8 +536,8 @@ export const SEED_ORDER_HISTORY: OrderStatusHistory[] = [
 
 export const SEED_ORDER_DOCUMENTS: OrderDocument[] = [
   {
-    id: 'doc-1',
-    order_id: 'ord-10000000-0000-0000-0000-000000000001',
+    id: '00000000-0000-0000-0009-000000000001',
+    order_id: '00000000-0000-0000-0005-000000000001',
     document_type: 'sales_order',
     file_name: 'Sales_Order_ORD-000001.pdf',
     file_path: '/documents/ORD-000001/Sales_Order_ORD-000001.pdf',
@@ -580,27 +548,27 @@ export const SEED_ORDER_DOCUMENTS: OrderDocument[] = [
 
 // --- Step 5: Product Categories, Brands, Products, & Availability History Seed Datasets ---
 export const SEED_PRODUCT_CATEGORIES: ProductCategory[] = [
-  { id: 'pcat-0001-0000-0000-000000000001', name: 'Industrial Cleaners', description: 'Heavy-duty degreasers, solvent cleaners, and surface sanitizers', is_active: true, created_at: new Date('2026-01-01').toISOString() },
-  { id: 'pcat-0002-0000-0000-000000000002', name: 'Packaging Supplies', description: 'Corrugated boxes, stretch film, sealing tape, and strapping', is_active: true, created_at: new Date('2026-01-01').toISOString() },
-  { id: 'pcat-0003-0000-0000-000000000003', name: 'Safety & PPE', description: 'Protective gloves, respirators, eye protection, and safety vests', is_active: true, created_at: new Date('2026-01-01').toISOString() },
-  { id: 'pcat-0004-0000-0000-000000000004', name: 'Warehouse Equipment', description: 'Pallet jacks, storage bins, shelving units, and hand trucks', is_active: true, created_at: new Date('2026-01-01').toISOString() },
+  { id: '00000000-0000-0000-0002-000000000001', name: 'Industrial Cleaners', description: 'Heavy-duty degreasers, solvent cleaners, and surface sanitizers', is_active: true, created_at: new Date('2026-01-01').toISOString() },
+  { id: '00000000-0000-0000-0002-000000000002', name: 'Packaging Supplies', description: 'Corrugated boxes, stretch film, sealing tape, and strapping', is_active: true, created_at: new Date('2026-01-01').toISOString() },
+  { id: '00000000-0000-0000-0002-000000000003', name: 'Safety & PPE', description: 'Protective gloves, respirators, eye protection, and safety vests', is_active: true, created_at: new Date('2026-01-01').toISOString() },
+  { id: '00000000-0000-0000-0002-000000000004', name: 'Warehouse Equipment', description: 'Pallet jacks, storage bins, shelving units, and hand trucks', is_active: true, created_at: new Date('2026-01-01').toISOString() },
 ];
 
 export const SEED_PRODUCT_BRANDS: ProductBrand[] = [
-  { id: 'pbrd-0001-0000-0000-000000000001', name: 'J&T ProClean', description: 'Premium industrial cleaning solutions', is_active: true, created_at: new Date('2026-01-01').toISOString() },
-  { id: 'pbrd-0002-0000-0000-000000000002', name: 'PackGuard', description: 'Heavy-duty commercial packaging products', is_active: true, created_at: new Date('2026-01-01').toISOString() },
-  { id: 'pbrd-0003-0000-0000-000000000003', name: 'SafeShield', description: 'Certified personal protective equipment', is_active: true, created_at: new Date('2026-01-01').toISOString() },
-  { id: 'pbrd-0004-0000-0000-000000000004', name: 'DuraLift', description: 'Industrial warehouse machinery and storage accessories', is_active: true, created_at: new Date('2026-01-01').toISOString() },
+  { id: '00000000-0000-0000-0003-000000000001', name: 'J&T ProClean', description: 'Premium industrial cleaning solutions', is_active: true, created_at: new Date('2026-01-01').toISOString() },
+  { id: '00000000-0000-0000-0003-000000000002', name: 'PackGuard', description: 'Heavy-duty commercial packaging products', is_active: true, created_at: new Date('2026-01-01').toISOString() },
+  { id: '00000000-0000-0000-0003-000000000003', name: 'SafeShield', description: 'Certified personal protective equipment', is_active: true, created_at: new Date('2026-01-01').toISOString() },
+  { id: '00000000-0000-0000-0003-000000000004', name: 'DuraLift', description: 'Industrial warehouse machinery and storage accessories', is_active: true, created_at: new Date('2026-01-01').toISOString() },
 ];
 
 export const SEED_PRODUCTS: Product[] = [
   {
-    id: 'prod-0001-0000-0000-000000000001',
+    id: '00000000-0000-0000-0004-000000000001',
     sku: 'IND-CLEAN-500',
     product_name: 'ProClean Heavy-Duty Degreaser 5Gal',
     description: 'Concentrated solvent degreaser suitable for heavy machinery and shop floors.',
-    category_id: 'pcat-0001-0000-0000-000000000001',
-    brand_id: 'pbrd-0001-0000-0000-000000000001',
+    category_id: '00000000-0000-0000-0002-000000000001',
+    brand_id: '00000000-0000-0000-0003-000000000001',
     unit_price: 145.00,
     availability_status: 'available',
     availability_notes: 'In stock and ready for distributor shipping.',
@@ -612,12 +580,12 @@ export const SEED_PRODUCTS: Product[] = [
     updated_at: new Date('2026-01-10').toISOString(),
   },
   {
-    id: 'prod-0002-0000-0000-000000000002',
+    id: '00000000-0000-0000-0004-000000000002',
     sku: 'PKG-FILM-80G',
     product_name: 'PackGuard Heavy Stretch Film 80 Gauge',
     description: 'High-clarity pallet wrapping film with high puncture resistance.',
-    category_id: 'pcat-0002-0000-0000-000000000002',
-    brand_id: 'pbrd-0002-0000-0000-000000000002',
+    category_id: '00000000-0000-0000-0002-000000000002',
+    brand_id: '00000000-0000-0000-0003-000000000002',
     unit_price: 65.00,
     availability_status: 'out_of_stock',
     availability_notes: 'Raw chemical resin shortage from main supplier. Resupply shipment scheduled.',
@@ -629,12 +597,12 @@ export const SEED_PRODUCTS: Product[] = [
     updated_at: new Date(Date.now() - 3600000 * 5).toISOString(),
   },
   {
-    id: 'prod-0003-0000-0000-000000000003',
+    id: '00000000-0000-0000-0004-000000000003',
     sku: 'PPE-GLOVE-NIT-L',
     product_name: 'SafeShield Nitrile Gloves Powder-Free (Box 100)',
     description: 'Medical grade 5-mil powder-free nitrile examination gloves.',
-    category_id: 'pcat-0003-0000-0000-000000000003',
-    brand_id: 'pbrd-0003-0000-0000-000000000003',
+    category_id: '00000000-0000-0000-0002-000000000003',
+    brand_id: '00000000-0000-0000-0003-000000000003',
     unit_price: 22.50,
     availability_status: 'available',
     availability_notes: 'Fully available across main distribution network.',
@@ -646,12 +614,12 @@ export const SEED_PRODUCTS: Product[] = [
     updated_at: new Date('2026-02-01').toISOString(),
   },
   {
-    id: 'prod-0004-0000-0000-000000000004',
+    id: '00000000-0000-0000-0004-000000000004',
     sku: 'WHS-JACK-5500',
     product_name: 'DuraLift Hydraulic Pallet Jack 5500 lbs',
     description: 'Heavy-duty steel frame hydraulic pallet jack with polyurethane wheels.',
-    category_id: 'pcat-0004-0000-0000-000000000004',
-    brand_id: 'pbrd-0004-0000-0000-000000000004',
+    category_id: '00000000-0000-0000-0002-000000000004',
+    brand_id: '00000000-0000-0000-0003-000000000004',
     unit_price: 480.00,
     availability_status: 'out_of_stock',
     availability_notes: 'Factory line overhaul. Lead time approximately 2 weeks.',
@@ -663,12 +631,12 @@ export const SEED_PRODUCTS: Product[] = [
     updated_at: new Date(Date.now() - 3600000 * 24 * 2).toISOString(),
   },
   {
-    id: 'prod-0005-0000-0000-000000000005',
+    id: '00000000-0000-0000-0004-000000000005',
     sku: 'IND-SAN-100',
     product_name: 'ProClean Surface Sanitizer Wipes 500ct',
     description: 'Hospital-grade surface disinfectant wipes.',
-    category_id: 'pcat-0001-0000-0000-000000000001',
-    brand_id: 'pbrd-0001-0000-0000-000000000001',
+    category_id: '00000000-0000-0000-0002-000000000001',
+    brand_id: '00000000-0000-0000-0003-000000000001',
     unit_price: 38.00,
     availability_status: 'discontinued',
     availability_notes: 'Product replaced by IND-SAN-200 series.',
@@ -683,8 +651,8 @@ export const SEED_PRODUCTS: Product[] = [
 
 export const SEED_PRODUCT_HISTORY: ProductAvailabilityHistory[] = [
   {
-    id: 'phist-1',
-    product_id: 'prod-0002-0000-0000-000000000002',
+    id: '00000000-0000-0000-0010-000000000001',
+    product_id: '00000000-0000-0000-0004-000000000002',
     previous_status: 'available',
     new_status: 'out_of_stock',
     reason: 'Raw chemical resin shortage from main supplier. Resupply shipment scheduled.',
@@ -693,8 +661,8 @@ export const SEED_PRODUCT_HISTORY: ProductAvailabilityHistory[] = [
     changed_at: new Date(Date.now() - 3600000 * 5).toISOString(),
   },
   {
-    id: 'phist-2',
-    product_id: 'prod-0004-0000-0000-000000000004',
+    id: '00000000-0000-0000-0010-000000000002',
+    product_id: '00000000-0000-0000-0004-000000000004',
     previous_status: 'available',
     new_status: 'out_of_stock',
     reason: 'Factory line overhaul. Lead time approximately 2 weeks.',
@@ -706,7 +674,7 @@ export const SEED_PRODUCT_HISTORY: ProductAvailabilityHistory[] = [
 
 export const SEED_SHIFTS: Shift[] = [
   {
-    id: 'shift-1001',
+    id: '00000000-0000-0000-0011-000000000001',
     team_id: '11111111-1111-1111-1111-111111111111',
     shift_date: new Date().toISOString().split('T')[0],
     start_time: '15:00',
@@ -718,7 +686,7 @@ export const SEED_SHIFTS: Shift[] = [
     updated_at: new Date(Date.now() - 3600000 * 4).toISOString(),
   },
   {
-    id: 'shift-1002',
+    id: '00000000-0000-0000-0011-000000000002',
     team_id: '22222222-2222-2222-2222-222222222222',
     shift_date: new Date().toISOString().split('T')[0],
     start_time: '12:00',
@@ -733,8 +701,8 @@ export const SEED_SHIFTS: Shift[] = [
 
 export const SEED_HANDOVERS: ShiftHandover[] = [
   {
-    id: 'handover-2001',
-    shift_id: 'shift-1001',
+    id: '00000000-0000-0000-0012-000000000001',
+    shift_id: '00000000-0000-0000-0011-000000000001',
     outgoing_team_id: '11111111-1111-1111-1111-111111111111',
     incoming_team_id: '22222222-2222-2222-2222-222222222222',
     summary: 'Busy operational shift. Order fulfillment and inquiry handovers processed smoothly.',

@@ -30,6 +30,7 @@ export const Header: React.FC = () => {
   const [connState, setConnState] = useState<SupabaseConnectionState>(() => getSupabaseConnectionState());
   const [connError, setConnError] = useState<string | null>(() => getLastConnectionError());
   const [connHost, setConnHost] = useState<string | null>(() => getSupabaseConfig().host);
+  const [connKeyPrefix, setConnKeyPrefix] = useState<string>(() => getSupabaseConfig().keyPrefix);
 
   // Monitor Supabase reachability so the app never silently runs on seed data.
   useEffect(() => {
@@ -37,6 +38,7 @@ export const Header: React.FC = () => {
       setConnState(state);
       setConnError(getLastConnectionError());
       setConnHost(getSupabaseConfig().host);
+      setConnKeyPrefix(getSupabaseConfig().keyPrefix);
     });
     checkSupabaseConnection().then((state) => {
       setConnState(state);
@@ -186,7 +188,7 @@ export const Header: React.FC = () => {
           )}
           {connState === 'offline' && (
             <span
-              title={`Host: ${connHost || 'none'} — ${connError || 'cannot reach Supabase'}. Check the Supabase project status / Vercel env vars.`}
+              title={`Host: ${connHost || 'none'} — key prefix: ${connKeyPrefix || '(empty)'} — ${connError || 'cannot reach Supabase'}. Check the Supabase project status / Vercel env vars.`}
               className="hidden sm:flex items-center space-x-1.5 text-xs text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200"
             >
               <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />

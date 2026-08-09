@@ -119,13 +119,18 @@ let connectionState: SupabaseConnectionState = 'unknown';
 let lastConnectionError: string | null = null;
 const connectionListeners = new Set<(state: SupabaseConnectionState) => void>();
 
-/** Diagnostics for the UI: which host this build is pointed at and if keys exist. */
-export function getSupabaseConfig(): { host: string | null; configured: boolean; keyLength: number } {
+/** Diagnostics for the UI: which host this build is pointed at and the key prefix in use. */
+export function getSupabaseConfig(): {
+  host: string | null;
+  configured: boolean;
+  keyPrefix: string;
+} {
   let host: string | null = null;
   try {
     if (supabaseUrl) host = new URL(supabaseUrl).host;
   } catch {}
-  return { host, configured: !!supabase, keyLength: supabaseAnonKey.length };
+  const keyPrefix = supabaseAnonKey.length > 12 ? supabaseAnonKey.slice(0, 12) : supabaseAnonKey;
+  return { host, configured: !!supabase, keyPrefix };
 }
 
 export function getSupabaseConnectionState(): SupabaseConnectionState {

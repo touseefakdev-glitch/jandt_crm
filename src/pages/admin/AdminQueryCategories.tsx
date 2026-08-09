@@ -1,8 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { localDb } from '../../services/db';
-import { QueryCategory, CategoryFormInput } from '../../types';
-import { Tag, Plus, Edit, CheckCircle2, XCircle, X } from 'lucide-react';
+import { QueryCategory } from '../../types';
+import { Tag, Plus } from 'lucide-react';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Button } from '../../components/ui/Button';
+import { Card } from '../../components/ui/Card';
+import { Table, THead, TBody, Tr, Th, Td } from '../../components/ui/Table';
+import { Badge } from '../../components/ui/Badge';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Modal } from '../../components/ui/Modal';
+import { Input } from '../../components/ui/Input';
+import { Textarea } from '../../components/ui/Textarea';
 
 export const AdminQueryCategories: React.FC = () => {
   const { user } = useAuth();
@@ -13,6 +22,7 @@ export const AdminQueryCategories: React.FC = () => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isActive, setIsActive] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const categories = useMemo(() => localDb.getCategories(), [refreshKey]);
   const queries = useMemo(() => localDb.getQueries(), [refreshKey]);
@@ -31,12 +41,16 @@ export const AdminQueryCategories: React.FC = () => {
       setDescription('');
       setIsActive(true);
     }
+    setError(null);
     setIsModalOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      setError('Category name is required.');
+      return;
+    }
 
     if (editingCategory) {
       localDb.updateQueryCategory(editingCategory.id, { name: name.trim(), description: description.trim(), is_active: isActive }, user.id);
@@ -55,150 +69,162 @@ export const AdminQueryCategories: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      
-      {/* Header Banner */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Support Query Categories</h2>
-          <p className="text-xs text-slate-500">Manage issue categories for support ticket classification and reporting</p>
-        </div>
+      <PageHeader
+        title="Support Query Categories"
+        description="Manage issue categories for support ticket classification and reporting"
+        icon={<Tag className="w-5 h-5 text-white" />}
+        iconBg="bg-slate-900"
+        actions={
+          <Button variant="secondary" icon={<Plus className="w-4 h-4 text-sky-400" />} onClick={() => handleOpenModal()}>
+            Add Query Category
+          </Button>
+        }
+      />
 
-        <button
-          onClick={() => handleOpenModal()}
-          className="inline-flex items-center px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors space-x-1.5 shrink-0"
-        >
-          <Plus className="w-4 h-4 text-sky-400" />
-          <span>Add Query Category</span>
-        </button>
-      </div>
-
-      {/* Categories Data Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-700">
-            <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500 border-b border-slate-200">
-              <tr>
-                <th className="px-5 py-3.5">Category Name</th>
-                <th className="px-5 py-3.5">Description</th>
-                <th className="px-5 py-3.5">Linked Queries</th>
-                <th className="px-5 py-3.5">Status</th>
-                <th className="px-5 py-3.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 text-xs">
-              {categories.map((cat) => {
+      <Card>
+        <Table>
+          <THead>
+            <Tr hover={false}>
+              <Th>Category Name</Th>
+              <Th>Description</Th>
+              <Th>Linked Queries</Th>
+              <Th>Status</Th>
+              <Th className="text-right">Actions</Th>
+            </Tr>
+          </THead>
+          <TBody>
+            {categories.length > 0 ? (
+              categories.map((cat) => {
                 const queryCount = queries.filter(q => q.category_id === cat.id).length;
                 return (
-                  <tr key={cat.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-5 py-3.5 font-bold text-slate-900 flex items-center space-x-2">
-                      <Tag className="w-4 h-4 text-sky-600 shrink-0" />
-                      <span>{cat.name}</span>
-                    </td>
-                    <td className="px-5 py-3.5 text-slate-600 max-w-xs">
-                      {cat.description || <span className="italic text-slate-400">No description</span>}
-                    </td>
-                    <td className="px-5 py-3.5 font-bold text-slate-900 font-mono">
-                      {queryCount} ticket(s)
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                        cat.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {cat.is_active ? 'Active' : 'Inactive'}
+                  <Tr key={cat.id}>
+                    <Td>
+                      <span className="inline-flex items-center gap-2 font-bold text-slate-900">
+                        <Tag className="w-4 h-4 text-sky-600 shrink-0" />
+                        {cat.name}
                       </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-right space-x-2">
-                      <button
-                        onClick={() => handleOpenModal(cat)}
-                        className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded text-[11px] border border-slate-300"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleToggleStatus(cat)}
-                        className={`px-2.5 py-1 font-semibold rounded text-[11px] ${
-                          cat.is_active ? 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
-                        }`}
-                      >
-                        {cat.is_active ? 'Deactivate' : 'Activate'}
-                      </button>
-                    </td>
-                  </tr>
+                    </Td>
+                    <Td className="text-slate-600 max-w-xs whitespace-normal">
+                      {cat.description || <span className="italic text-slate-400">No description</span>}
+                    </Td>
+                    <Td className="font-bold text-slate-900 font-mono">{queryCount} ticket(s)</Td>
+                    <Td>
+                      {cat.is_active ? (
+                        <Badge
+                          badge={{
+                            subtle: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+                            solid: 'bg-emerald-600 text-white',
+                            dot: 'bg-emerald-500',
+                            label: 'Active',
+                          }}
+                        />
+                      ) : (
+                        <Badge
+                          badge={{
+                            subtle: 'bg-red-50 text-red-700 ring-red-200',
+                            solid: 'bg-red-600 text-white',
+                            dot: 'bg-red-500',
+                            label: 'Inactive',
+                          }}
+                        />
+                      )}
+                    </Td>
+                    <Td className="text-right whitespace-nowrap">
+                      <div className="inline-flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleOpenModal(cat)}>
+                          Edit
+                        </Button>
+                        <Button
+                          variant={cat.is_active ? 'ghost' : 'ghost'}
+                          size="sm"
+                          className={cat.is_active ? 'text-red-600 hover:bg-red-50' : 'text-emerald-600 hover:bg-emerald-50'}
+                          onClick={() => handleToggleStatus(cat)}
+                        >
+                          {cat.is_active ? 'Deactivate' : 'Activate'}
+                        </Button>
+                      </div>
+                    </Td>
+                  </Tr>
                 );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+              })
+            ) : (
+              <Tr hover={false}>
+                <Td colSpan={5} className="p-0">
+                  <EmptyState
+                    icon={<Tag className="w-6 h-6" />}
+                    title="No query categories"
+                    description="Add your first query category to classify support tickets."
+                    action={
+                      <Button variant="secondary" size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => handleOpenModal()}>
+                        Add Query Category
+                      </Button>
+                    }
+                  />
+                </Td>
+              </Tr>
+            )}
+          </TBody>
+        </Table>
+      </Card>
 
-      {/* Category Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full border border-slate-200 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="font-bold text-slate-900 text-base">
-                {editingCategory ? 'Edit Query Category' : 'Add Query Category'}
-              </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-900">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-              <div>
-                <label className="block font-bold text-slate-700 uppercase mb-1">Category Name *</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Order Delivery, Invoice Query"
-                  className="w-full p-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 uppercase mb-1">Description</label>
-                <textarea
-                  rows={2}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe when this category should be selected..."
-                  className="w-full p-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
-                />
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="catActive"
-                  checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
-                  className="w-4 h-4 text-sky-600 rounded"
-                />
-                <label htmlFor="catActive" className="font-semibold text-slate-800">Category Active</label>
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg shadow-xs"
-                >
-                  Save Category
-                </button>
-              </div>
-            </form>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        size="sm"
+        title={editingCategory ? 'Edit Query Category' : 'Add Query Category'}
+        subtitle="Used for support ticket classification and reporting"
+        icon={
+          <div className="w-10 h-10 bg-brand-50 text-brand-600 rounded-xl flex items-center justify-center">
+            <Tag className="w-5 h-5" />
           </div>
-        </div>
-      )}
+        }
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            label={
+              <>
+                Category Name <span className="text-red-500">*</span>
+              </>
+            }
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Order Delivery, Invoice Query"
+            error={error}
+            required
+          />
 
+          <Textarea
+            label="Description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe when this category should be selected..."
+            rows={2}
+            className="resize-none min-h-[64px]"
+          />
+
+          <div className="flex items-center gap-2.5">
+            <input
+              type="checkbox"
+              id="catActive"
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
+              className="w-4 h-4 text-brand-600 rounded focus:ring-brand-500 border-slate-300"
+            />
+            <label htmlFor="catActive" className="text-sm font-medium text-slate-800">
+              Category Active
+            </label>
+          </div>
+
+          <div className="pt-2 flex justify-end gap-3">
+            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="secondary">
+              Save Category
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

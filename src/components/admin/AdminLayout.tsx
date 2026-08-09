@@ -1,18 +1,21 @@
 import React from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { 
-  ShieldCheck, 
-  LayoutDashboard, 
-  Users, 
-  UsersRound, 
-  ShieldAlert, 
-  Tag, 
-  Package, 
-  Bookmark, 
-  Clock, 
-  Settings, 
-  FileText 
+import {
+  ShieldCheck,
+  LayoutDashboard,
+  Users,
+  UsersRound,
+  ShieldAlert,
+  Tag,
+  Package,
+  Bookmark,
+  Clock,
+  Settings,
+  FileText,
 } from 'lucide-react';
+import { PageHeader } from '../ui/PageHeader';
+import { Badge } from '../ui/Badge';
+import { cn } from '../../utils/cn';
 
 export const AdminLayout: React.FC = () => {
   const location = useLocation();
@@ -39,28 +42,27 @@ export const AdminLayout: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      
-      {/* Top Banner Header */}
-      <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4 border border-slate-800">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-sky-500/20 border border-sky-400/30 rounded-xl flex items-center justify-center text-sky-400 shadow-xs">
+      <PageHeader
+        title="Admin Control Center"
+        description="Centralized user management, role permissions, operational teams, shift schedules, taxonomies, and immutable audit logs"
+        icon={
+          <div className="w-10 h-10 bg-sky-500/20 border border-sky-400/30 rounded-xl flex items-center justify-center text-sky-400">
             <ShieldCheck className="w-6 h-6" />
           </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <h1 className="text-2xl font-extrabold tracking-tight">Admin Control Center</h1>
-              <span className="bg-purple-950 text-purple-300 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded border border-purple-800/60">
-                System Admin Access
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Centralized user management, role permissions, operational teams, shift schedules, taxonomies, and immutable audit logs
-            </p>
-          </div>
-        </div>
-      </div>
+        }
+        iconBg="bg-slate-900"
+        badges={
+          <Badge
+            badge={{
+              subtle: 'bg-purple-50 text-purple-700 ring-purple-200',
+              solid: 'bg-purple-600 text-white',
+              dot: 'bg-purple-500',
+              label: 'System Admin Access',
+            }}
+          />
+        }
+      />
 
-      {/* Admin Navigation Tabs Bar */}
       <div className="bg-white rounded-xl p-2 border border-slate-200 shadow-sm overflow-x-auto">
         <div className="flex items-center space-x-1 min-w-max">
           {adminNavTabs.map((tab) => {
@@ -70,13 +72,12 @@ export const AdminLayout: React.FC = () => {
               <NavLink
                 key={tab.path}
                 to={tab.path}
-                className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
-                  active
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                }`}
+                className={cn(
+                  'px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5',
+                  active ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                )}
               >
-                <Icon className={`w-3.5 h-3.5 ${active ? 'text-sky-400' : 'text-slate-400'}`} />
+                <Icon className={cn('w-3.5 h-3.5', active ? 'text-sky-400' : 'text-slate-400')} />
                 <span>{tab.label}</span>
               </NavLink>
             );
@@ -84,11 +85,9 @@ export const AdminLayout: React.FC = () => {
         </div>
       </div>
 
-      {/* Sub-page Content Outlet */}
       <div>
         <Outlet />
       </div>
-
     </div>
   );
 };

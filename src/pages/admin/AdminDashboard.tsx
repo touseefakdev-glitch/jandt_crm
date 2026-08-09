@@ -1,27 +1,21 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { localDb } from '../../services/db';
-import { 
-  Users, 
-  UserCheck, 
-  UserX, 
-  HelpCircle, 
-  AlertCircle, 
-  CheckCircle2, 
-  ShoppingBag, 
-  FileText, 
-  Truck, 
-  CheckSquare, 
-  Package, 
-  AlertTriangle, 
-  Clock, 
-  Bell, 
-  Plus, 
-  ArrowRight,
+import {
+  Users,
+  Plus,
+  HelpCircle,
+  ShoppingBag,
+  Package,
+  Clock,
   ShieldCheck,
-  Building2,
-  Bookmark
+  Bookmark,
+  FileText,
+  ArrowRight,
 } from 'lucide-react';
+import { Card, CardHeader, CardBody } from '../../components/ui/Card';
+import { Badge } from '../../components/ui/Badge';
+import { getHandoverStatusBadge } from '../../utils/badges';
 
 export const AdminDashboard: React.FC = () => {
   const users = useMemo(() => localDb.getUsers(), []);
@@ -30,6 +24,7 @@ export const AdminDashboard: React.FC = () => {
   const products = useMemo(() => localDb.getProducts(), []);
   const outOfStockProducts = useMemo(() => localDb.getOutOfStockProducts(), []);
   const handovers = useMemo(() => localDb.getHandovers(), []);
+  const teams = useMemo(() => localDb.getTeams(), []);
   const systemSettings = useMemo(() => localDb.getSystemSettings(), []);
 
   // Calculate real database numbers
@@ -39,25 +34,44 @@ export const AdminDashboard: React.FC = () => {
 
   const openQueries = queries.filter(q => q.status !== 'closed' && q.status !== 'resolved').length;
   const urgentQueries = queries.filter(q => q.priority === 'urgent' && q.status !== 'closed' && q.status !== 'resolved').length;
-  const resolvedTodayQueries = queries.filter(q => q.status === 'resolved').length;
+  const resolvedQueries = queries.filter(q => q.status === 'resolved').length;
 
   const pendingOrders = orders.filter(o => o.current_status !== 'completed' && o.current_status !== 'cancelled').length;
   const awaitingInvoiceOrders = orders.filter(o => o.current_status === 'sales_order_done').length;
   const awaitingDispatchOrders = orders.filter(o => o.current_status === 'invoiced').length;
-  const completedTodayOrders = orders.filter(o => o.current_status === 'completed').length;
+  const completedOrders = orders.filter(o => o.current_status === 'completed').length;
 
   const totalActiveProducts = products.filter(p => p.availability_status === 'available').length;
   const outOfStockCount = outOfStockProducts.length;
 
   const latestHandover = handovers[0] || null;
+  const activeTeam = teams.find(t => t.is_active);
+
+  const metricCard = (title: string, icon: React.ReactNode, linkLabel: string, to: string, children: React.ReactNode) => (
+    <Card>
+      <CardHeader
+        title={title}
+        icon={icon}
+        actions={
+          <Link to={to} className="text-xs font-bold text-brand-600 hover:underline inline-flex items-center gap-0.5">
+            <span>{linkLabel}</span>
+            <ArrowRight className="w-3 h-3" />
+          </Link>
+        }
+      />
+      <CardBody>{children}</CardBody>
+    </Card>
+  );
 
   return (
     <div className="space-y-6">
-      
-      {/* Quick Action Buttons Bar */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-        <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-500">Admin Quick Actions</h3>
-        <div className="flex flex-wrap gap-2.5">
+      <Card>
+        <CardHeader
+          title="Admin Quick Actions"
+          subtitle="Jump to frequently used administration workflows"
+          icon={<ShieldCheck className="w-4 h-4" />}
+        />
+        <CardBody className="flex flex-wrap gap-2.5">
           <Link
             to="/admin/users"
             className="inline-flex items-center px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors space-x-1.5"
@@ -68,15 +82,15 @@ export const AdminDashboard: React.FC = () => {
 
           <Link
             to="/admin/teams"
-            className="inline-flex items-center px-3.5 py-2 bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors space-x-1.5"
+            className="inline-flex items-center px-3.5 py-2 bg-violet-700 hover:bg-violet-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors space-x-1.5"
           >
-            <Users className="w-4 h-4 text-purple-200" />
+            <Users className="w-4 h-4 text-violet-200" />
             <span>Manage Operational Teams</span>
           </Link>
 
           <Link
             to="/admin/query-categories"
-            className="inline-flex items-center px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs rounded-xl transition-colors space-x-1.5 border border-slate-300"
+            className="inline-flex items-center px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-800 font-semibold text-xs rounded-xl transition-colors space-x-1.5 border border-slate-300"
           >
             <Bookmark className="w-4 h-4 text-slate-600" />
             <span>Query & Product Taxonomies</span>
@@ -84,7 +98,7 @@ export const AdminDashboard: React.FC = () => {
 
           <Link
             to="/admin/settings"
-            className="inline-flex items-center px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs rounded-xl transition-colors space-x-1.5 border border-slate-300"
+            className="inline-flex items-center px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-800 font-semibold text-xs rounded-xl transition-colors space-x-1.5 border border-slate-300"
           >
             <ShieldCheck className="w-4 h-4 text-slate-600" />
             <span>System Configuration</span>
@@ -92,32 +106,20 @@ export const AdminDashboard: React.FC = () => {
 
           <Link
             to="/admin/audit-logs"
-            className="inline-flex items-center px-3.5 py-2 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors space-x-1.5"
+            className="inline-flex items-center px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors space-x-1.5"
           >
-            <FileText className="w-4 h-4 text-sky-100" />
+            <FileText className="w-4 h-4 text-white" />
             <span>View Immutable Audit Logs</span>
           </Link>
-        </div>
-      </div>
+        </CardBody>
+      </Card>
 
-      {/* Real Database KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        
-        {/* Card 1: Users */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center font-bold">
-                <Users className="w-4 h-4" />
-              </div>
-              <h3 className="font-bold text-slate-900 text-sm">User Roster & Accounts</h3>
-            </div>
-            <Link to="/admin/users" className="text-xs font-bold text-sky-600 hover:underline flex items-center">
-              <span>View Roster</span>
-              <ArrowRight className="w-3 h-3 ml-0.5" />
-            </Link>
-          </div>
-
+        {metricCard(
+          'User Roster & Accounts',
+          <Users className="w-4 h-4" />,
+          'View Roster',
+          '/admin/users',
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
               <span className="text-[10px] font-bold uppercase text-slate-400 block">Total</span>
@@ -132,23 +134,13 @@ export const AdminDashboard: React.FC = () => {
               <span className="text-xl font-extrabold">{inactiveUsers}</span>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Card 2: Support Queries */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-                <HelpCircle className="w-4 h-4" />
-              </div>
-              <h3 className="font-bold text-slate-900 text-sm">Support Queries & Tickets</h3>
-            </div>
-            <Link to="/queries" className="text-xs font-bold text-sky-600 hover:underline flex items-center">
-              <span>View Workspace</span>
-              <ArrowRight className="w-3 h-3 ml-0.5" />
-            </Link>
-          </div>
-
+        {metricCard(
+          'Support Queries & Tickets',
+          <HelpCircle className="w-4 h-4" />,
+          'View Workspace',
+          '/queries',
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
               <span className="text-[10px] font-bold uppercase text-slate-400 block">Open Queue</span>
@@ -160,26 +152,16 @@ export const AdminDashboard: React.FC = () => {
             </div>
             <div className="p-2.5 bg-emerald-50/60 rounded-xl border border-emerald-100 text-emerald-900">
               <span className="text-[10px] font-bold uppercase text-emerald-700 block">Resolved</span>
-              <span className="text-xl font-extrabold">{resolvedTodayQueries}</span>
+              <span className="text-xl font-extrabold">{resolvedQueries}</span>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Card 3: Orders Fulfillment */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                <ShoppingBag className="w-4 h-4" />
-              </div>
-              <h3 className="font-bold text-slate-900 text-sm">Order Fulfillment Workflow</h3>
-            </div>
-            <Link to="/orders" className="text-xs font-bold text-sky-600 hover:underline flex items-center">
-              <span>View Orders</span>
-              <ArrowRight className="w-3 h-3 ml-0.5" />
-            </Link>
-          </div>
-
+        {metricCard(
+          'Order Fulfillment Workflow',
+          <ShoppingBag className="w-4 h-4" />,
+          'View Orders',
+          '/orders',
           <div className="grid grid-cols-4 gap-1.5 text-center text-xs">
             <div className="p-2 bg-slate-50 rounded-lg border border-slate-100">
               <span className="text-[9px] font-bold uppercase text-slate-400 block truncate">Pending</span>
@@ -195,26 +177,16 @@ export const AdminDashboard: React.FC = () => {
             </div>
             <div className="p-2 bg-emerald-50 rounded-lg border border-emerald-100 text-emerald-900">
               <span className="text-[9px] font-bold uppercase text-emerald-700 block truncate">Done</span>
-              <span className="text-lg font-extrabold">{completedTodayOrders}</span>
+              <span className="text-lg font-extrabold">{completedOrders}</span>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Card 4: Products Catalog & Availability */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
-                <Package className="w-4 h-4" />
-              </div>
-              <h3 className="font-bold text-slate-900 text-sm">Product Catalog & Availability</h3>
-            </div>
-            <Link to="/products" className="text-xs font-bold text-sky-600 hover:underline flex items-center">
-              <span>View Catalog</span>
-              <ArrowRight className="w-3 h-3 ml-0.5" />
-            </Link>
-          </div>
-
+        {metricCard(
+          'Product Catalog & Availability',
+          <Package className="w-4 h-4" />,
+          'View Catalog',
+          '/products',
           <div className="grid grid-cols-2 gap-3 text-center">
             <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100 text-emerald-900">
               <span className="text-[10px] font-bold uppercase text-emerald-700 block">Available Items</span>
@@ -225,61 +197,48 @@ export const AdminDashboard: React.FC = () => {
               <span className="text-2xl font-extrabold">{outOfStockCount}</span>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Card 5: Operational Shifts & Handover */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center font-bold">
-                <Clock className="w-4 h-4" />
-              </div>
-              <h3 className="font-bold text-slate-900 text-sm">Shift Operations & Handover</h3>
-            </div>
-            <Link to="/shift-handover" className="text-xs font-bold text-sky-600 hover:underline flex items-center">
-              <span>Shift Center</span>
-              <ArrowRight className="w-3 h-3 ml-0.5" />
-            </Link>
-          </div>
-
+        {metricCard(
+          'Shift Operations & Handover',
+          <Clock className="w-4 h-4" />,
+          'Shift Center',
+          '/shift-handover',
           <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs space-y-1.5">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <span className="text-slate-500 font-semibold">Active Operational Team:</span>
-              <span className="font-bold text-slate-900">Team 1 (3 PM – 11 AM)</span>
+              <span className="font-bold text-slate-900 text-right">{activeTeam ? `${activeTeam.name} (${activeTeam.shift_info})` : 'No Active Team'}</span>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <span className="text-slate-500 font-semibold">Latest Handover Status:</span>
-              <span className="font-bold text-emerald-700 capitalize">
-                {latestHandover ? latestHandover.status : 'No Handover'}
-              </span>
+              {latestHandover ? (
+                <Badge badge={getHandoverStatusBadge(latestHandover.status)} />
+              ) : (
+                <span className="font-bold text-slate-400">No Handover</span>
+              )}
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Card 6: System Configuration Metadata */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold">
-                <ShieldCheck className="w-4 h-4" />
-              </div>
-              <h3 className="font-bold text-slate-900 text-sm">System Configuration</h3>
-            </div>
-            <Link to="/admin/settings" className="text-xs font-bold text-sky-600 hover:underline flex items-center">
-              <span>Manage Settings</span>
-              <ArrowRight className="w-3 h-3 ml-0.5" />
-            </Link>
-          </div>
-
+        {metricCard(
+          'System Configuration',
+          <ShieldCheck className="w-4 h-4" />,
+          'Manage Settings',
+          '/admin/settings',
           <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs space-y-1.5 text-slate-600">
-            <div><span className="font-semibold text-slate-800">Timezone:</span> <span className="font-mono text-slate-900">{systemSettings.timezone}</span></div>
-            <div><span className="font-semibold text-slate-800">Currency:</span> <span className="font-mono font-bold text-slate-900">{systemSettings.currency_symbol} (USD)</span></div>
-            <div><span className="font-semibold text-slate-800">Date Format:</span> <span className="font-mono text-slate-900">{systemSettings.date_format}</span></div>
+            <div>
+              <span className="font-semibold text-slate-800">Timezone:</span> <span className="font-mono text-slate-900">{systemSettings.timezone}</span>
+            </div>
+            <div>
+              <span className="font-semibold text-slate-800">Currency:</span>{' '}
+              <span className="font-mono font-bold text-slate-900">{systemSettings.currency_symbol} (USD)</span>
+            </div>
+            <div>
+              <span className="font-semibold text-slate-800">Date Format:</span> <span className="font-mono text-slate-900">{systemSettings.date_format}</span>
+            </div>
           </div>
-        </div>
-
+        )}
       </div>
-
     </div>
   );
 };

@@ -3,37 +3,29 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { localDb } from '../services/db';
 import { notificationService } from '../services/notificationService';
-import { CRMNotification, ShiftHandover } from '../types';
-import { 
-  HelpCircle, 
-  ShoppingBag, 
-  AlertTriangle, 
-  Bell, 
-  Clock, 
-  Calendar, 
-  ShieldCheck, 
+import { formatCurrency } from '../utils/format';
+import { getNotificationPriorityBadge, getOrderStatusBadge, getQueryPriorityBadge, getQueryStatusBadge, getRoleBadge } from '../utils/badges';
+import { Avatar, Badge, Card, CardBody, CardHeader, EmptyState, StatCard, Table, TBody, Td, Th, THead, Tr } from '../components/ui';
+import {
+  Bell,
+  ShoppingBag,
+  HelpCircle,
+  AlertTriangle,
+  Clock,
+  Calendar,
   Users,
   Activity,
   ArrowRight,
-  Eye,
   CheckCircle2,
-  FileText,
-  Truck,
-  CheckSquare,
-  Package,
-  AlertCircle,
-  CheckCheck
+  CheckCheck,
 } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
   const { user, dbVersion } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Subscribe to real-time notification events
   useEffect(() => {
-    const unsubscribe = notificationService.subscribe(() => {
-      setRefreshKey(prev => prev + 1);
-    });
+    const unsubscribe = notificationService.subscribe(() => setRefreshKey((prev) => prev + 1));
     return () => unsubscribe();
   }, []);
 
@@ -59,497 +51,350 @@ export const Dashboard: React.FC = () => {
   const userTeam = useMemo(() => {
     if (!user) return null;
     const teams = localDb.getTeams();
-    return teams.find(t => t.id === user.team_id) || teams[0];
+    return teams.find((t) => t.id === user.team_id) || teams[0];
   }, [user]);
 
   const latestHandover = useMemo(() => {
     if (!userTeam) return null;
     const list = localDb.getHandovers();
-    return list.find(h => h.incoming_team_id === userTeam.id || h.outgoing_team_id === userTeam.id) || list[0] || null;
+    return list.find((h) => h.incoming_team_id === userTeam.id || h.outgoing_team_id === userTeam.id) || list[0] || null;
   }, [userTeam, refreshKey]);
 
   const pendingIncomingHandover = useMemo(() => {
     if (!userTeam) return null;
-    return localDb.getHandovers({ status: 'submitted' }).find(h => h.incoming_team_id === userTeam.id) || null;
+    return localDb.getHandovers({ status: 'submitted' }).find((h) => h.incoming_team_id === userTeam.id) || null;
   }, [userTeam, refreshKey]);
 
   if (!user) return null;
 
-  const todayFormatted = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  const todayFormatted = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const roleBadge = getRoleBadge(user.role);
 
-  const getRoleBadgeStyle = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'sales_agent':
-        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-      case 'support_agent':
-        return 'bg-amber-100 text-amber-800 border-amber-200';
-      default:
-        return 'bg-slate-100 text-slate-800 border-slate-200';
+  const openQueriesCount = allQueries.filter((q) => ['new', 'open', 'assigned', 'in_progress', 'reopened'].includes(q.status)).length;
+  const urgentQueriesCount = allQueries.filter((q) => q.priority === 'urgent' && q.status !== 'closed' && q.status !== 'resolved').length;
+  const myOpenQueriesCount = allQueries.filter((q) => q.assigned_to === user.id && q.status !== 'closed' && q.status !== 'resolved').length;
+
+  const pendingOrdersCount = allOrders.filter((o) => o.current_status !== 'completed' && o.current_status !== 'cancelled').length;
+
+  const ordersRequiringAttention = allOrders.filter((o) => o.current_status !== 'completed' && o.current_status !== 'cancelled').slice(0, 5);
+  const queriesRequiringAttention = allQueries.filter((q) => q.status !== 'closed' && q.status !== 'resolved').slice(0, 5);
+
+  const nextOrderAction = (status: string) => {
+    switch (status) {
+      case 'order_received': return 'Complete Sales Order';
+      case 'sales_order_done': return 'Issue Commercial Invoice';
+      case 'invoiced': return 'Dispatch Freight Shipment';
+      case 'dispatched': return 'Obtain Signed Invoice';
+      case 'signed_invoice_sent': return 'Finalize Order';
+      default: return '—';
     }
   };
-
-  const formatRoleName = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'System Administrator';
-      case 'sales_agent':
-        return 'Sales Agent';
-      case 'support_agent':
-        return 'Support Agent';
-      default:
-        return role;
-    }
-  };
-
-  // Real Database Query Metrics
-  const openQueriesCount = allQueries.filter(q => q.status === 'new' || q.status === 'open' || q.status === 'assigned' || q.status === 'in_progress' || q.status === 'reopened').length;
-  const urgentQueriesCount = allQueries.filter(q => q.priority === 'urgent' && q.status !== 'closed' && q.status !== 'resolved').length;
-  const myOpenQueriesCount = user ? allQueries.filter(q => q.assigned_to === user.id && q.status !== 'closed' && q.status !== 'resolved').length : 0;
-
-  // Real Database Order Metrics
-  const pendingOrdersCount = allOrders.filter(o => o.current_status !== 'completed' && o.current_status !== 'cancelled').length;
-
-  // Orders Requiring Attention (Waiting at active workflow stages)
-  const ordersRequiringAttention = allOrders
-    .filter(o => o.current_status !== 'completed' && o.current_status !== 'cancelled')
-    .slice(0, 5);
-
-  // Queries Requiring Support Attention
-  const queriesRequiringAttention = allQueries
-    .filter(q => q.status !== 'closed' && q.status !== 'resolved')
-    .slice(0, 5);
-
-  const kpiCards = [
-    {
-      id: 'unread_notifications',
-      title: 'Unread Notifications',
-      value: unreadCount.toString(),
-      description: `${urgentCount} High/Urgent priority alert${urgentCount === 1 ? '' : 's'}`,
-      icon: Bell,
-      color: unreadCount > 0 ? 'bg-sky-600 text-white' : 'bg-slate-700 text-white',
-    },
-    {
-      id: 'pending_orders',
-      title: 'Pending Orders',
-      value: pendingOrdersCount.toString(),
-      description: 'Active orders progressing through workflow',
-      icon: ShoppingBag,
-      color: 'bg-emerald-600 text-white',
-    },
-    {
-      id: 'open_queries',
-      title: 'Open Support Queries',
-      value: openQueriesCount.toString(),
-      description: `${myOpenQueriesCount} assigned to you (${urgentQueriesCount} urgent)`,
-      icon: HelpCircle,
-      color: 'bg-amber-500 text-white',
-    },
-    {
-      id: 'out_of_stock',
-      title: 'Out of Stock Items',
-      value: outOfStockProducts.length.toString(),
-      description: 'Catalog products currently marked unavailable',
-      icon: AlertTriangle,
-      color: 'bg-red-500 text-white',
-    },
-  ];
 
   return (
     <div className="space-y-6">
-      
-      {/* Top Welcome Banner */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          
+      {/* Welcome Banner */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-brand-900 rounded-2xl p-6 sm:p-8 text-white shadow-card relative overflow-hidden">
+        <div className="absolute -right-16 -top-16 w-64 h-64 bg-brand-600/20 rounded-full blur-3xl" aria-hidden="true" />
+        <div className="absolute right-24 bottom-0 w-32 h-32 bg-brand-500/10 rounded-full blur-2xl" aria-hidden="true" />
+        <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-5">
           <div>
-            <div className="flex items-center space-x-2 text-sm text-slate-500 mb-1">
-              <Calendar className="w-4 h-4 text-slate-400" />
+            <div className="flex items-center gap-2 text-xs text-slate-300 mb-2">
+              <Calendar className="w-4 h-4 text-brand-300" />
               <span>{todayFormatted}</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Welcome back, <span className="text-sky-600">{user.full_name}</span>!
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+              Welcome back, <span className="text-brand-300">{user.full_name}</span>
             </h1>
-            <p className="text-sm text-slate-600 mt-1">
-              Here is your operational overview for J&T Supplies CRM.
-            </p>
+            <p className="text-sm text-slate-300 mt-1.5">Here is your operational overview for J&T Supplies CRM.</p>
           </div>
-
-          {/* User Status Pills */}
           <div className="flex flex-wrap items-center gap-2">
-            
-            {/* Role Badge */}
-            <div className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center space-x-1.5 ${getRoleBadgeStyle(user.role)}`}>
-              <ShieldCheck className="w-4 h-4" />
-              <span>{formatRoleName(user.role)}</span>
-            </div>
-
-            {/* Team & Shift Badge */}
+            <Badge badge={roleBadge} />
             {userTeam && (
-              <div className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 text-xs font-medium flex items-center space-x-2">
-                <Users className="w-4 h-4 text-slate-500" />
-                <span className="font-semibold text-slate-900">{userTeam.name}</span>
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 ring-1 ring-white/20 text-slate-100">
+                <Users className="w-3.5 h-3.5 text-brand-300" />
+                <span className="font-semibold">{userTeam.name}</span>
                 <span className="text-slate-400">•</span>
-                <Clock className="w-3.5 h-3.5 text-slate-400" />
-                <span className="font-mono text-slate-600">{userTeam.shift_info}</span>
-              </div>
+                <Clock className="w-3.5 h-3.5 text-brand-300" />
+                <span className="font-mono">{userTeam.shift_info}</span>
+              </span>
             )}
-
           </div>
         </div>
       </div>
 
-      {/* Handover Action Alert Banner if Handover Awaiting Receipt */}
+      {/* Handover Action Banner */}
       {pendingIncomingHandover && (
-        <div className="bg-sky-600 text-white rounded-xl p-5 shadow-sm border border-sky-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
-              <Clock className="w-5 h-5 text-white" />
+        <div className="bg-brand-600 text-white rounded-xl shadow-card border border-brand-700 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 bg-white/15 rounded-xl flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xs font-extrabold uppercase tracking-wider text-sky-200">
-                ⚠️ Shift Handover Action Required
-              </div>
-              <p className="text-sm font-bold mt-0.5">
-                {pendingIncomingHandover.outgoing_team ? pendingIncomingHandover.outgoing_team.name : 'Outgoing Team'} has submitted a shift handover with {pendingIncomingHandover.items ? pendingIncomingHandover.items.length : 0} item(s).
+              <div className="text-[11px] font-extrabold uppercase tracking-wider text-brand-200">Shift Handover Action Required</div>
+              <p className="text-sm font-semibold mt-0.5">
+                {pendingIncomingHandover.outgoing_team?.name || 'Outgoing Team'} submitted a handover with {pendingIncomingHandover.items?.length || 0} item(s).
               </p>
             </div>
           </div>
-
           <Link
             to="/shift-handover"
-            className="px-5 py-2.5 bg-white text-sky-900 hover:bg-sky-50 font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0 flex items-center space-x-1"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-brand-900 hover:bg-brand-50 font-semibold text-sm rounded-lg shadow-sm transition-colors shrink-0"
           >
-            <span>Review & Acknowledge Handover</span>
-            <ArrowRight className="w-4 h-4" />
+            Review & Acknowledge <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       )}
 
-      {/* Shift & Team Operations Overview Card */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Clock className="w-5 h-5 text-sky-600" />
-            <h3 className="text-base font-bold text-slate-900">Shift & Team Operations Status</h3>
-          </div>
-          <Link
-            to="/shift-handover"
-            className="text-xs font-bold text-sky-600 hover:text-sky-700 hover:underline flex items-center"
-          >
-            <span>Open Shift Handover Center</span>
-            <ArrowRight className="w-3.5 h-3.5 ml-1" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Active Operational Team</span>
-            <div className="text-lg font-bold text-slate-900">{userTeam ? userTeam.name : 'Team 1'}</div>
-            <span className="text-xs text-slate-500 font-mono">{userTeam ? userTeam.shift_info : '3 PM – 11 AM'}</span>
-          </div>
-
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Shift Status</span>
-            <div className="text-lg font-bold text-emerald-600 flex items-center space-x-1">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Active</span>
-            </div>
-            <span className="text-xs text-slate-500">Flexible Overnight Schedule</span>
-          </div>
-
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Latest Handover Status</span>
-            <div className="text-lg font-bold text-slate-900">
-              {latestHandover ? (
-                latestHandover.status === 'acknowledged' ? (
-                  <span className="text-emerald-700 flex items-center"><CheckCheck className="w-4 h-4 mr-1" /> Acknowledged</span>
-                ) : (
-                  <span className="text-sky-700 flex items-center"><Clock className="w-4 h-4 mr-1" /> Submitted</span>
-                )
-              ) : (
-                'No Handover'
-              )}
-            </div>
-            <span className="text-xs text-slate-500">
-              {latestHandover && latestHandover.submitted_at
-                ? `Submitted: ${new Date(latestHandover.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                : 'Operational handoffs active'}
-            </span>
-          </div>
-
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Pending Handover Items</span>
-            <div className="text-lg font-bold text-slate-900">
-              {latestHandover && latestHandover.items ? latestHandover.items.filter(i => !i.is_completed).length : 0} Items
-            </div>
-            <span className="text-xs text-slate-500">Flagged tasks requiring follow-up</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Database-backed KPI Overview Section */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-slate-900 font-sans">Operational Key Metrics</h2>
-          <span className="text-xs text-sky-700 bg-sky-50 border border-sky-200 px-2.5 py-1 rounded-md font-mono font-semibold flex items-center space-x-1">
-            <Bell className="w-3.5 h-3.5 text-sky-600 mr-1" />
-            <span>Centralized Notifications Engine Active</span>
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {kpiCards.map((card) => {
-            const Icon = card.icon;
-            return (
-              <div 
-                key={card.id} 
-                className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 hover:border-slate-300 transition-all"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-semibold text-slate-700">{card.title}</span>
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${card.color}`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                </div>
-                <div className="text-3xl font-extrabold text-slate-900 mb-1">{card.value}</div>
-                <p className="text-xs text-slate-500 leading-snug">{card.description}</p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Recent Notifications & Alerts Widget */}
-      {userNotifications.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Bell className="w-5 h-5 text-sky-600" />
-              <h3 className="text-base font-bold text-slate-900">Recent Operational Alerts & Notifications</h3>
-            </div>
-            <Link
-              to="/notifications"
-              className="text-xs font-bold text-sky-600 hover:text-sky-700 hover:underline flex items-center"
-            >
-              <span>View Notifications Center ({unreadCount} Unread)</span>
-              <ArrowRight className="w-3.5 h-3.5 ml-1" />
+      {/* Shift & Team Operations */}
+      <Card>
+        <CardHeader
+          title="Shift & Team Operations Status"
+          actions={
+            <Link to="/shift-handover" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline">
+              Open Shift Handover Center <ArrowRight className="w-3.5 h-3.5" />
             </Link>
+          }
+        />
+        <CardBody>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">Active Operational Team</span>
+              <div className="text-lg font-bold text-slate-900">{userTeam ? userTeam.name : 'Team 1'}</div>
+              <span className="text-xs text-slate-500 font-mono">{userTeam ? userTeam.shift_info : '3 PM – 11 AM'}</span>
+            </div>
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">Shift Status</span>
+              <div className="text-lg font-bold text-emerald-600 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4" /> Active
+              </div>
+              <span className="text-xs text-slate-500">Flexible Overnight Schedule</span>
+            </div>
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">Latest Handover Status</span>
+              <div className="text-lg font-bold text-slate-900">
+                {latestHandover ? (
+                  latestHandover.status === 'acknowledged' ? (
+                    <span className="text-emerald-700 flex items-center gap-1.5"><CheckCheck className="w-4 h-4" /> Acknowledged</span>
+                  ) : (
+                    <span className="text-brand-700 flex items-center gap-1.5"><Clock className="w-4 h-4" /> Submitted</span>
+                  )
+                ) : (
+                  'No Handover'
+                )}
+              </div>
+              <span className="text-xs text-slate-500">
+                {latestHandover?.submitted_at ? `Submitted: ${new Date(latestHandover.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Operational handoffs active'}
+              </span>
+            </div>
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">Pending Handover Items</span>
+              <div className="text-lg font-bold text-slate-900">{latestHandover?.items ? latestHandover.items.filter((i) => !i.is_completed).length : 0} Items</div>
+              <span className="text-xs text-slate-500">Flagged tasks requiring follow-up</span>
+            </div>
           </div>
+        </CardBody>
+      </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {userNotifications.slice(0, 3).map(n => (
-              <Link
-                key={n.id}
-                to={n.link_path || '/notifications'}
-                className={`p-3.5 rounded-xl border transition-all block group ${
-                  !n.is_read ? 'bg-sky-50/50 border-sky-200 hover:border-sky-400' : 'bg-slate-50/50 border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
-                    n.priority === 'urgent' ? 'bg-red-100 text-red-800' :
-                    n.priority === 'high' ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'
-                  }`}>
-                    {n.priority}
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-400">
-                    {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <StatCard
+          title="Unread Notifications"
+          value={unreadCount}
+          description={`${urgentCount} High/Urgent priority alert${urgentCount === 1 ? '' : 's'}`}
+          icon={<Bell className="w-5 h-5" />}
+          accent="brand"
+          to="/notifications"
+        />
+        <StatCard
+          title="Pending Orders"
+          value={pendingOrdersCount}
+          description="Active orders progressing through workflow"
+          icon={<ShoppingBag className="w-5 h-5" />}
+          accent="emerald"
+          to="/orders"
+        />
+        <StatCard
+          title="Open Support Queries"
+          value={openQueriesCount}
+          description={`${myOpenQueriesCount} assigned to you (${urgentQueriesCount} urgent)`}
+          icon={<HelpCircle className="w-5 h-5" />}
+          accent="amber"
+          to="/queries"
+        />
+        <StatCard
+          title="Out of Stock Items"
+          value={outOfStockProducts.length}
+          description="Catalog products currently marked unavailable"
+          icon={<AlertTriangle className="w-5 h-5" />}
+          accent="red"
+          to="/out-of-stock"
+        />
+      </div>
 
-                <div className="font-bold text-xs text-slate-900 group-hover:text-sky-600 truncate">
-                  {n.title}
-                </div>
-
-                <p className="text-[11px] text-slate-600 leading-snug line-clamp-2 mt-0.5">
-                  {n.message}
-                </p>
+      {/* Recent Notifications */}
+      {userNotifications.length > 0 && (
+        <Card>
+          <CardHeader
+            title="Recent Operational Alerts & Notifications"
+            actions={
+              <Link to="/notifications" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline">
+                View Notifications Center ({unreadCount} Unread) <ArrowRight className="w-3.5 h-3.5" />
               </Link>
-            ))}
-          </div>
-        </div>
+            }
+          />
+          <CardBody className="pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {userNotifications.slice(0, 3).map((n) => (
+                <Link
+                  key={n.id}
+                  to={n.link_path || '/notifications'}
+                  className={`p-4 rounded-xl border transition-all block group ${!n.is_read ? 'bg-brand-50/40 border-brand-200 hover:border-brand-400' : 'bg-slate-50/40 border-slate-200 hover:border-slate-300'}`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <Badge badge={getNotificationPriorityBadge(n.priority || 'normal')} />
+                    <span className="text-[10px] font-mono text-slate-400">{new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                  <div className="font-bold text-xs text-slate-900 group-hover:text-brand-600 truncate">{n.title}</div>
+                  <p className="text-[11px] text-slate-600 leading-snug line-clamp-2 mt-1">{n.message}</p>
+                </Link>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
       )}
 
-      {/* Orders Requiring Attention Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-200 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <ShoppingBag className="w-5 h-5 text-sky-600" />
-            <h3 className="text-base font-bold text-slate-900">Orders Requiring Workflow Attention</h3>
-          </div>
-          <Link
-            to="/orders"
-            className="text-xs font-semibold text-sky-600 hover:text-sky-700 hover:underline flex items-center"
-          >
-            <span>View All Orders</span>
-            <ArrowRight className="w-3.5 h-3.5 ml-1" />
-          </Link>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-700">
-            <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500 border-b border-slate-200">
-              <tr>
-                <th className="px-5 py-3">Order Number</th>
-                <th className="px-5 py-3">Customer</th>
-                <th className="px-5 py-3">Current Status</th>
-                <th className="px-5 py-3">Next Action Required</th>
-                <th className="px-5 py-3 font-mono">Grand Total</th>
-                <th className="px-5 py-3 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 text-xs">
+      {/* Orders Requiring Attention */}
+      <Card>
+        <CardHeader
+          title="Orders Requiring Workflow Attention"
+          actions={
+            <Link to="/orders" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline">
+              View All Orders <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          }
+        />
+        {ordersRequiringAttention.length > 0 ? (
+          <Table>
+            <THead>
+              <Tr hover={false}>
+                <Th>Order Number</Th>
+                <Th>Customer</Th>
+                <Th>Current Status</Th>
+                <Th>Next Action Required</Th>
+                <Th className="font-mono">Grand Total</Th>
+                <Th className="text-right">Action</Th>
+              </Tr>
+            </THead>
+            <TBody>
               {ordersRequiringAttention.map((order) => (
-                <tr key={order.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="px-5 py-3 font-mono font-bold text-sky-700">
-                    <Link to={`/orders/${order.id}`} className="hover:underline">
-                      {order.order_number}
-                    </Link>
-                  </td>
-                  <td className="px-5 py-3 font-semibold text-slate-900">
-                    {order.customer ? order.customer.company_name : 'Unknown'}
-                  </td>
-                  <td className="px-5 py-3">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-800 border border-sky-200">
-                      {order.current_status.replace(/_/g, ' ')}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 font-medium text-slate-800">
-                    {order.current_status === 'order_received' && 'Complete Sales Order'}
-                    {order.current_status === 'sales_order_done' && 'Issue Commercial Invoice'}
-                    {order.current_status === 'invoiced' && 'Dispatch Freight Shipment'}
-                    {order.current_status === 'dispatched' && 'Obtain Signed Invoice'}
-                    {order.current_status === 'signed_invoice_sent' && 'Finalize Order'}
-                  </td>
-                  <td className="px-5 py-3 font-mono font-bold text-slate-900">
-                    ${order.grand_total.toFixed(2)}
-                  </td>
-                  <td className="px-5 py-3 text-right">
+                <Tr key={order.id}>
+                  <Td className="font-mono font-bold text-brand-700">
+                    <Link to={`/orders/${order.id}`} className="hover:underline">{order.order_number}</Link>
+                  </Td>
+                  <Td className="font-semibold text-slate-900">{order.customer?.company_name || 'Unknown'}</Td>
+                  <Td>
+                    <Badge badge={getOrderStatusBadge(order.current_status)} />
+                  </Td>
+                  <Td className="font-medium text-slate-800">{nextOrderAction(order.current_status)}</Td>
+                  <Td className="font-mono font-bold text-slate-900">{formatCurrency(order.grand_total)}</Td>
+                  <Td className="text-right">
                     <Link
                       to={`/orders/${order.id}`}
-                      className="inline-flex items-center px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-[11px] rounded transition-colors"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg transition-colors"
                     >
-                      <span>Process</span>
-                      <ArrowRight className="w-3 h-3 ml-1" />
+                      Process <ArrowRight className="w-3 h-3" />
                     </Link>
-                  </td>
-                </tr>
+                  </Td>
+                </Tr>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            </TBody>
+          </Table>
+        ) : (
+          <EmptyState icon={<ShoppingBag className="w-7 h-7" />} title="All orders are up to date" description="No active orders currently require workflow attention." />
+        )}
+      </Card>
 
-      {/* Support Queries Requiring Attention Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-200 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <HelpCircle className="w-5 h-5 text-amber-500" />
-            <h3 className="text-base font-bold text-slate-900">Active Support Tickets Requiring Attention</h3>
-          </div>
-          <Link
-            to="/queries"
-            className="text-xs font-semibold text-sky-600 hover:text-sky-700 hover:underline flex items-center"
-          >
-            <span>View Support Workspace ({openQueriesCount} Open)</span>
-            <ArrowRight className="w-3.5 h-3.5 ml-1" />
-          </Link>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-700">
-            <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500 border-b border-slate-200">
-              <tr>
-                <th className="px-5 py-3">Ticket #</th>
-                <th className="px-5 py-3">Customer</th>
-                <th className="px-5 py-3">Subject Line</th>
-                <th className="px-5 py-3">Priority</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3">Assigned Agent</th>
-                <th className="px-5 py-3 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 text-xs">
-              {queriesRequiringAttention.length > 0 ? (
-                queriesRequiringAttention.map((q) => (
-                  <tr key={q.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-5 py-3 font-mono font-bold text-sky-700">
-                      <Link to={`/queries/${q.id}`} className="hover:underline">
-                        {q.query_number}
-                      </Link>
-                    </td>
-                    <td className="px-5 py-3 font-semibold text-slate-900">
-                      {q.customer ? q.customer.company_name : 'Unknown Customer'}
-                    </td>
-                    <td className="px-5 py-3 max-w-xs truncate font-medium text-slate-800" title={q.subject}>
-                      {q.subject}
-                    </td>
-                    <td className="px-5 py-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
-                        q.priority === 'urgent' ? 'bg-red-100 text-red-800 border-red-200' :
-                        q.priority === 'high' ? 'bg-amber-100 text-amber-800 border-amber-200' :
-                        q.priority === 'medium' ? 'bg-sky-100 text-sky-800 border-sky-200' : 'bg-slate-100 text-slate-700 border-slate-200'
-                      }`}>
-                        {q.priority}
+      {/* Support Tickets Requiring Attention */}
+      <Card>
+        <CardHeader
+          title="Active Support Tickets Requiring Attention"
+          actions={
+            <Link to="/queries" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline">
+              View Support Workspace ({openQueriesCount} Open) <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          }
+        />
+        {queriesRequiringAttention.length > 0 ? (
+          <Table>
+            <THead>
+              <Tr hover={false}>
+                <Th>Ticket #</Th>
+                <Th>Customer</Th>
+                <Th>Subject Line</Th>
+                <Th>Priority</Th>
+                <Th>Status</Th>
+                <Th>Assigned Agent</Th>
+                <Th className="text-right">Action</Th>
+              </Tr>
+            </THead>
+            <TBody>
+              {queriesRequiringAttention.map((q) => (
+                <Tr key={q.id}>
+                  <Td className="font-mono font-bold text-brand-700">
+                    <Link to={`/queries/${q.id}`} className="hover:underline">{q.query_number}</Link>
+                  </Td>
+                  <Td className="font-semibold text-slate-900">{q.customer?.company_name || 'Unknown Customer'}</Td>
+                  <Td className="max-w-xs truncate font-medium text-slate-800" title={q.subject}>{q.subject}</Td>
+                  <Td>
+                    <Badge badge={getQueryPriorityBadge(q.priority)} />
+                  </Td>
+                  <Td>
+                    <Badge badge={getQueryStatusBadge(q.status)} />
+                  </Td>
+                  <Td>
+                    {q.assigned_to_profile ? (
+                      <span className="inline-flex items-center gap-2 font-medium text-slate-800">
+                        <Avatar name={q.assigned_to_profile.full_name} size="xs" />
+                        {q.assigned_to_profile.full_name}
                       </span>
-                    </td>
-                    <td className="px-5 py-3">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-800 border border-slate-200">
-                        {q.status.replace(/_/g, ' ')}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 font-medium text-slate-800">
-                      {q.assigned_to_profile ? q.assigned_to_profile.full_name : <span className="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">Unassigned</span>}
-                    </td>
-                    <td className="px-5 py-3 text-right">
-                      <Link
-                        to={`/queries/${q.id}`}
-                        className="inline-flex items-center px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-[11px] rounded transition-colors"
-                      >
-                        <span>Manage</span>
-                        <ArrowRight className="w-3 h-3 ml-1" />
-                      </Link>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={7} className="p-6 text-center text-xs text-slate-400 italic">
-                    No active support tickets requiring attention.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                    ) : (
+                      <span className="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-[11px]">Unassigned</span>
+                    )}
+                  </Td>
+                  <Td className="text-right">
+                    <Link
+                      to={`/queries/${q.id}`}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg transition-colors"
+                    >
+                      Manage <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  </Td>
+                </Tr>
+              ))}
+            </TBody>
+          </Table>
+        ) : (
+          <EmptyState icon={<HelpCircle className="w-7 h-7" />} title="No active tickets" description="No active support tickets currently require attention." />
+        )}
+      </Card>
 
-      {/* Operational Context Cards */}
+      {/* Bottom Context Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
-        {/* Out of Stock Availability Alerts Widget */}
         {outOfStockProducts.length > 0 && (
-          <div className="bg-red-50 rounded-xl border border-red-200 p-6 shadow-sm flex flex-col justify-between space-y-4">
+          <div className="bg-red-50 rounded-xl border border-red-200 p-6 shadow-card flex flex-col justify-between space-y-4">
             <div>
               <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-2 text-red-950 font-bold">
+                <div className="flex items-center gap-2 text-red-950 font-bold">
                   <AlertTriangle className="w-5 h-5 text-red-600" />
                   <h3 className="text-base font-bold">Product Availability Alerts</h3>
                 </div>
                 <Link to="/out-of-stock" className="text-xs font-bold text-red-700 hover:underline">View All ({outOfStockProducts.length})</Link>
               </div>
               <div className="space-y-2 text-xs">
-                {outOfStockProducts.slice(0, 2).map(p => (
+                {outOfStockProducts.slice(0, 2).map((p) => (
                   <Link key={p.id} to={`/products/${p.id}`} className="p-3 bg-white rounded-lg border border-red-200 flex items-center justify-between block hover:border-red-400">
                     <div>
-                      <span className="font-mono font-bold text-sky-700 mr-2">{p.sku}</span>
+                      <span className="font-mono font-bold text-brand-700 mr-2">{p.sku}</span>
                       <span className="font-bold text-slate-900">{p.product_name}</span>
                     </div>
                     <span className="text-[10px] bg-red-100 text-red-800 px-2 py-0.5 rounded font-bold uppercase">Unavailable</span>
@@ -560,44 +405,30 @@ export const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {/* System Module Status Card */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200 flex flex-col justify-between">
+        <div className="bg-white rounded-xl p-6 shadow-card border border-slate-200 flex flex-col justify-between">
           <div>
-            <div className="flex items-center space-x-2 text-slate-900 font-bold mb-3">
-              <Activity className="w-5 h-5 text-purple-600" />
+            <div className="flex items-center gap-2 text-slate-900 font-bold mb-3">
+              <Activity className="w-5 h-5 text-violet-600" />
               <h3 className="text-base font-bold">System Module Status</h3>
             </div>
-            <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 text-xs text-slate-600 space-y-2">
-              <div className="flex items-center justify-between">
-                <span>Customer Management (Step 2):</span>
-                <span className="text-emerald-600 font-bold flex items-center"><CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Active</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Support Ticket System (Step 3):</span>
-                <span className="text-emerald-600 font-bold flex items-center"><CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Active</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Order Management (Step 4):</span>
-                <span className="text-emerald-600 font-bold flex items-center"><CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Active</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Product Availability (Step 5):</span>
-                <span className="text-emerald-600 font-bold flex items-center"><CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Active</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Notifications & Alerts (Step 6):</span>
-                <span className="text-emerald-600 font-bold flex items-center"><CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Active</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Shift Handover & Operations (Step 7):</span>
-                <span className="text-emerald-600 font-bold flex items-center"><CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Active</span>
-              </div>
+            <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 text-xs text-slate-600 space-y-2.5">
+              {[
+                'Customer Management',
+                'Support Ticket System',
+                'Order Management',
+                'Product Availability',
+                'Notifications & Alerts',
+                'Shift Handover & Operations',
+              ].map((module) => (
+                <div key={module} className="flex items-center justify-between">
+                  <span>{module}:</span>
+                  <span className="text-emerald-600 font-bold flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> Active</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-
       </div>
-
     </div>
   );
 };

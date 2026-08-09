@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { CustomerQuery } from '../../types';
 import { localDb } from '../../services/db';
-import { X, UserCheck, ShieldCheck } from 'lucide-react';
+import { Avatar, Modal, ModalFooter, Select } from '../ui';
+import { UserCheck } from 'lucide-react';
 
 interface QueryAssignModalProps {
   isOpen: boolean;
@@ -27,74 +28,60 @@ export const QueryAssignModal: React.FC<QueryAssignModalProps> = ({
 
   if (!isOpen || !query) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(query.id, selectedAgentId || null);
-  };
-
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        
-        {/* Modal Header */}
-        <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2.5">
-            <UserCheck className="w-5 h-5 text-sky-400" />
-            <h3 className="font-bold text-base">Assign Support Ticket</h3>
-          </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
-            <X className="w-5 h-5" />
-          </button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="sm"
+      title="Assign Support Ticket"
+      subtitle={`${query?.query_number} — ${query?.subject}`}
+      icon={<UserCheck className="w-5 h-5 text-brand-400" />}
+      footer={
+        <ModalFooter
+          onCancel={onClose}
+          onConfirm={() => onSubmit(query.id, selectedAgentId || null)}
+          confirmLabel="Update Assignment"
+        />
+      }
+    >
+      <div className="space-y-4">
+        <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-700">
+          <span className="font-mono text-brand-700 font-bold">{query?.query_number}</span> — {query?.subject}
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          
-          <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-700">
-            <span className="font-mono text-sky-600 font-bold">{query.query_number}</span> — {query.subject}
-          </div>
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Select Support Agent</label>
+          <Select value={selectedAgentId} onChange={(e) => setSelectedAgentId(e.target.value)}>
+            <option value="">Unassigned (Queue)</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.full_name} ({u.role.replace('_', ' ')}) — {u.team?.name || 'No Team'}
+              </option>
+            ))}
+          </Select>
+        </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-              Select Support Agent
-            </label>
-            <div className="relative">
-              <ShieldCheck className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-              <select
-                value={selectedAgentId}
-                onChange={(e) => setSelectedAgentId(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white"
+        <div>
+          <div className="flex items-center gap-2 text-xs text-slate-500 mb-1.5">Quick assign:</div>
+          <div className="flex flex-wrap gap-2">
+            {users.slice(0, 5).map((u) => (
+              <button
+                key={u.id}
+                type="button"
+                onClick={() => setSelectedAgentId(u.id)}
+                className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition-colors ${
+                  selectedAgentId === u.id
+                    ? 'bg-brand-600 text-white border-brand-600'
+                    : 'bg-white text-slate-700 border-slate-300 hover:border-brand-400 hover:text-brand-700'
+                }`}
               >
-                <option value="">Unassigned (Queue)</option>
-                {users.map(u => (
-                  <option key={u.id} value={u.id}>
-                    {u.full_name} ({u.role.replace('_', ' ')}) — {u.team?.name || 'No Team'}
-                  </option>
-                ))}
-              </select>
-            </div>
+                <Avatar name={u.full_name} size="xs" />
+                {u.full_name.split(' ')[0]}
+              </button>
+            ))}
           </div>
-
-          {/* Actions */}
-          <div className="pt-3 border-t border-slate-200 flex items-center justify-end space-x-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg hover:bg-slate-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors"
-            >
-              Update Assignment
-            </button>
-          </div>
-
-        </form>
-
+        </div>
       </div>
-    </div>
+    </Modal>
   );
 };

@@ -2,10 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { localDb } from '../../services/db';
 import { SystemSettings } from '../../types';
-import { Settings, ShieldCheck, CheckCircle2, Save, Globe, DollarSign, Calendar } from 'lucide-react';
+import { Settings, ShieldCheck, Save, Globe, DollarSign, Calendar } from 'lucide-react';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Card, CardHeader, CardBody } from '../../components/ui/Card';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { Button } from '../../components/ui/Button';
+import { useToast } from '../../components/ui/Toast';
 
 export const AdminSettings: React.FC = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [settings, setSettings] = useState<SystemSettings | null>(null);
 
   const [companyName, setCompanyName] = useState('');
@@ -14,8 +21,6 @@ export const AdminSettings: React.FC = () => {
   const [dateFormat, setDateFormat] = useState('');
   const [currencySymbol, setCurrencySymbol] = useState('');
   const [paginationLimit, setPaginationLimit] = useState(10);
-
-  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     const s = localDb.getSystemSettings();
@@ -42,74 +47,58 @@ export const AdminSettings: React.FC = () => {
     }, user.id);
 
     setSettings(updated);
-    setToast('System Configuration Settings updated successfully.');
-    setTimeout(() => setToast(null), 3500);
+    toast({ type: 'success', message: 'System Configuration Settings updated successfully.' });
   };
 
   return (
     <div className="space-y-6">
-      
-      {/* Header Banner */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">System Configuration Settings</h2>
-          <p className="text-xs text-slate-500">Configure global application defaults for company metadata, timezones, currency, and pagination</p>
-        </div>
+      <PageHeader
+        title="System Configuration Settings"
+        description="Configure global application defaults for company metadata, timezones, currency, and pagination"
+        icon={<Settings className="w-5 h-5 text-white" />}
+        iconBg="bg-slate-900"
+        badges={
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-purple-800 bg-purple-50 px-2.5 py-0.5 rounded-xl border border-purple-200">
+            <ShieldCheck className="w-4 h-4 text-purple-600" />
+            Admin Controls Only
+          </span>
+        }
+      />
 
-        <div className="flex items-center space-x-2 text-xs font-semibold text-purple-800 bg-purple-50 px-3 py-1.5 rounded-xl border border-purple-200">
-          <ShieldCheck className="w-4 h-4 text-purple-600" />
-          <span>Admin Controls Only</span>
-        </div>
-      </div>
-
-      {/* Toast Notification */}
-      {toast && (
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-semibold flex items-center space-x-2 animate-in fade-in duration-200">
-          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-          <span>{toast}</span>
-        </div>
-      )}
-
-      {/* Settings Form Card */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm max-w-3xl">
-        <form onSubmit={handleSubmit} className="space-y-5 text-xs">
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            
-            {/* Company Name */}
-            <div>
-              <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1">Company Name</label>
-              <input
-                type="text"
+      <Card className="max-w-3xl">
+        <CardHeader
+          title="Global Application Defaults"
+          subtitle={`Last updated by ${settings.updated_by_profile?.full_name || 'System'} — ${new Date(settings.updated_at).toLocaleString()}`}
+          icon={<Settings className="w-4 h-4" />}
+        />
+        <CardBody>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label="Company Name"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 font-semibold"
                 required
+                className="font-semibold"
               />
-            </div>
 
-            {/* CRM Title */}
-            <div>
-              <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1">CRM Application Title</label>
-              <input
-                type="text"
+              <Input
+                label="CRM Application Title"
                 value={crmTitle}
                 onChange={(e) => setCrmTitle(e.target.value)}
-                className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 font-semibold"
                 required
+                className="font-semibold"
               />
-            </div>
 
-            {/* Default Timezone */}
-            <div>
-              <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center space-x-1">
-                <Globe className="w-3.5 h-3.5 text-slate-400" />
-                <span>Default Business Timezone</span>
-              </label>
-              <select
+              <Select
+                label={
+                  <span className="inline-flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5 text-slate-400" />
+                    Default Business Timezone
+                  </span>
+                }
                 value={timezone}
                 onChange={(e) => setTimezone(e.target.value)}
-                className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white font-medium"
               >
                 <option value="America/New_York">America/New_York (EST / EDT)</option>
                 <option value="America/Chicago">America/Chicago (CST / CDT)</option>
@@ -117,72 +106,57 @@ export const AdminSettings: React.FC = () => {
                 <option value="America/Los_Angeles">America/Los_Angeles (PST / PDT)</option>
                 <option value="Asia/Dubai">Asia/Dubai (GST +04:00)</option>
                 <option value="UTC">UTC (Universal Coordinated Time)</option>
-              </select>
-            </div>
+              </Select>
 
-            {/* Currency Symbol */}
-            <div>
-              <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center space-x-1">
-                <DollarSign className="w-3.5 h-3.5 text-slate-400" />
-                <span>Default Currency Symbol</span>
-              </label>
-              <select
+              <Select
+                label={
+                  <span className="inline-flex items-center gap-1.5">
+                    <DollarSign className="w-3.5 h-3.5 text-slate-400" />
+                    Default Currency Symbol
+                  </span>
+                }
                 value={currencySymbol}
                 onChange={(e) => setCurrencySymbol(e.target.value)}
-                className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white font-semibold"
               >
                 <option value="$">$ (USD — US Dollar)</option>
                 <option value="€">€ (EUR — Euro)</option>
                 <option value="£">£ (GBP — British Pound)</option>
                 <option value="AED">AED (Emirati Dirham)</option>
-              </select>
-            </div>
+              </Select>
 
-            {/* Date Format */}
-            <div>
-              <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center space-x-1">
-                <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                <span>Display Date Format</span>
-              </label>
-              <input
-                type="text"
+              <Input
+                label={
+                  <span className="inline-flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                    Display Date Format
+                  </span>
+                }
                 value={dateFormat}
                 onChange={(e) => setDateFormat(e.target.value)}
                 placeholder="MMM D, YYYY h:mm A"
-                className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 font-mono"
                 required
+                className="font-mono"
               />
-            </div>
 
-            {/* Pagination Limit */}
-            <div>
-              <label className="block font-bold text-slate-700 uppercase tracking-wider mb-1">Default Table Rows Limit</label>
-              <select
+              <Select
+                label="Default Table Rows Limit"
                 value={paginationLimit}
                 onChange={(e) => setPaginationLimit(Number(e.target.value))}
-                className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white font-semibold"
               >
                 <option value={10}>10 items per page</option>
                 <option value={25}>25 items per page</option>
                 <option value={50}>50 items per page</option>
-              </select>
+              </Select>
             </div>
 
-          </div>
-
-          <div className="pt-4 border-t border-slate-200 flex justify-end">
-            <button
-              type="submit"
-              className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center space-x-1.5"
-            >
-              <Save className="w-4 h-4 text-sky-400" />
-              <span>Save System Settings</span>
-            </button>
-          </div>
-
-        </form>
-      </div>
-
+            <div className="pt-4 border-t border-slate-200 flex justify-end">
+              <Button type="submit" variant="secondary" icon={<Save className="w-4 h-4 text-sky-400" />}>
+                Save System Settings
+              </Button>
+            </div>
+          </form>
+        </CardBody>
+      </Card>
     </div>
   );
 };

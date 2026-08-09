@@ -1,5 +1,8 @@
 import React from 'react';
-import { ShieldAlert, CheckCircle2, XCircle, ShieldCheck, Info } from 'lucide-react';
+import { ShieldAlert, ShieldCheck } from 'lucide-react';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Card, CardHeader, CardBody } from '../../components/ui/Card';
+import { Table, THead, TBody, Tr, Th, Td } from '../../components/ui/Table';
 
 export const AdminRoles: React.FC = () => {
   const permissionsMatrix = [
@@ -48,46 +51,44 @@ export const AdminRoles: React.FC = () => {
     {
       module: 'User Roster Management',
       admin: 'Full (Create User, Edit, Activate, Deactivate, Reassign Active Work)',
-      sales: 'Access Restricted 🚫',
-      support: 'Access Restricted 🚫',
+      sales: 'Access Restricted',
+      support: 'Access Restricted',
     },
     {
       module: 'Operational Teams Management',
       admin: 'Full (Create Team, Edit Team, Shift Info, Team Roster)',
-      sales: 'Access Restricted 🚫',
-      support: 'Access Restricted 🚫',
+      sales: 'Access Restricted',
+      support: 'Access Restricted',
     },
     {
       module: 'CRM System Settings',
       admin: 'Full (Company Name, CRM Title, Timezone, Currency, Pagination)',
-      sales: 'Access Restricted 🚫',
-      support: 'Access Restricted 🚫',
+      sales: 'Access Restricted',
+      support: 'Access Restricted',
     },
     {
       module: 'Immutable Audit Logs',
       admin: 'Full (View, Multi-field Search, Filter by User/Action/Entity)',
-      sales: 'Access Restricted 🚫',
-      support: 'Access Restricted 🚫',
+      sales: 'Access Restricted',
+      support: 'Access Restricted',
     },
   ];
 
   return (
     <div className="space-y-6">
-      
-      {/* Header Banner */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Role Permissions Architecture Matrix</h2>
-          <p className="text-xs text-slate-500">Centralized authorization rules enforced across frontend navigation, routes, and backend data services</p>
-        </div>
+      <PageHeader
+        title="Role Permissions Architecture Matrix"
+        description="Centralized authorization rules enforced across frontend navigation, routes, and backend data services"
+        icon={<ShieldAlert className="w-5 h-5 text-white" />}
+        iconBg="bg-slate-900"
+        badges={
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-xl border border-purple-200">
+            <ShieldAlert className="w-4 h-4 text-purple-600" />
+            Backend RBAC Enforced
+          </span>
+        }
+      />
 
-        <div className="flex items-center space-x-2 text-xs font-semibold text-purple-700 bg-purple-50 px-3 py-1.5 rounded-xl border border-purple-200">
-          <ShieldAlert className="w-4 h-4 text-purple-600" />
-          <span>Backend RBAC Enforced</span>
-        </div>
-      </div>
-
-      {/* Role Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div className="bg-purple-900 text-white rounded-2xl p-5 shadow-sm space-y-2">
           <div className="flex items-center justify-between">
@@ -120,49 +121,39 @@ export const AdminRoles: React.FC = () => {
         </div>
       </div>
 
-      {/* Permissions Matrix Data Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-200 flex items-center justify-between">
-          <h3 className="text-base font-bold text-slate-900">Module Access Control Matrix</h3>
-          <span className="text-xs text-slate-500 font-mono">11 System Modules</span>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-700">
-            <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500 border-b border-slate-200">
-              <tr>
-                <th className="px-5 py-3.5">Module / Feature Area</th>
-                <th className="px-5 py-3.5 bg-purple-50/50 text-purple-900 font-bold">Admin Role</th>
-                <th className="px-5 py-3.5 bg-emerald-50/50 text-emerald-900 font-bold">Sales Agent Role</th>
-                <th className="px-5 py-3.5 bg-amber-50/50 text-amber-900 font-bold">Support Agent Role</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 text-xs">
+      <Card>
+        <CardHeader
+          title="Module Access Control Matrix"
+          subtitle={<span className="font-mono">11 System Modules</span>}
+          icon={<ShieldCheck className="w-4 h-4" />}
+        />
+        <CardBody className="p-0">
+          <Table wrapperClassName="rounded-b-xl">
+            <THead>
+              <Tr hover={false}>
+                <Th>Module / Feature Area</Th>
+                <Th className="bg-purple-50/50 text-purple-900 font-bold">Admin Role</Th>
+                <Th className="bg-emerald-50/50 text-emerald-900 font-bold">Sales Agent Role</Th>
+                <Th className="bg-amber-50/50 text-amber-900 font-bold">Support Agent Role</Th>
+              </Tr>
+            </THead>
+            <TBody>
               {permissionsMatrix.map((row, idx) => (
-                <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="px-5 py-3.5 font-bold text-slate-900">
-                    {row.module}
-                  </td>
-                  <td className="px-5 py-3.5 bg-purple-50/20 text-purple-950 font-semibold">
-                    {row.admin}
-                  </td>
-                  <td className="px-5 py-3.5 bg-emerald-50/20 text-emerald-950 font-medium">
-                    {row.sales.includes('Restricted') ? (
-                      <span className="text-red-700 font-bold">{row.sales}</span>
-                    ) : row.sales}
-                  </td>
-                  <td className="px-5 py-3.5 bg-amber-50/20 text-amber-950 font-medium">
-                    {row.support.includes('Restricted') ? (
-                      <span className="text-red-700 font-bold">{row.support}</span>
-                    ) : row.support}
-                  </td>
-                </tr>
+                <Tr key={idx}>
+                  <Td className="font-bold text-slate-900">{row.module}</Td>
+                  <Td className="bg-purple-50/20 text-purple-950 font-semibold">{row.admin}</Td>
+                  <Td className="bg-emerald-50/20 text-emerald-950 font-medium">
+                    {row.sales.includes('Restricted') ? <span className="text-red-700 font-bold">{row.sales}</span> : row.sales}
+                  </Td>
+                  <Td className="bg-amber-50/20 text-amber-950 font-medium">
+                    {row.support.includes('Restricted') ? <span className="text-red-700 font-bold">{row.support}</span> : row.support}
+                  </Td>
+                </Tr>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
+            </TBody>
+          </Table>
+        </CardBody>
+      </Card>
     </div>
   );
 };

@@ -1,19 +1,15 @@
 import React, { useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { localDb } from '../../services/db';
-import { 
-  User, 
-  ArrowLeft, 
-  ShieldCheck, 
-  Building2, 
-  Mail, 
-  Calendar, 
-  HelpCircle, 
-  ShoppingBag, 
-  FileText, 
-  CheckCircle2, 
-  Clock 
-} from 'lucide-react';
+import { ArrowLeft, FileText, HelpCircle, ShoppingBag, CheckCircle2, UserRound } from 'lucide-react';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Card, CardHeader, CardBody } from '../../components/ui/Card';
+import { StatCard } from '../../components/ui/StatCard';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Button } from '../../components/ui/Button';
+import { Badge } from '../../components/ui/Badge';
+import { getRoleBadge } from '../../utils/badges';
+import { formatDateTime } from '../../utils/format';
 
 export const AdminUserProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -40,17 +36,19 @@ export const AdminUserProfile: React.FC = () => {
 
   if (!targetUser) {
     return (
-      <div className="bg-white rounded-xl p-12 text-center border border-slate-200 my-8">
-        <User className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-        <h2 className="text-xl font-bold text-slate-800 mb-1">User Account Not Found</h2>
-        <p className="text-sm text-slate-500 mb-6">The requested user ID does not exist.</p>
-        <Link
-          to="/admin/users"
-          className="inline-flex items-center px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Return to User Roster
-        </Link>
+      <div className="mt-8">
+        <EmptyState
+          icon={<UserRound className="w-6 h-6" />}
+          title="User Account Not Found"
+          description="The requested user ID does not exist or has been removed."
+          action={
+            <Link to="/admin/users">
+              <Button variant="secondary" size="sm" icon={<ArrowLeft className="w-4 h-4" />}>
+                Return to User Roster
+              </Button>
+            </Link>
+          }
+        />
       </div>
     );
   }
@@ -62,102 +60,110 @@ export const AdminUserProfile: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      
-      {/* Top Bar Back Link */}
       <div>
-        <Link
-          to="/admin/users"
-          className="inline-flex items-center text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
-        >
+        <Link to="/admin/users" className="inline-flex items-center text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-1" />
           Back to User Roster
         </Link>
       </div>
 
-      {/* Profile Header Banner */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center space-x-4">
-          <div className="w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center text-xl font-extrabold shadow-sm">
+      <PageHeader
+        title={targetUser.full_name}
+        description={<span className="font-mono">{targetUser.email}</span>}
+        icon={
+          <div className="w-11 h-11 bg-slate-900 text-white rounded-xl flex items-center justify-center text-lg font-extrabold">
             {targetUser.full_name.charAt(0)}
           </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">{targetUser.full_name}</h1>
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                targetUser.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
-              }`}>
-                {targetUser.is_active ? 'Active' : 'Inactive'}
+        }
+        iconBg="bg-slate-900"
+        badges={
+          <>
+            <Badge badge={getRoleBadge(targetUser.role)} />
+            {targetUser.is_active ? (
+              <Badge
+                badge={{
+                  subtle: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+                  solid: 'bg-emerald-600 text-white',
+                  dot: 'bg-emerald-500',
+                  label: 'Active',
+                }}
+              />
+            ) : (
+              <Badge
+                badge={{
+                  subtle: 'bg-red-50 text-red-700 ring-red-200',
+                  solid: 'bg-red-600 text-white',
+                  dot: 'bg-red-500',
+                  label: 'Inactive',
+                }}
+              />
+            )}
+            {targetUser.team && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 text-[11px] font-semibold">
+                Team: {targetUser.team.name} ({targetUser.team.shift_info})
               </span>
-            </div>
-            <p className="text-xs font-mono text-slate-500 mt-0.5">{targetUser.email}</p>
-          </div>
-        </div>
+            )}
+          </>
+        }
+      />
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="px-3 py-1.5 rounded-lg border border-purple-200 bg-purple-50 text-purple-800 text-xs font-bold uppercase tracking-wider">
-            Role: {targetUser.role.replace(/_/g, ' ')}
-          </span>
-          {targetUser.team && (
-            <span className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 text-xs font-semibold">
-              Team: {targetUser.team.name} ({targetUser.team.shift_info})
-            </span>
-          )}
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Open Support Queries"
+          value={openQueriesCount}
+          description="Assigned and awaiting resolution"
+          icon={<HelpCircle className="w-4 h-4" />}
+          accent="amber"
+        />
+        <StatCard
+          title="Resolved Queries"
+          value={resolvedQueriesCount}
+          description="Closed or resolved tickets"
+          icon={<CheckCircle2 className="w-4 h-4" />}
+          accent="emerald"
+        />
+        <StatCard
+          title="Pending Orders"
+          value={pendingOrdersCount}
+          description="In fulfillment workflow"
+          icon={<ShoppingBag className="w-4 h-4" />}
+          accent="brand"
+        />
+        <StatCard
+          title="Completed Orders"
+          value={completedOrdersCount}
+          description="Fully fulfilled orders"
+          icon={<FileText className="w-4 h-4" />}
+          accent="violet"
+        />
       </div>
 
-      {/* Database Activity Metrics Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
-          <span className="text-[10px] font-extrabold uppercase text-amber-700 block">Open Support Queries</span>
-          <span className="text-2xl font-extrabold text-slate-900 mt-1 block">{openQueriesCount}</span>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
-          <span className="text-[10px] font-extrabold uppercase text-emerald-700 block">Resolved Queries</span>
-          <span className="text-2xl font-extrabold text-slate-900 mt-1 block">{resolvedQueriesCount}</span>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
-          <span className="text-[10px] font-extrabold uppercase text-sky-700 block">Pending Orders</span>
-          <span className="text-2xl font-extrabold text-slate-900 mt-1 block">{pendingOrdersCount}</span>
-        </div>
-
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-center">
-          <span className="text-[10px] font-extrabold uppercase text-purple-700 block">Completed Orders</span>
-          <span className="text-2xl font-extrabold text-slate-900 mt-1 block">{completedOrdersCount}</span>
-        </div>
-      </div>
-
-      {/* User Audit Log History */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
-        <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center space-x-2">
-          <FileText className="w-4 h-4 text-sky-600" />
-          <span>User Action Audit Trail History</span>
-        </h3>
-
-        <div className="space-y-3">
-          {userAuditLogs.length > 0 ? (
-            userAuditLogs.map(log => (
-              <div key={log.id} className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-slate-900">{log.summary}</div>
-                  <div className="text-[11px] text-slate-500 font-mono mt-0.5">
-                    Action: {log.action} • Entity: {log.entity_type} {log.entity_number ? `(${log.entity_number})` : ''}
+      <Card>
+        <CardHeader
+          title="User Action Audit Trail History"
+          subtitle="Immutable record of actions performed by this user"
+          icon={<FileText className="w-4 h-4" />}
+        />
+        <CardBody>
+          <div className="space-y-3">
+            {userAuditLogs.length > 0 ? (
+              userAuditLogs.map(log => (
+                <div key={log.id} className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-bold text-slate-900">{log.summary}</div>
+                    <div className="text-[11px] text-slate-500 font-mono mt-0.5">
+                      Action: {log.action} • Entity: {log.entity_type} {log.entity_number ? `(${log.entity_number})` : ''}
+                    </div>
                   </div>
+                  <div className="font-mono text-slate-400 text-[11px] whitespace-nowrap">{formatDateTime(log.timestamp)}</div>
                 </div>
-                <div className="font-mono text-slate-400 text-[11px]">
-                  {new Date(log.timestamp).toLocaleString()}
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-xs text-slate-500 italic text-center py-6">
-              No audit logs recorded for this user yet.
-            </p>
-          )}
-        </div>
-      </div>
-
+              ))
+            ) : (
+              <p className="text-xs text-slate-500 italic text-center py-6">No audit logs recorded for this user yet.</p>
+            )}
+          </div>
+        </CardBody>
+      </Card>
     </div>
   );
 };

@@ -5,24 +5,22 @@ import { localDb } from '../../services/db';
 import { UserProfile, UserRole, UserFormInput } from '../../types';
 import { UserFormModal } from '../../components/admin/UserFormModal';
 import { UserDeactivateModal } from '../../components/admin/UserDeactivateModal';
-import { 
-  Users, 
-  Plus, 
-  Search, 
-  ShieldCheck, 
-  UserCheck, 
-  UserX, 
-  Eye, 
-  Edit, 
-  ArrowRight,
-  Filter,
-  CheckCircle2,
-  XCircle,
-  Building2
-} from 'lucide-react';
+import { Users, Plus, Search, Eye, Edit, UserX, UserCheck, Building2, UserPlus } from 'lucide-react';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import { Table, THead, TBody, Tr, Th, Td } from '../../components/ui/Table';
+import { Badge } from '../../components/ui/Badge';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Avatar } from '../../components/ui/Avatar';
+import { useToast } from '../../components/ui/Toast';
+import { getRoleBadge } from '../../utils/badges';
+import { formatDate } from '../../utils/format';
 
 export const AdminUsers: React.FC = () => {
   const { user: currentUser } = useAuth();
+  const { toast } = useToast();
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Filters
@@ -36,8 +34,6 @@ export const AdminUsers: React.FC = () => {
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [deactivatingUser, setDeactivatingUser] = useState<UserProfile | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const allUsers = useMemo(() => localDb.getUsers(), [refreshKey]);
   const teams = useMemo(() => localDb.getTeams(), []);
@@ -73,19 +69,18 @@ export const AdminUsers: React.FC = () => {
     try {
       if (editingUser) {
         localDb.updateUser(editingUser.id, data, currentUser.id);
-        setToast({ type: 'success', message: `User ${data.full_name} updated successfully.` });
+        toast({ type: 'success', message: `User ${data.full_name} updated successfully.` });
       } else {
         const created = localDb.createUser(data, currentUser.id);
-        setToast({ type: 'success', message: `User account created for ${created.full_name}. Invitation sent.` });
+        toast({ type: 'success', message: `User account created for ${created.full_name}. Invitation sent.` });
       }
       setIsFormModalOpen(false);
       setEditingUser(null);
       setRefreshKey(prev => prev + 1);
     } catch (err: any) {
-      setToast({ type: 'error', message: err.message || 'Error saving user account.' });
+      toast({ type: 'error', message: err.message || 'Error saving user account.' });
     } finally {
       setIsSubmitting(false);
-      setTimeout(() => setToast(null), 3500);
     }
   };
 
@@ -94,232 +89,203 @@ export const AdminUsers: React.FC = () => {
       localDb.setUserActiveStatus(userId, false, currentUser.id);
       setDeactivatingUser(null);
       setRefreshKey(prev => prev + 1);
-      setToast({ type: 'success', message: 'User account deactivated. Historical records preserved.' });
+      toast({ type: 'success', message: 'User account deactivated. Historical records preserved.' });
     } catch (err: any) {
-      setToast({ type: 'error', message: err.message || 'Error deactivating user.' });
+      toast({ type: 'error', message: err.message || 'Error deactivating user.' });
     }
-    setTimeout(() => setToast(null), 3500);
   };
 
   const handleActivateUser = (u: UserProfile) => {
     try {
       localDb.setUserActiveStatus(u.id, true, currentUser.id);
       setRefreshKey(prev => prev + 1);
-      setToast({ type: 'success', message: `User account for ${u.full_name} activated.` });
+      toast({ type: 'success', message: `User account for ${u.full_name} activated.` });
     } catch (err: any) {
-      setToast({ type: 'error', message: err.message || 'Error activating user.' });
+      toast({ type: 'error', message: err.message || 'Error activating user.' });
     }
-    setTimeout(() => setToast(null), 3500);
   };
 
-  const getRoleBadgeStyle = (role: UserRole) => {
-    switch (role) {
-      case 'admin':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'sales_agent':
-        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-      case 'support_agent':
-        return 'bg-amber-100 text-amber-800 border-amber-200';
-    }
+  const openCreateModal = () => {
+    setEditingUser(null);
+    setIsFormModalOpen(true);
   };
 
   return (
     <div className="space-y-6">
-      
-      {/* Toast Notification */}
-      {toast && (
-        <div className={`p-4 rounded-xl border flex items-center space-x-3 text-sm animate-in fade-in duration-200 ${
-          toast.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-800'
-        }`}>
-          {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" /> : <XCircle className="w-5 h-5 text-red-600 shrink-0" />}
-          <span className="font-semibold">{toast.message}</span>
-        </div>
-      )}
+      <PageHeader
+        title="User Roster Management"
+        description="Create, edit, activate, deactivate, and assign team roles for CRM users"
+        icon={<Users className="w-5 h-5 text-white" />}
+        iconBg="bg-slate-900"
+        actions={
+          <Button variant="secondary" icon={<Plus className="w-4 h-4 text-sky-400" />} onClick={openCreateModal}>
+            Create New User Account
+          </Button>
+        }
+      />
 
-      {/* Header Banner */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">User Roster Management</h2>
-          <p className="text-xs text-slate-500">Create, edit, activate, deactivate, and assign team roles for CRM users</p>
-        </div>
-
-        <button
-          onClick={() => { setEditingUser(null); setIsFormModalOpen(true); }}
-          className="inline-flex items-center px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors space-x-1.5 shrink-0"
-        >
-          <Plus className="w-4 h-4 text-sky-400" />
-          <span>Create New User Account</span>
-        </button>
-      </div>
-
-      {/* Filters Bar */}
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by user name or email..."
-            className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-          />
-        </div>
+        <Input
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search by user name or email..."
+          icon={<Search className="w-4 h-4" />}
+          className="lg:col-span-1"
+        />
 
-        <div>
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white"
-          >
-            <option value="all">All Roles</option>
-            <option value="admin">System Admin</option>
-            <option value="sales_agent">Sales Agent</option>
-            <option value="support_agent">Support Agent</option>
-          </select>
-        </div>
+        <Select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+          <option value="all">All Roles</option>
+          <option value="admin">System Admin</option>
+          <option value="sales_agent">Sales Agent</option>
+          <option value="support_agent">Support Agent</option>
+        </Select>
 
-        <div>
-          <select
-            value={teamFilter}
-            onChange={(e) => setTeamFilter(e.target.value)}
-            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white"
-          >
-            <option value="all">All Operational Teams</option>
-            {teams.map(t => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
-          </select>
-        </div>
+        <Select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
+          <option value="all">All Operational Teams</option>
+          {teams.map(t => (
+            <option key={t.id} value={t.id}>{t.name}</option>
+          ))}
+        </Select>
 
-        <div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white"
-          >
-            <option value="all">All Account Statuses</option>
-            <option value="active">Active Only</option>
-            <option value="inactive">Inactive Only</option>
-          </select>
-        </div>
+        <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="all">All Account Statuses</option>
+          <option value="active">Active Only</option>
+          <option value="inactive">Inactive Only</option>
+        </Select>
       </div>
 
-      {/* Users Data Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-700">
-            <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500 border-b border-slate-200">
-              <tr>
-                <th className="px-5 py-3">Full Name & Email</th>
-                <th className="px-5 py-3">Role</th>
-                <th className="px-5 py-3">Operational Team</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 font-mono">Created Date</th>
-                <th className="px-5 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 text-xs">
-              {filteredUsers.length > 0 ? (
-                filteredUsers.map((u) => (
-                  <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
-                    
-                    {/* User Name & Email */}
-                    <td className="px-5 py-3.5">
-                      <Link to={`/admin/users/${u.id}`} className="font-bold text-slate-900 hover:text-sky-600 block text-sm">
-                        {u.full_name}
-                      </Link>
-                      <span className="font-mono text-[11px] text-slate-500">{u.email}</span>
-                    </td>
+        <Table>
+          <THead>
+            <Tr hover={false}>
+              <Th>Full Name & Email</Th>
+              <Th>Role</Th>
+              <Th>Operational Team</Th>
+              <Th>Status</Th>
+              <Th>Created Date</Th>
+              <Th className="text-right">Actions</Th>
+            </Tr>
+          </THead>
+          <TBody>
+            {filteredUsers.length > 0 ? (
+              filteredUsers.map((u) => (
+                <Tr key={u.id}>
+                  <Td>
+                    <div className="flex items-center gap-3">
+                      <Avatar name={u.full_name} size="sm" />
+                      <div className="min-w-0">
+                        <Link to={`/admin/users/${u.id}`} className="font-bold text-slate-900 hover:text-brand-600 block">
+                          {u.full_name}
+                        </Link>
+                        <span className="font-mono text-[11px] text-slate-500">{u.email}</span>
+                      </div>
+                    </div>
+                  </Td>
 
-                    {/* Role Badge */}
-                    <td className="px-5 py-3.5">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${getRoleBadgeStyle(u.role)}`}>
-                        {u.role.replace(/_/g, ' ')}
+                  <Td>
+                    <Badge badge={getRoleBadge(u.role)} />
+                  </Td>
+
+                  <Td>
+                    {u.team ? (
+                      <span className="inline-flex items-center gap-1.5 text-slate-800 font-semibold">
+                        <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                        {u.team.name}
                       </span>
-                    </td>
+                    ) : (
+                      <span className="text-slate-400 italic">No Team</span>
+                    )}
+                  </Td>
 
-                    {/* Operational Team */}
-                    <td className="px-5 py-3.5 font-medium">
-                      {u.team ? (
-                        <div className="flex items-center space-x-1 text-slate-800 font-semibold">
-                          <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{u.team.name}</span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 italic">No Team</span>
-                      )}
-                    </td>
+                  <Td>
+                    {u.is_active ? (
+                      <Badge
+                        badge={{
+                          subtle: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+                          solid: 'bg-emerald-600 text-white',
+                          dot: 'bg-emerald-500',
+                          label: 'Active',
+                        }}
+                      />
+                    ) : (
+                      <Badge
+                        badge={{
+                          subtle: 'bg-red-50 text-red-700 ring-red-200',
+                          solid: 'bg-red-600 text-white',
+                          dot: 'bg-red-500',
+                          label: 'Inactive',
+                        }}
+                      />
+                    )}
+                  </Td>
 
-                    {/* Status Badge */}
-                    <td className="px-5 py-3.5">
-                      {u.is_active ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200">
-                          Active
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-800 border border-red-200">
-                          Inactive
-                        </span>
-                      )}
-                    </td>
+                  <Td className="font-mono text-xs text-slate-500">{formatDate(u.created_at)}</Td>
 
-                    {/* Created Date */}
-                    <td className="px-5 py-3.5 font-mono text-slate-500">
-                      {new Date(u.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-5 py-3.5 text-right space-x-1.5">
+                  <Td className="text-right whitespace-nowrap">
+                    <div className="inline-flex items-center gap-1">
                       <Link
                         to={`/admin/users/${u.id}`}
-                        className="inline-flex items-center p-1.5 text-slate-600 hover:text-sky-600 hover:bg-sky-50 rounded transition-colors"
                         title="View Full User Profile"
+                        className="p-1.5 text-slate-600 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors inline-flex"
                       >
                         <Eye className="w-4 h-4" />
                       </Link>
 
-                      <button
-                        onClick={() => { setEditingUser(u); setIsFormModalOpen(true); }}
-                        className="inline-flex items-center p-1.5 text-slate-600 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-slate-600 hover:text-violet-600 hover:bg-violet-50 px-2"
                         title="Edit User Details & Role"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
+                        icon={<Edit className="w-4 h-4" />}
+                        onClick={() => {
+                          setEditingUser(u);
+                          setIsFormModalOpen(true);
+                        }}
+                      />
 
                       {u.is_active ? (
-                        <button
-                          onClick={() => setDeactivatingUser(u)}
-                          className="inline-flex items-center p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:bg-red-50 px-2"
                           title="Deactivate Account"
-                        >
-                          <UserX className="w-4 h-4" />
-                        </button>
+                          icon={<UserX className="w-4 h-4" />}
+                          onClick={() => setDeactivatingUser(u)}
+                        />
                       ) : (
-                        <button
-                          onClick={() => handleActivateUser(u)}
-                          className="inline-flex items-center p-1.5 text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-emerald-600 hover:bg-emerald-50 px-2"
                           title="Activate Account"
-                        >
-                          <UserCheck className="w-4 h-4" />
-                        </button>
+                          icon={<UserCheck className="w-4 h-4" />}
+                          onClick={() => handleActivateUser(u)}
+                        />
                       )}
-                    </td>
-
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="p-8 text-center text-xs text-slate-400 italic">
-                    No users matched your filter criteria.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                  </Td>
+                </Tr>
+              ))
+            ) : (
+              <Tr hover={false}>
+                <Td colSpan={6} className="p-0">
+                  <EmptyState
+                    icon={<UserPlus className="w-6 h-6" />}
+                    title="No users found"
+                    description="No users matched your filter criteria. Try adjusting the filters or create a new user account."
+                    action={
+                      <Button variant="secondary" size="sm" icon={<Plus className="w-4 h-4" />} onClick={openCreateModal}>
+                        Create New User Account
+                      </Button>
+                    }
+                  />
+                </Td>
+              </Tr>
+            )}
+          </TBody>
+        </Table>
       </div>
 
-      {/* Modals */}
       <UserFormModal
         isOpen={isFormModalOpen}
         onClose={() => setIsFormModalOpen(false)}
@@ -334,7 +300,6 @@ export const AdminUsers: React.FC = () => {
         onClose={() => setDeactivatingUser(null)}
         onConfirmDeactivate={handleConfirmDeactivate}
       />
-
     </div>
   );
 };

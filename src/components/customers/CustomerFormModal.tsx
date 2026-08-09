@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Customer, CustomerFormInput } from '../../types';
-import { X, Building2, User, Phone, Mail, MapPin, Globe, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Building2, User, Phone, Mail, MapPin, Globe, FileText, Save } from 'lucide-react';
 import { localDb } from '../../services/db';
+import { Button, Input, Modal, Select, Textarea } from '../ui';
 
 interface CustomerFormModalProps {
   isOpen: boolean;
@@ -105,253 +106,113 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6">
-      <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        
-        {/* Modal Header */}
-        <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-lg bg-sky-600 flex items-center justify-center text-white">
-              <Building2 className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold">
-                {isEditMode ? 'Edit Customer Record' : 'Create New Customer'}
-              </h3>
-              <p className="text-xs text-slate-300 font-mono">
-                System Code: <span className="text-sky-400 font-bold">{previewCode}</span>
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      title={isEditMode ? 'Edit Customer Record' : 'Create New Customer'}
+      subtitle={
+        <>
+          System Code: <span className="font-bold text-brand-600">{previewCode}</span>
+        </>
+      }
+      icon={
+        <div className="w-10 h-10 bg-brand-50 text-brand-600 rounded-xl flex items-center justify-center">
+          <Building2 className="w-5 h-5" />
         </div>
-
-        {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-
-          {/* Company Name & Status */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                Company Name <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  required
-                  value={companyName}
-                  onChange={(e) => {
-                    setCompanyName(e.target.value);
-                    if (errors.companyName) setErrors(prev => ({ ...prev, companyName: '' }));
-                  }}
-                  placeholder="e.g. Apex Industrial Supplies"
-                  className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
-                    errors.companyName
-                      ? 'border-red-300 focus:ring-red-500 bg-red-50/50'
-                      : 'border-slate-300 focus:ring-sky-500 focus:border-sky-500'
-                  }`}
-                />
-              </div>
-              {errors.companyName && (
-                <p className="text-xs text-red-600 mt-1 flex items-center space-x-1">
-                  <AlertCircle className="w-3 h-3" />
-                  <span>{errors.companyName}</span>
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                Account Status
-              </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')}
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
-
-          </div>
-
-          {/* Contact Person & Phone */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                Contact Person
-              </label>
-              <div className="relative">
-                <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  value={contactPerson}
-                  onChange={(e) => setContactPerson(e.target.value)}
-                  placeholder="e.g. Robert Carter"
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                Phone Number
-              </label>
-              <div className="relative">
-                <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => {
-                    setPhone(e.target.value);
-                    if (errors.phone) setErrors(prev => ({ ...prev, phone: '' }));
-                  }}
-                  placeholder="e.g. +1 (555) 234-5678"
-                  className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
-                    errors.phone
-                      ? 'border-red-300 focus:ring-red-500 bg-red-50/50'
-                      : 'border-slate-300 focus:ring-sky-500 focus:border-sky-500'
-                  }`}
-                />
-              </div>
-              {errors.phone && (
-                <p className="text-xs text-red-600 mt-1 flex items-center space-x-1">
-                  <AlertCircle className="w-3 h-3" />
-                  <span>{errors.phone}</span>
-                </p>
-              )}
-            </div>
-
-          </div>
-
-          {/* Email & City & Country */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            
-            <div className="sm:col-span-1">
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (errors.email) setErrors(prev => ({ ...prev, email: '' }));
-                  }}
-                  placeholder="robert@apexind.com"
-                  className={`w-full pl-9 pr-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 ${
-                    errors.email
-                      ? 'border-red-300 focus:ring-red-500 bg-red-50/50'
-                      : 'border-slate-300 focus:ring-sky-500 focus:border-sky-500'
-                  }`}
-                />
-              </div>
-              {errors.email && (
-                <p className="text-xs text-red-600 mt-1 flex items-center space-x-1">
-                  <AlertCircle className="w-3 h-3" />
-                  <span>{errors.email}</span>
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                City
-              </label>
-              <div className="relative">
-                <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="e.g. Chicago"
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                Country
-              </label>
-              <div className="relative">
-                <Globe className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  placeholder="USA"
-                  className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
-                />
-              </div>
-            </div>
-
-          </div>
-
-          {/* Full Address */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-              Street Address
-            </label>
-            <input
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="e.g. 100 Industrial Parkway, Suite 400"
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="sm:col-span-2">
+            <Input
+              label="Company Name *"
+              required
+              value={companyName}
+              onChange={(e) => {
+                setCompanyName(e.target.value);
+                if (errors.companyName) setErrors((prev) => ({ ...prev, companyName: '' }));
+              }}
+              placeholder="e.g. Apex Industrial Supplies"
+              icon={<Building2 className="w-4 h-4" />}
+              error={errors.companyName}
             />
           </div>
+          <Select label="Account Status" value={status} onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')}>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </Select>
+        </div>
 
-          {/* Notes */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-              Internal Customer Notes
-            </label>
-            <div className="relative">
-              <FileText className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-              <textarea
-                rows={3}
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add operational notes, special delivery instructions, account terms..."
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
-              />
-            </div>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Input
+            label="Contact Person"
+            value={contactPerson}
+            onChange={(e) => setContactPerson(e.target.value)}
+            placeholder="e.g. Robert Carter"
+            icon={<User className="w-4 h-4" />}
+          />
+          <Input
+            label="Phone Number"
+            value={phone}
+            onChange={(e) => {
+              setPhone(e.target.value);
+              if (errors.phone) setErrors((prev) => ({ ...prev, phone: '' }));
+            }}
+            placeholder="e.g. +1 (555) 234-5678"
+            icon={<Phone className="w-4 h-4" />}
+            error={errors.phone}
+          />
+        </div>
 
-          {/* Actions */}
-          <div className="pt-4 border-t border-slate-200 flex items-center justify-end space-x-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-5 py-2 text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors flex items-center space-x-1.5 shadow-sm disabled:opacity-50"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{isSubmitting ? 'Saving...' : isEditMode ? 'Update Customer' : 'Create Customer'}</span>
-            </button>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Input
+            label="Email Address"
+            type="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (errors.email) setErrors((prev) => ({ ...prev, email: '' }));
+            }}
+            placeholder="robert@apexind.com"
+            icon={<Mail className="w-4 h-4" />}
+            error={errors.email}
+          />
+          <Input
+            label="City"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            placeholder="e.g. Chicago"
+            icon={<MapPin className="w-4 h-4" />}
+          />
+          <Input
+            label="Country"
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
+            placeholder="USA"
+            icon={<Globe className="w-4 h-4" />}
+          />
+        </div>
 
-        </form>
+        <Input label="Street Address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="e.g. 100 Industrial Parkway, Suite 400" />
 
-      </div>
-    </div>
+        <Textarea
+          label="Internal Customer Notes"
+          rows={3}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Add operational notes, special delivery instructions, account terms..."
+        />
+
+        <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-3">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isSubmitting} loading={isSubmitting} icon={<Save className="w-4 h-4" />}>
+            {isEditMode ? 'Update Customer' : 'Create Customer'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 };

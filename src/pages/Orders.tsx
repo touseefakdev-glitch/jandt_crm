@@ -27,7 +27,7 @@ import {
 const ITEMS_PER_PAGE = 10;
 
 export const Orders: React.FC = () => {
-  const { user } = useAuth();
+  const { user, dbVersion } = useAuth();
   const navigate = useNavigate();
 
   // Tab: 'all' vs 'my' vs 'team'
@@ -52,8 +52,8 @@ export const Orders: React.FC = () => {
 
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  const customers = useMemo(() => localDb.getCustomers(), []);
-  const agents = useMemo(() => localDb.getUsers().filter(u => u.role === 'sales_agent' || u.role === 'admin'), []);
+  const customers = useMemo(() => localDb.getCustomers(), [dbVersion]);
+  const agents = useMemo(() => localDb.getUsers().filter(u => u.role === 'sales_agent' || u.role === 'admin'), [dbVersion]);
 
   // Fetch filtered orders
   const filteredOrders = useMemo(() => {
@@ -70,7 +70,18 @@ export const Orders: React.FC = () => {
       },
       user?.id
     );
-  }, [searchTerm, statusFilter, agentFilter, customerFilter, startDate, endDate, activeViewTab, user?.id, feedback]);
+  }, [
+    searchTerm,
+    statusFilter,
+    agentFilter,
+    customerFilter,
+    startDate,
+    endDate,
+    activeViewTab,
+    user?.id,
+    feedback,
+    dbVersion,
+  ]);
 
   // Pagination calculation
   const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE) || 1;

@@ -7,6 +7,7 @@ interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
   error: string | null;
+  dbVersion: number;
   login: (email: string, password?: string) => Promise<boolean>;
   logout: () => Promise<void>;
   hasRole: (roles: UserRole | UserRole[]) => boolean;
@@ -22,6 +23,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [dbVersion, setDbVersion] = useState<number>(0);
+
+  useEffect(() => {
+    const handleDbUpdate = () => {
+      setDbVersion(v => v + 1);
+    };
+    window.addEventListener('crm_db_updated', handleDbUpdate);
+    return () => window.removeEventListener('crm_db_updated', handleDbUpdate);
+  }, []);
 
   // Initialize session on mount
   useEffect(() => {
@@ -137,6 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isLoading,
         error,
+        dbVersion,
         login,
         logout,
         hasRole,

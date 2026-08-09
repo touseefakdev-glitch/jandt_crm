@@ -26,7 +26,7 @@ import {
 const ITEMS_PER_PAGE = 10;
 
 export const Products: React.FC = () => {
-  const { user, hasRole } = useAuth();
+  const { user, hasRole, dbVersion } = useAuth();
   const navigate = useNavigate();
 
   const isAdmin = hasRole('admin');
@@ -51,8 +51,8 @@ export const Products: React.FC = () => {
 
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  const categories = useMemo(() => localDb.getProductCategories(), []);
-  const brands = useMemo(() => localDb.getProductBrands(), []);
+  const categories = useMemo(() => localDb.getProductCategories(), [dbVersion]);
+  const brands = useMemo(() => localDb.getProductBrands(), [dbVersion]);
 
   // Fetch filtered products
   const filteredProducts = useMemo(() => {
@@ -67,7 +67,7 @@ export const Products: React.FC = () => {
       brand_id: brandFilter !== 'all' ? brandFilter : undefined,
       activeOnly: activeFilter === 'active',
     });
-  }, [searchTerm, statusFilter, categoryFilter, brandFilter, activeFilter, activeTab, feedback]);
+  }, [searchTerm, statusFilter, categoryFilter, brandFilter, activeFilter, activeTab, feedback, dbVersion]);
 
   // Pagination calculation
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1;

@@ -32,7 +32,7 @@ import {
 const ITEMS_PER_PAGE = 10;
 
 export const Queries: React.FC = () => {
-  const { user } = useAuth();
+  const { user, dbVersion } = useAuth();
   const navigate = useNavigate();
 
   const [refreshKey, setRefreshKey] = useState(0);
@@ -65,9 +65,9 @@ export const Queries: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  const categories = useMemo(() => localDb.getCategories(), []);
-  const agents = useMemo(() => localDb.getUsers(), []);
-  const teams = useMemo(() => localDb.getTeams(), []);
+  const categories = useMemo(() => localDb.getCategories(), [dbVersion]);
+  const agents = useMemo(() => localDb.getUsers(), [dbVersion]);
+  const teams = useMemo(() => localDb.getTeams(), [dbVersion]);
 
   const userTeam = useMemo(() => {
     if (!user) return null;
@@ -77,7 +77,7 @@ export const Queries: React.FC = () => {
   // All Queries list from database
   const allQueriesList = useMemo(() => {
     return localDb.getQueries();
-  }, [refreshKey]);
+  }, [refreshKey, dbVersion]);
 
   // Filtered queries list
   const filteredQueries = useMemo(() => {

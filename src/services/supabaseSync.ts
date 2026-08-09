@@ -54,6 +54,13 @@ let syncQueue: Promise<void> = Promise.resolve();
 // Regex matching standard Postgres UUID format
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** Broadcast database updates so React UI components refresh instantly. */
+export function notifyDataUpdated(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('crm_db_updated'));
+  }
+}
+
 /** Read a stored table/object from in-memory cache, falling back to localStorage. */
 export function storageGet(key: string): string | null {
   if (memoryStore.has(key)) {
@@ -76,6 +83,7 @@ export function storageSet(key: string, value: string): void {
     console.warn('[Storage] localStorage.setItem failed:', e);
   }
   scheduleTableSync(key, value);
+  notifyDataUpdated();
 }
 
 /** Prime memoryStore AND localStorage without triggering a Supabase write. */
@@ -86,11 +94,13 @@ export function storagePrime(key: string, value: string): void {
   } catch (e) {
     console.warn('[Storage] localStorage.setItem failed:', e);
   }
+  notifyDataUpdated();
 }
 
 export function storageClear(): void {
   memoryStore.clear();
   previousRowIds.clear();
+  notifyDataUpdated();
 }
 
 // --- Write-through sync -------------------------------------------------------
@@ -214,6 +224,7 @@ export async function initializeFromSupabase(): Promise<void> {
         }
       }
     }
+    notifyDataUpdated();
   } catch (err) {
     console.error('[Supabase] initializeFromSupabase failed:', err);
   }

@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, dbVersion } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Subscribe to real-time notification events
@@ -37,24 +37,24 @@ export const Dashboard: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  const allQueries = useMemo(() => localDb.getQueries(), []);
-  const allOrders = useMemo(() => localDb.getOrders(), []);
-  const outOfStockProducts = useMemo(() => localDb.getOutOfStockProducts(), []);
+  const allQueries = useMemo(() => localDb.getQueries(), [dbVersion]);
+  const allOrders = useMemo(() => localDb.getOrders(), [dbVersion]);
+  const outOfStockProducts = useMemo(() => localDb.getOutOfStockProducts(), [dbVersion]);
 
   const userNotifications = useMemo(() => {
     if (!user) return [];
     return localDb.getNotifications(user.id);
-  }, [user, refreshKey]);
+  }, [user, refreshKey, dbVersion]);
 
   const unreadCount = useMemo(() => {
     if (!user) return 0;
     return localDb.getUnreadNotificationsCount(user.id);
-  }, [user, refreshKey]);
+  }, [user, refreshKey, dbVersion]);
 
   const urgentCount = useMemo(() => {
     if (!user) return 0;
     return localDb.getUrgentNotificationsCount(user.id);
-  }, [user, refreshKey]);
+  }, [user, refreshKey, dbVersion]);
 
   const userTeam = useMemo(() => {
     if (!user) return null;

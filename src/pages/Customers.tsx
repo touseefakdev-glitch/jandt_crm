@@ -23,7 +23,7 @@ import {
 const ITEMS_PER_PAGE = 10;
 
 export const Customers: React.FC = () => {
-  const { user, hasRole } = useAuth();
+  const { user, hasRole, dbVersion } = useAuth();
   const navigate = useNavigate();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,7 +41,7 @@ export const Customers: React.FC = () => {
   // Fetch customers list
   const allCustomers = useMemo(() => {
     return localDb.getCustomers(searchTerm, statusFilter);
-  }, [searchTerm, statusFilter, feedback]);
+  }, [searchTerm, statusFilter, feedback, dbVersion]);
 
   // Pagination calculation
   const totalPages = Math.ceil(allCustomers.length / ITEMS_PER_PAGE) || 1;

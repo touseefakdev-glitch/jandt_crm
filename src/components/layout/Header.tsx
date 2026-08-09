@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { localDb } from '../../services/db';
 import { notificationService } from '../../services/notificationService';
-import { forceResyncFromSupabase, checkSupabaseConnection, getSupabaseConnectionState, subscribeToConnectionState, SupabaseConnectionState } from '../../services/supabaseSync';
+import { forceResyncFromSupabase, checkSupabaseConnection, getSupabaseConnectionState, getSupabaseConfig, getLastConnectionError, subscribeToConnectionState, SupabaseConnectionState } from '../../services/supabaseSync';
 import { CRMNotification, NotificationPriority } from '../../types';
 import { 
   LogOut, 
@@ -28,11 +28,20 @@ export const Header: React.FC = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [connState, setConnState] = useState<SupabaseConnectionState>(() => getSupabaseConnectionState());
+  const [connError, setConnError] = useState<string | null>(() => getLastConnectionError());
+  const [connHost, setConnHost] = useState<string | null>(() => getSupabaseConfig().host);
 
   // Monitor Supabase reachability so the app never silently runs on seed data.
   useEffect(() => {
-    const unsubscribe = subscribeToConnectionState(setConnState);
-    checkSupabaseConnection();
+    const unsubscribe = subscribeToConnectionState((state) => {
+      setConnState(state);
+      setConnError(getLastConnectionError());
+      setConnHost(getSupabaseConfig().host);
+    });
+    checkSupabaseConnection().then((state) => {
+      setConnState(state);
+      setConnError(getLastConnectionError());
+    });
     return unsubscribe;
   }, []);
 
@@ -41,7 +50,9 @@ export const Header: React.FC = () => {
     try {
       await forceResyncFromSupabase();
     } finally {
-      await checkSupabaseConnection();
+      const state = await checkSupabaseConnection();
+      setConnState(state);
+      setConnError(getLastConnectionError());
       setIsSyncing(false);
     }
   };
@@ -157,20 +168,29 @@ export const Header: React.FC = () => {
           {/* Supabase Connection Status */}
           {connState === 'online' && (
             <span
-              title="Connected to Supabase — showing live data"
+              title={`Connected to ${connHost} — showing live data`}
               className="hidden sm:flex items-center space-x-1.5 text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200"
             >
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
               <span>Supabase Live</span>
             </span>
           )}
+          {connState === 'not_configured' && (
+            <span
+              title={connError || 'No Supabase credentials for this build.'}
+              className="hidden sm:flex items-center space-x-1.5 text-xs text-red-700 bg-red-50 px-2.5 py-1 rounded-md border border-red-200"
+            >
+              <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
+              <span>Supabase Not Configured</span>
+            </span>
+          )}
           {connState === 'offline' && (
             <span
-              title="Cannot reach Supabase project (paused/deleted?). Showing local/seed data. Check your project in the Supabase dashboard."
+              title={`Host: ${connHost || 'none'} — ${connError || 'cannot reach Supabase'}. Check the Supabase project status / Vercel env vars.`}
               className="hidden sm:flex items-center space-x-1.5 text-xs text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200"
             >
               <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-              <span>Supabase Offline — Local Data</span>
+              <span>Supabase Offline — {connHost || 'no host'}</span>
             </span>
           )}
           {connState === 'unknown' && (

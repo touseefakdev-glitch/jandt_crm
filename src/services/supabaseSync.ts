@@ -113,13 +113,27 @@ export function storageClear(): void {
 
 // --- Connection status ---------------------------------------------------------
 
-export type SupabaseConnectionState = 'unknown' | 'online' | 'offline';
+export type SupabaseConnectionState = 'unknown' | 'online' | 'offline' | 'not_configured';
 
 let connectionState: SupabaseConnectionState = 'unknown';
+let lastConnectionError: string | null = null;
 const connectionListeners = new Set<(state: SupabaseConnectionState) => void>();
+
+/** Diagnostics for the UI: which host this build is pointed at and if keys exist. */
+export function getSupabaseConfig(): { host: string | null; configured: boolean; keyLength: number } {
+  let host: string | null = null;
+  try {
+    if (supabaseUrl) host = new URL(supabaseUrl).host;
+  } catch {}
+  return { host, configured: !!supabase, keyLength: supabaseAnonKey.length };
+}
 
 export function getSupabaseConnectionState(): SupabaseConnectionState {
   return connectionState;
+}
+
+export function getLastConnectionError(): string | null {
+  return lastConnectionError;
 }
 
 export function subscribeToConnectionState(
@@ -135,16 +149,30 @@ export function subscribeToConnectionState(
  * falling back to seed data.
  */
 export async function checkSupabaseConnection(): Promise<SupabaseConnectionState> {
-  if (!supabase) {
-    connectionState = 'offline';
+  const { host, configured } = getSupabaseConfig();
+  if (!configured) {
+    lastConnectionError =
+      'Supabase is not configured: set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY (or NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) for this build.';
+    connectionState = 'not_configured';
     connectionListeners.forEach((l) => l(connectionState));
+    console.warn(`[Supabase] Not configured (host=${host}). ${lastConnectionError}`);
     return connectionState;
   }
   try {
-    const { error } = await supabase.from('teams').select('id').limit(1);
-    connectionState = error ? 'offline' : 'online';
-  } catch {
+    const { error } = await supabase!.from('teams').select('id').limit(1);
+    if (error) {
+      lastConnectionError = `${error.message} (${error.code || 'error'})`;
+      connectionState = 'offline';
+      console.error(`[Supabase] Reachability probe to ${host} failed:`, lastConnectionError);
+    } else {
+      lastConnectionError = null;
+      connectionState = 'online';
+      console.log(`[Supabase] Online — connected to ${host}`);
+    }
+  } catch (err) {
+    lastConnectionError = err instanceof Error ? err.message : String(err);
     connectionState = 'offline';
+    console.error(`[Supabase] Network error reaching ${host}:`, lastConnectionError);
   }
   connectionListeners.forEach((l) => l(connectionState));
   return connectionState;

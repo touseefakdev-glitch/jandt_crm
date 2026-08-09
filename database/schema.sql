@@ -515,87 +515,92 @@ INSERT INTO public.customers (id, customer_code, company_name, contact_person, p
     ('10000000-0000-0000-0000-000000000006', 'CUST-000006', 'Legacy Construction Corp', 'Tom Sterling', '+1 (555) 432-1098', 'tsterling@legacyconst.com', '34 Builders Square', 'Denver', 'USA', 'inactive')
 ON CONFLICT (customer_code) DO NOTHING;
 
+-- Query Categories (group 0001 in segment 4)
 INSERT INTO public.query_categories (id, name, description) VALUES
-    ('cat-0001-0000-0000-000000000001', 'Order Issue', 'Order discrepancies, wrong quantities, or missing order confirmation'),
-    ('cat-0002-0000-0000-000000000002', 'Delivery Issue', 'Carrier delays, damaged packaging, or incorrect delivery address'),
-    ('cat-0003-0000-0000-000000000003', 'Invoice Issue', 'Billing errors, tax exempt status, or missing commercial invoices'),
-    ('cat-0004-0000-0000-000000000004', 'Product Issue', 'Defective items, technical specifications, or quality assurance inquiries'),
-    ('cat-0005-0000-0000-000000000005', 'Stock Availability', 'Product availability inquiries, backorder lead times, or stock restock dates'),
-    ('cat-0006-0000-0000-000000000006', 'Payment Issue', 'Payment gateway failures, wire transfer confirmations, or credit terms'),
-    ('cat-0007-0000-0000-000000000007', 'Customer Information', 'Account contact details, address updates, or tax exemption status'),
-    ('cat-0008-0000-0000-000000000008', 'General Inquiry', 'General business inquiries, catalog requests, or support shift info'),
-    ('cat-0009-0000-0000-000000000009', 'Other', 'Uncategorized customer tickets requiring agent evaluation')
+    ('00000000-0000-0000-0001-000000000001', 'Order Issue', 'Order discrepancies, wrong quantities, or missing order confirmation'),
+    ('00000000-0000-0000-0001-000000000002', 'Delivery Issue', 'Carrier delays, damaged packaging, or incorrect delivery address'),
+    ('00000000-0000-0000-0001-000000000003', 'Invoice Issue', 'Billing errors, tax exempt status, or missing commercial invoices'),
+    ('00000000-0000-0000-0001-000000000004', 'Product Issue', 'Defective items, technical specifications, or quality assurance inquiries'),
+    ('00000000-0000-0000-0001-000000000005', 'Stock Availability', 'Product availability inquiries, backorder lead times, or stock restock dates'),
+    ('00000000-0000-0000-0001-000000000006', 'Payment Issue', 'Payment gateway failures, wire transfer confirmations, or credit terms'),
+    ('00000000-0000-0000-0001-000000000007', 'Customer Information', 'Account contact details, address updates, or tax exemption status'),
+    ('00000000-0000-0000-0001-000000000008', 'General Inquiry', 'General business inquiries, catalog requests, or support shift info'),
+    ('00000000-0000-0000-0001-000000000009', 'Other', 'Uncategorized customer tickets requiring agent evaluation')
 ON CONFLICT (name) DO NOTHING;
 
+-- Product Categories (group 0002 in segment 4)
 INSERT INTO public.product_categories (id, name, description) VALUES
-    ('pcat-0001-0000-0000-000000000001', 'Industrial Cleaners', 'Heavy-duty degreasers, solvent cleaners, and surface sanitizers'),
-    ('pcat-0002-0000-0000-000000000002', 'Packaging Supplies', 'Corrugated boxes, stretch film, sealing tape, and strapping'),
-    ('pcat-0003-0000-0000-000000000003', 'Safety & PPE', 'Protective gloves, respirators, eye protection, and safety vests'),
-    ('pcat-0004-0000-0000-000000000004', 'Warehouse Equipment', 'Pallet jacks, storage bins, shelving units, and hand trucks')
+    ('00000000-0000-0000-0002-000000000001', 'Industrial Cleaners', 'Heavy-duty degreasers, solvent cleaners, and surface sanitizers'),
+    ('00000000-0000-0000-0002-000000000002', 'Packaging Supplies', 'Corrugated boxes, stretch film, sealing tape, and strapping'),
+    ('00000000-0000-0000-0002-000000000003', 'Safety & PPE', 'Protective gloves, respirators, eye protection, and safety vests'),
+    ('00000000-0000-0000-0002-000000000004', 'Warehouse Equipment', 'Pallet jacks, storage bins, shelving units, and hand trucks')
 ON CONFLICT (name) DO NOTHING;
 
+-- Product Brands (group 0003 in segment 4)
 INSERT INTO public.product_brands (id, name, description) VALUES
-    ('pbrd-0001-0000-0000-000000000001', 'J&T ProClean', 'Premium industrial cleaning solutions'),
-    ('pbrd-0002-0000-0000-000000000002', 'PackGuard', 'Heavy-duty commercial packaging products'),
-    ('pbrd-0003-0000-0000-000000000003', 'SafeShield', 'Certified personal protective equipment'),
-    ('pbrd-0004-0000-0000-000000000004', 'DuraLift', 'Industrial warehouse machinery and storage accessories')
+    ('00000000-0000-0000-0003-000000000001', 'J&T ProClean', 'Premium industrial cleaning solutions'),
+    ('00000000-0000-0000-0003-000000000002', 'PackGuard', 'Heavy-duty commercial packaging products'),
+    ('00000000-0000-0000-0003-000000000003', 'SafeShield', 'Certified personal protective equipment'),
+    ('00000000-0000-0000-0003-000000000004', 'DuraLift', 'Industrial warehouse machinery and storage accessories')
 ON CONFLICT (name) DO NOTHING;
 
+-- Products (group 0004 in segment 4)
 INSERT INTO public.products
 (id, sku, product_name, description, category_id, brand_id, unit_price, availability_status, availability_notes, expected_available_date) VALUES
     (
-        'prod-0001-0000-0000-000000000001',
+        '00000000-0000-0000-0004-000000000001',
         'IND-CLEAN-500',
         'ProClean Heavy-Duty Degreaser 5Gal',
         'Concentrated solvent degreaser suitable for heavy machinery and shop floors.',
-        'pcat-0001-0000-0000-000000000001',
-        'pbrd-0001-0000-0000-000000000001',
+        '00000000-0000-0000-0002-000000000001',
+        '00000000-0000-0000-0003-000000000001',
         145.00, 'available', 'In stock and ready for distributor shipping.', NULL
     ),
     (
-        'prod-0002-0000-0000-000000000002',
+        '00000000-0000-0000-0004-000000000002',
         'PKG-FILM-80G',
         'PackGuard Heavy Stretch Film 80 Gauge',
         'High-clarity pallet wrapping film with high puncture resistance.',
-        'pcat-0002-0000-0000-000000000002',
-        'pbrd-0002-0000-0000-000000000002',
+        '00000000-0000-0000-0002-000000000002',
+        '00000000-0000-0000-0003-000000000002',
         65.00, 'out_of_stock', 'Raw chemical resin shortage from main supplier. Resupply shipment scheduled.',
         CURRENT_DATE + INTERVAL '7 days'
     ),
     (
-        'prod-0003-0000-0000-000000000003',
+        '00000000-0000-0000-0004-000000000003',
         'PPE-GLOVE-NIT-L',
         'SafeShield Nitrile Gloves Powder-Free (Box 100)',
         'Medical grade 5-mil powder-free nitrile examination gloves.',
-        'pcat-0003-0000-0000-000000000003',
-        'pbrd-0003-0000-0000-000000000003',
+        '00000000-0000-0000-0002-000000000003',
+        '00000000-0000-0000-0003-000000000003',
         22.50, 'available', 'Fully available across main distribution network.', NULL
     ),
     (
-        'prod-0004-0000-0000-000000000004',
+        '00000000-0000-0000-0004-000000000004',
         'WHS-JACK-5500',
         'DuraLift Hydraulic Pallet Jack 5500 lbs',
         'Heavy-duty steel frame hydraulic pallet jack with polyurethane wheels.',
-        'pcat-0004-0000-0000-000000000004',
-        'pbrd-0004-0000-0000-000000000004',
+        '00000000-0000-0000-0002-000000000004',
+        '00000000-0000-0000-0003-000000000004',
         480.00, 'out_of_stock', 'Factory line overhaul. Lead time approximately 2 weeks.',
         CURRENT_DATE + INTERVAL '14 days'
     ),
     (
-        'prod-0005-0000-0000-000000000005',
+        '00000000-0000-0000-0004-000000000005',
         'IND-SAN-100',
         'ProClean Surface Sanitizer Wipes 500ct',
         'Hospital-grade surface disinfectant wipes.',
-        'pcat-0001-0000-0000-000000000001',
-        'pbrd-0001-0000-0000-000000000001',
+        '00000000-0000-0000-0002-000000000001',
+        '00000000-0000-0000-0003-000000000001',
         38.00, 'discontinued', 'Product replaced by IND-SAN-200 series.', NULL
     )
 ON CONFLICT (sku) DO NOTHING;
 
+-- Orders (group 0005 in segment 4)
 INSERT INTO public.orders
 (id, order_number, customer_id, sales_agent_id, current_status, subtotal, total_discount, total_tax, grand_total, notes, created_by, updated_by) VALUES
     (
-        'ord-10000000-0000-0000-0000-000000000001',
+        '00000000-0000-0000-0005-000000000001',
         'ORD-000001',
         '10000000-0000-0000-0000-000000000001',
         'b2222222-2222-2222-2222-222222222222',
@@ -605,7 +610,7 @@ INSERT INTO public.orders
         'b2222222-2222-2222-2222-222222222222'
     ),
     (
-        'ord-10000000-0000-0000-0000-000000000002',
+        '00000000-0000-0000-0005-000000000002',
         'ORD-000002',
         '10000000-0000-0000-0000-000000000002',
         'b2222222-2222-2222-2222-222222222222',
@@ -615,7 +620,7 @@ INSERT INTO public.orders
         'b2222222-2222-2222-2222-222222222222'
     ),
     (
-        'ord-10000000-0000-0000-0000-000000000003',
+        '00000000-0000-0000-0005-000000000003',
         'ORD-000003',
         '10000000-0000-0000-0000-000000000003',
         'a1111111-1111-1111-1111-111111111111',
@@ -625,7 +630,7 @@ INSERT INTO public.orders
         'a1111111-1111-1111-1111-111111111111'
     ),
     (
-        'ord-10000000-0000-0000-0000-000000000004',
+        '00000000-0000-0000-0005-000000000004',
         'ORD-000004',
         '10000000-0000-0000-0000-000000000004',
         'b2222222-2222-2222-2222-222222222222',
@@ -636,37 +641,38 @@ INSERT INTO public.orders
     )
 ON CONFLICT (order_number) DO NOTHING;
 
+-- Customer Queries (group 0006 in segment 4)
 INSERT INTO public.customer_queries
 (id, query_number, customer_id, subject, description, category_id, priority, status, assigned_to, created_by) VALUES
     (
-        'qry-10000000-0000-0000-0000-000000000001',
+        '00000000-0000-0000-0006-000000000001',
         'QRY-000001',
         '10000000-0000-0000-0000-000000000001',
         'Urgent Delivery Status for Hydraulic Degreaser Order',
         'Customer requested immediate delivery tracking for order ORD-000001. Carrier shipment appears delayed near Chicago hub.',
-        'cat-0002-0000-0000-000000000002',
+        '00000000-0000-0000-0001-000000000002',
         'high', 'in_progress',
         'c3333333-3333-3333-3333-333333333333',
         'b2222222-2222-2222-2222-222222222222'
     ),
     (
-        'qry-10000000-0000-0000-0000-000000000002',
+        '00000000-0000-0000-0006-000000000002',
         'QRY-000002',
         '10000000-0000-0000-0000-000000000002',
         'Availability Inquiry for Heavy Stretch Film 80G',
         'Vanguard Freight wants to place a bulk order of 200 rolls of PackGuard Heavy Stretch Film 80G. Product is marked Out of Stock.',
-        'cat-0005-0000-0000-000000000005',
+        '00000000-0000-0000-0001-000000000005',
         'urgent', 'waiting_customer',
         'c3333333-3333-3333-3333-333333333333',
         'c3333333-3333-3333-3333-333333333333'
     ),
     (
-        'qry-10000000-0000-0000-0000-000000000003',
+        '00000000-0000-0000-0006-000000000003',
         'QRY-000003',
         '10000000-0000-0000-0000-000000000003',
         'Sterile Glove Certificate of Compliance',
         'Horizon Healthcare requested formal QA compliance documentation for SafeShield Nitrile Gloves.',
-        'cat-0004-0000-0000-000000000004',
+        '00000000-0000-0000-0001-000000000004',
         'medium', 'resolved',
         'c3333333-3333-3333-3333-333333333333',
         'a1111111-1111-1111-1111-111111111111'

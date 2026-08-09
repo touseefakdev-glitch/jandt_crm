@@ -103,6 +103,45 @@ export function storageClear(): void {
   notifyDataUpdated();
 }
 
+// --- Connection status ---------------------------------------------------------
+
+export type SupabaseConnectionState = 'unknown' | 'online' | 'offline';
+
+let connectionState: SupabaseConnectionState = 'unknown';
+const connectionListeners = new Set<(state: SupabaseConnectionState) => void>();
+
+export function getSupabaseConnectionState(): SupabaseConnectionState {
+  return connectionState;
+}
+
+export function subscribeToConnectionState(
+  listener: (state: SupabaseConnectionState) => void
+): () => void {
+  connectionListeners.add(listener);
+  return () => connectionListeners.delete(listener);
+}
+
+/**
+ * Lightweight reachability probe against a real table. A paused/deleted project
+ * resets the TLS connection and reports 'offline' so the UI can stop silently
+ * falling back to seed data.
+ */
+export async function checkSupabaseConnection(): Promise<SupabaseConnectionState> {
+  if (!supabase) {
+    connectionState = 'offline';
+    connectionListeners.forEach((l) => l(connectionState));
+    return connectionState;
+  }
+  try {
+    const { error } = await supabase.from('teams').select('id').limit(1);
+    connectionState = error ? 'offline' : 'online';
+  } catch {
+    connectionState = 'offline';
+  }
+  connectionListeners.forEach((l) => l(connectionState));
+  return connectionState;
+}
+
 // --- Write-through sync -------------------------------------------------------
 
 function scheduleTableSync(key: string, value: string): void {

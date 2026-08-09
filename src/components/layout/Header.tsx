@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { localDb } from '../../services/db';
 import { notificationService } from '../../services/notificationService';
-import { forceResyncFromSupabase } from '../../services/supabaseSync';
+import { forceResyncFromSupabase, checkSupabaseConnection, getSupabaseConnectionState, subscribeToConnectionState, SupabaseConnectionState } from '../../services/supabaseSync';
 import { CRMNotification, NotificationPriority } from '../../types';
 import { 
   LogOut, 
@@ -27,12 +27,21 @@ export const Header: React.FC = () => {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [connState, setConnState] = useState<SupabaseConnectionState>(() => getSupabaseConnectionState());
+
+  // Monitor Supabase reachability so the app never silently runs on seed data.
+  useEffect(() => {
+    const unsubscribe = subscribeToConnectionState(setConnState);
+    checkSupabaseConnection();
+    return unsubscribe;
+  }, []);
 
   const handleSyncClick = async () => {
     setIsSyncing(true);
     try {
       await forceResyncFromSupabase();
     } finally {
+      await checkSupabaseConnection();
       setIsSyncing(false);
     }
   };
@@ -144,6 +153,32 @@ export const Header: React.FC = () => {
             <Calendar className="w-3.5 h-3.5 text-slate-500" />
             <span>{todayFormatted}</span>
           </div>
+
+          {/* Supabase Connection Status */}
+          {connState === 'online' && (
+            <span
+              title="Connected to Supabase — showing live data"
+              className="hidden sm:flex items-center space-x-1.5 text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span>Supabase Live</span>
+            </span>
+          )}
+          {connState === 'offline' && (
+            <span
+              title="Cannot reach Supabase project (paused/deleted?). Showing local/seed data. Check your project in the Supabase dashboard."
+              className="hidden sm:flex items-center space-x-1.5 text-xs text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200"
+            >
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+              <span>Supabase Offline — Local Data</span>
+            </span>
+          )}
+          {connState === 'unknown' && (
+            <span className="hidden sm:flex items-center space-x-1.5 text-xs text-slate-500 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-200">
+              <span className="w-2 h-2 rounded-full bg-slate-400" />
+              <span>Checking Supabase...</span>
+            </span>
+          )}
 
           {/* Sync Supabase Live Button */}
           <button

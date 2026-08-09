@@ -501,18 +501,21 @@ INSERT INTO public.teams (id, name, shift_info, shift_start, shift_end) VALUES
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO public.profiles (id, email, full_name, role, team_id) VALUES
-    ('a1111111-1111-1111-1111-111111111111', 'admin@jtsupplies.com', 'Sarah Connor (Admin)', 'admin', '11111111-1111-1111-1111-111111111111'),
-    ('b2222222-2222-2222-2222-222222222222', 'sales@jtsupplies.com', 'Alex Mercer (Sales)', 'sales_agent', '11111111-1111-1111-1111-111111111111'),
-    ('c3333333-3333-3333-3333-333333333333', 'support@jtsupplies.com', 'Elena Rostova (Support)', 'support_agent', '22222222-2222-2222-2222-222222222222')
+    ('a1111111-1111-1111-1111-111111111111', 'tauseef@jtsupplies.com', 'Tauseef (Admin)', 'admin', '11111111-1111-1111-1111-111111111111'),
+    ('b2222222-2222-2222-2222-222222222222', 'muzammil@jtsupplies.com', 'Muzammil (Sales)', 'sales_agent', '11111111-1111-1111-1111-111111111111'),
+    ('c3333333-3333-3333-3333-333333333333', 'abdulrehman@jtsupplies.com', 'Abdul Rehman (Support)', 'support_agent', '22222222-2222-2222-2222-222222222222'),
+    ('d4444444-4444-4444-4444-444444444444', 'sohail@jtsupplies.com', 'Sohail (Sales)', 'sales_agent', '11111111-1111-1111-1111-111111111111'),
+    ('e5555555-5555-5555-5555-555555555555', 'aasil@jtsupplies.com', 'Aasil (Support)', 'support_agent', '22222222-2222-2222-2222-222222222222')
 ON CONFLICT (email) DO NOTHING;
 
-INSERT INTO public.customers (id, customer_code, company_name, contact_person, phone, email, address, city, country, status) VALUES
-    ('10000000-0000-0000-0000-000000000001', 'CUST-000001', 'Salsa and Sabor', 'Jacquie', '+1 (555) 234-5678', 'm.vance@apexind.com', '100 Industrial Parkway', 'Chicago', 'USA', 'active'),
-    ('10000000-0000-0000-0000-000000000002', 'CUST-000002', 'Vanguard Freight & Logistics', 'Brenda Holloway', '+1 (555) 876-5432', 'b.holloway@vanguardfl.com', '450 Terminal Way', 'Houston', 'USA', 'active'),
-    ('10000000-0000-0000-0000-000000000003', 'CUST-000003', 'Horizon Healthcare Systems', 'Dr. David Chen', '+1 (555) 345-6789', 'd.chen@horizonhealth.org', '780 Medical Center Blvd', 'Boston', 'USA', 'active'),
-    ('10000000-0000-0000-0000-000000000004', 'CUST-000004', 'Summit Retail Distributors', 'Rachel Adams', '+1 (555) 901-2345', 'radams@summitretail.com', '120 Commerce Way', 'Atlanta', 'USA', 'active'),
-    ('10000000-0000-0000-0000-000000000005', 'CUST-000005', 'Pacific Rim Manufacturing', 'Kenji Sato', '+1 (555) 678-9012', 'ksato@pacificrimmfg.com', '890 Logistics Hwy', 'Seattle', 'USA', 'active'),
-    ('10000000-0000-0000-0000-000000000006', 'CUST-000006', 'Legacy Construction Corp', 'Tom Sterling', '+1 (555) 432-1098', 'tsterling@legacyconst.com', '34 Builders Square', 'Denver', 'USA', 'inactive')
+INSERT INTO public.customers (id, customer_code, company_name, contact_person, phone, email, address, city, country, status, notes) VALUES
+    ('10000000-0000-0000-0000-000000000001', 'CUST-000001', '0941791 BC.ltd', 'Gurpreet Singh', '+1 (604) 555-0191', 'contact@0941791bc.ca', '10245 152 St', 'Surrey', 'Canada', 'active', '17 items priced. Key commercial food packaging account.'),
+    ('10000000-0000-0000-0000-000000000002', 'CUST-000002', '4G Commercial', 'Tariq Mahmood', '+1 (250) 555-0144', 'orders@4gcommercial.com', '880 Commercial Way', 'Vancouver', 'Canada', 'active', '8 items priced. Commercial supply client.'),
+    ('10000000-0000-0000-0000-000000000003', 'CUST-000003', '5309 Main street, Unit 100', 'Usman Ali', '+1 (604) 555-5309', 'unit100@mainstreetsupplies.ca', '5309 Main Street, Unit 100', 'Vancouver', 'Canada', 'active', '1 item priced. Retail location customer.'),
+    ('10000000-0000-0000-0000-000000000004', 'CUST-000004', 'AA Tire Kelowna', 'Bilal Ahmed', '+1 (250) 555-0177', 'service@aatilekelowna.com', '1920 Enterprise Way', 'Kelowna', 'Canada', 'active', '3 items priced. Commercial customer.'),
+    ('10000000-0000-0000-0000-000000000005', 'CUST-000005', 'Academy Store', 'Farhan Khan', '+1 (604) 555-0122', 'manager@academystore.ca', '3450 Academy Way', 'Burnaby', 'Canada', 'active', '5 items priced. Campus supply store.'),
+    ('10000000-0000-0000-0000-000000000006', 'CUST-000006', 'Afrofusion Kamloops', 'Zubair Siddiqui', '+1 (250) 555-0188', 'kitchen@afrofusionkamloops.com', '450 Tranquille Rd', 'Kamloops', 'Canada', 'active', '18 items priced. Restaurant & food wrapping customer.'),
+    ('10000000-0000-0000-0000-000000000007', 'CUST-000007', 'Alcatraz Chicken', 'Hamza Malik', '+1 (604) 555-0199', 'info@alcatrazchicken.com', '1120 Robson St', 'Vancouver', 'Canada', 'active', '5 items priced. Fast food chain - regular foil & wrap orders.')
 ON CONFLICT (customer_code) DO NOTHING;
 
 -- Query Categories (group 0001 in segment 4)
@@ -530,18 +533,18 @@ ON CONFLICT (name) DO NOTHING;
 
 -- Product Categories (group 0002 in segment 4)
 INSERT INTO public.product_categories (id, name, description) VALUES
-    ('00000000-0000-0000-0002-000000000001', 'Industrial Cleaners', 'Heavy-duty degreasers, solvent cleaners, and surface sanitizers'),
-    ('00000000-0000-0000-0002-000000000002', 'Packaging Supplies', 'Corrugated boxes, stretch film, sealing tape, and strapping'),
-    ('00000000-0000-0000-0002-000000000003', 'Safety & PPE', 'Protective gloves, respirators, eye protection, and safety vests'),
-    ('00000000-0000-0000-0002-000000000004', 'Warehouse Equipment', 'Pallet jacks, storage bins, shelving units, and hand trucks')
+    ('00000000-0000-0000-0002-000000000001', 'Food Wrap', 'Commercial food packaging wraps, cling wraps, parchment and wax paper sheets'),
+    ('00000000-0000-0000-0002-000000000002', 'Foil Items', 'Standard, heavy-duty, and freezer aluminum foil rolls and insulated sheets'),
+    ('00000000-0000-0000-0002-000000000003', 'Bags', 'Grease proof dry wax sandwich bags and commercial food service paper bags'),
+    ('00000000-0000-0000-0002-000000000004', 'Pizza Essentials', 'Standard and corrugated pizza box inserts, liners, and liners cases')
 ON CONFLICT (name) DO NOTHING;
 
 -- Product Brands (group 0003 in segment 4)
 INSERT INTO public.product_brands (id, name, description) VALUES
-    ('00000000-0000-0000-0003-000000000001', 'J&T ProClean', 'Premium industrial cleaning solutions'),
-    ('00000000-0000-0000-0003-000000000002', 'PackGuard', 'Heavy-duty commercial packaging products'),
-    ('00000000-0000-0000-0003-000000000003', 'SafeShield', 'Certified personal protective equipment'),
-    ('00000000-0000-0000-0003-000000000004', 'DuraLift', 'Industrial warehouse machinery and storage accessories')
+    ('00000000-0000-0000-0003-000000000001', 'J&T Packaging', 'Premium commercial food packaging products'),
+    ('00000000-0000-0000-0003-000000000002', 'GenPak / Royal', 'High quality cling film rolls and baking paper supplies'),
+    ('00000000-0000-0000-0003-000000000003', 'FoilPro', 'Heavy-duty commercial aluminum foil and freezer paper rolls'),
+    ('00000000-0000-0000-0003-000000000004', 'PizzaGuard', 'Corrugated and moisture-resistant pizza liner products')
 ON CONFLICT (name) DO NOTHING;
 
 -- Products (group 0004 in segment 4)
@@ -549,50 +552,183 @@ INSERT INTO public.products
 (id, sku, product_name, description, category_id, brand_id, unit_price, availability_status, availability_notes, expected_available_date) VALUES
     (
         '00000000-0000-0000-0004-000000000001',
-        'IND-CLEAN-500',
-        'ProClean Heavy-Duty Degreaser 5Gal',
-        'Concentrated solvent degreaser suitable for heavy machinery and shop floors.',
+        'FPK-GEN-ALUMINFOIL-500FT',
+        'Aluminum Foil Roll - Width 12 inches x 500ft (6/Case)',
+        'Food Packaging · Food Wrap | Item Code: 199001 | Pack: Case-6-Pcs | Base UOM: Pieces | Target: Pieces | Min SP: $28.00 | Desired SP: $29.00 | Max SP: $40.50',
         '00000000-0000-0000-0002-000000000001',
-        '00000000-0000-0000-0003-000000000001',
-        145.00, 'available', 'In stock and ready for distributor shipping.', NULL
+        '00000000-0000-0000-0003-000000000003',
+        29.00, 'available', 'In stock for immediate commercial delivery.', NULL
     ),
     (
         '00000000-0000-0000-0004-000000000002',
-        'PKG-FILM-80G',
-        'PackGuard Heavy Stretch Film 80 Gauge',
-        'High-clarity pallet wrapping film with high puncture resistance.',
+        'FPK-FOIL-ALUMINFOIL-18IN',
+        'Aluminum Foil Roll Heavy Duty - Width 18 inches – Length 45Cmx100m (4/Case)',
+        'Food Packaging · Foil Items | Item Code: 106001 | Pack: Case-4-Pcs | Base UOM: Pieces | Target: Pieces | Min SP: $32.99 | Desired SP: $32.99 | Max SP: $38.22',
         '00000000-0000-0000-0002-000000000002',
-        '00000000-0000-0000-0003-000000000002',
-        65.00, 'out_of_stock', 'Raw chemical resin shortage from main supplier. Resupply shipment scheduled.',
-        CURRENT_DATE + INTERVAL '7 days'
+        '00000000-0000-0000-0003-000000000003',
+        32.99, 'available', 'Heavy-duty 18-inch commercial foil in stock.', NULL
     ),
     (
         '00000000-0000-0000-0004-000000000003',
-        'PPE-GLOVE-NIT-L',
-        'SafeShield Nitrile Gloves Powder-Free (Box 100)',
-        'Medical grade 5-mil powder-free nitrile examination gloves.',
-        '00000000-0000-0000-0002-000000000003',
+        'FPK-FOIL-ALUMINFOILWIDTH-18IN',
+        'Aluminum Foil Roll – Width 18in – Length 152m (per roll)',
+        'Food Packaging · Foil Items | Item Code: 106002 | Base UOM: Roll | Target: Roll | Min SP: $33.00 | Desired SP: $38.00 | Max SP: $44.02',
+        '00000000-0000-0000-0002-000000000002',
         '00000000-0000-0000-0003-000000000003',
-        22.50, 'available', 'Fully available across main distribution network.', NULL
+        38.00, 'available', 'Standard 152m single roll packaging.', NULL
     ),
     (
         '00000000-0000-0000-0004-000000000004',
-        'WHS-JACK-5500',
-        'DuraLift Hydraulic Pallet Jack 5500 lbs',
-        'Heavy-duty steel frame hydraulic pallet jack with polyurethane wheels.',
-        '00000000-0000-0000-0002-000000000004',
-        '00000000-0000-0000-0003-000000000004',
-        480.00, 'out_of_stock', 'Factory line overhaul. Lead time approximately 2 weeks.',
-        CURRENT_DATE + INTERVAL '14 days'
+        'FPK-GEN-CLINGWRAP-2000FT',
+        'Cling Wrap Roll 11in – Film PVC 2000 ft – Royal (with cutter)',
+        'Food Packaging · Food Wrap | Item Code: 199002 | Base UOM: Roll | Target: Roll | Min SP: $34.00 | Desired SP: $35.00 | Max SP: $40.55',
+        '00000000-0000-0000-0002-000000000001',
+        '00000000-0000-0000-0003-000000000002',
+        35.00, 'available', 'Equipped with safety slide cutter box.', NULL
     ),
     (
         '00000000-0000-0000-0004-000000000005',
-        'IND-SAN-100',
-        'ProClean Surface Sanitizer Wipes 500ct',
-        'Hospital-grade surface disinfectant wipes.',
+        'FPK-GEN-CLINGWRAPFILM-2000FT',
+        'Cling Wrap Roll 12in – Film PVC 2000 ft',
+        'Food Packaging · Food Wrap | Item Code: 199003 | Base UOM: Roll | Target: Roll | Min SP: $30.00 | Desired SP: $35.00 | Max SP: $39.00',
+        '00000000-0000-0000-0002-000000000001',
+        '00000000-0000-0000-0003-000000000002',
+        35.00, 'available', 'Commercial PVC cling film 12-inch roll.', NULL
+    ),
+    (
+        '00000000-0000-0000-0004-000000000006',
+        'FPK-GEN-CLINGWRAPFILMPVC-2000FT',
+        'Cling Wrap Roll 18in – Film PVC 2000 ft (with cutter)',
+        'Food Packaging · Food Wrap | Item Code: 199004 | Base UOM: Roll | Target: Roll | Min SP: $35.00 | Desired SP: $37.00 | Max SP: $42.86',
+        '00000000-0000-0000-0002-000000000001',
+        '00000000-0000-0000-0003-000000000002',
+        37.00, 'available', 'Wide 18-inch roll with integrated cutter.', NULL
+    ),
+    (
+        '00000000-0000-0000-0004-000000000007',
+        'FPK-GEN-ITEM-1',
+        'Cling Wrap Roll 24in – Film PVC 2000 ft (with cutter)',
+        'Food Packaging · Food Wrap | Item Code: 199005 | Base UOM: Roll | Target: Roll | Min SP: $45.00 | Desired SP: $49.99 | Max SP: $57.91',
+        '00000000-0000-0000-0002-000000000001',
+        '00000000-0000-0000-0003-000000000002',
+        49.99, 'available', 'Extra-wide 24-inch PVC film with cutter.', NULL
+    ),
+    (
+        '00000000-0000-0000-0004-000000000008',
+        'FPK-GEN-PAPERWAX-8X11IN',
+        'Paper Wax Dry 8×11in Scale - 2000/Pack (4/CS)',
+        'Food Packaging · Food Wrap | Item Code: 199006 | Pack: Case-8000-Pcs (+Pack-2000) | Base UOM: Pieces | Target: Case | Min SP: $140.00 | Desired SP: $144.00 | Max SP: $167.20',
         '00000000-0000-0000-0002-000000000001',
         '00000000-0000-0000-0003-000000000001',
-        38.00, 'discontinued', 'Product replaced by IND-SAN-200 series.', NULL
+        144.00, 'available', 'Bulk scale dry wax paper case (8000 sheets).', NULL
+    ),
+    (
+        '00000000-0000-0000-0004-000000000009',
+        'FPK-FOIL-FREEZENATURA-18IN',
+        'Freezer Roll – Natural – Width 18in',
+        'Food Packaging · Foil Items | Item Code: 106003 | Base UOM: Roll | Target: Roll | Min SP: $49.00 | Desired SP: $50.00 | Max SP: $57.92',
+        '00000000-0000-0000-0002-000000000002',
+        '00000000-0000-0000-0003-000000000003',
+        50.00, 'out_of_stock', 'Resupply shipment in transit from paper mill.', CURRENT_DATE + INTERVAL '7 days'
+    ),
+    (
+        '00000000-0000-0000-0004-000000000010',
+        'FPK-FOIL-FREEZEROSE-18IN',
+        'Freezer Roll – Rose – Width 18in',
+        'Food Packaging · Foil Items | Item Code: 106004 | Base UOM: Roll | Target: Roll | Min SP: $49.00 | Desired SP: $50.00 | Max SP: $57.92',
+        '00000000-0000-0000-0002-000000000002',
+        '00000000-0000-0000-0003-000000000003',
+        50.00, 'available', 'Rose tint freezer paper roll in stock.', NULL
+    ),
+    (
+        '00000000-0000-0000-0004-000000000011',
+        'FPK-BAG-GREASEPROOF-6X0.75X6.75',
+        'Grease Proof Dry Wax Sandwich Bags 6"X3/4"x6 3/4" / 6x0.75x6.75 - 1000/CS',
+        'Food Packaging · Bags | Item Code: 101001 | Pack: Case-1000-Pcs | Base UOM: Pieces | Target: Case | Min SP: $31.00 | Desired SP: $34.00 | Max SP: $40.00',
+        '00000000-0000-0000-0002-000000000003',
+        '00000000-0000-0000-0003-000000000001',
+        34.00, 'available', 'Grease-proof dry wax paper sandwich bags (1000/CS).', NULL
+    ),
+    (
+        '00000000-0000-0000-0004-000000000012',
+        'FPK-GEN-INSULAALUMIN-12X12IN',
+        'Insulated Aluminium Foil Paper Sheets – 12×12in (1000/CS)',
+        'Food Packaging · Food Wrap | Item Code: 199007 | Pack: Case-1000-Pcs | Base UOM: Pieces | Target: Case | Min SP: $39.00 | Desired SP: $42.00 | Max SP: $48.60',
+        '00000000-0000-0000-0002-000000000001',
+        '00000000-0000-0000-0003-000000000003',
+        42.00, 'available', '12x12 pre-cut insulated foil sheets (1000/CS).', NULL
+    ),
+    (
+        '00000000-0000-0000-0004-000000000013',
+        'FPK-GEN-INSULAALUMIN-14X14IN',
+        'Insulated Aluminium Foil Paper Sheets – 14×14in (1000/CS)',
+        'Food Packaging · Food Wrap | Item Code: 199008 | Pack: Case-1000-Pcs | Base UOM: Pieces | Target: Case | Min SP: $45.00 | Desired SP: $50.00 | Max SP: $57.90',
+        '00000000-0000-0000-0002-000000000001',
+        '00000000-0000-0000-0003-000000000003',
+        50.00, 'available', '14x14 pre-cut insulated foil sheets (1000/CS).', NULL
+    ),
+    (
+        '00000000-0000-0000-0004-000000000014',
+        'FPK-GEN-PIZZALINER-11X11',
+        'Pizza Liner 11x11 400/CS',
+        'Food Packaging · Pizza Essentials | Item Code: 199009 | Pack: Case-400-Pcs | Base UOM: Pieces | Target: Case | Min SP: $36.00 | Desired SP: $40.00 | Max SP: $48.00',
+        '00000000-0000-0000-0002-000000000004',
+        '00000000-0000-0000-0003-000000000004',
+        40.00, 'available', '11x11 pizza liners (400/CS).', NULL
+    ),
+    (
+        '00000000-0000-0000-0004-000000000015',
+        'FPK-GEN-PIZZALINER-13X13',
+        'Pizza Liner 13x13 - Corrugated - 400/CS',
+        'Food Packaging · Pizza Essentials | Item Code: 199010 | Pack: Case-400-Pcs | Base UOM: Pieces | Target: Case | Min SP: $79.00 | Desired SP: $84.00 | Max SP: $95.00',
+        '00000000-0000-0000-0002-000000000004',
+        '00000000-0000-0000-0003-000000000004',
+        84.00, 'available', 'Corrugated 13x13 pizza liners (400/CS).', NULL
+    ),
+    (
+        '00000000-0000-0000-0004-000000000016',
+        'FPK-GEN-PIZZALINER-15X15',
+        'Pizza Liner 15x15 - Corrugated - 400/CS',
+        'Food Packaging · Pizza Essentials | Item Code: 199011 | Pack: Case-400-Pcs | Base UOM: Pieces | Target: Case | Min SP: $85.00 | Desired SP: $92.00 | Max SP: $105.00',
+        '00000000-0000-0000-0002-000000000004',
+        '00000000-0000-0000-0003-000000000004',
+        92.00, 'available', 'Corrugated 15x15 pizza liners (400/CS).', NULL
+    ),
+    (
+        '00000000-0000-0000-0004-000000000017',
+        'FPK-GEN-PIZZALINER-9X9',
+        'Pizza Liner 9x9 - 400/CS',
+        'Food Packaging · Pizza Essentials | Item Code: 199012 | Pack: Case-400-Pcs | Base UOM: Pieces | Target: Case | Min SP: $28.00 | Desired SP: $34.00 | Max SP: $40.24',
+        '00000000-0000-0000-0002-000000000004',
+        '00000000-0000-0000-0003-000000000004',
+        34.00, 'available', '9x9 pizza box liners (400/CS).', NULL
+    ),
+    (
+        '00000000-0000-0000-0004-000000000018',
+        'FPK-GEN-PARCHMPAPER-16X24IN',
+        'Parchment Paper – Sheet 16×24in (1000/CS)',
+        'Food Packaging · Food Wrap | Item Code: 199013 | Pack: Case-1000-Pcs | Base UOM: Pieces | Target: Case | Min SP: $120.00 | Desired SP: $124.00 | Max SP: $143.60',
+        '00000000-0000-0000-0002-000000000001',
+        '00000000-0000-0000-0003-000000000002',
+        124.00, 'available', '16x24 commercial parchment paper sheets (1000/CS).', NULL
+    ),
+    (
+        '00000000-0000-0000-0004-000000000019',
+        'FPK-GEN-PATTYPAPER-5.25X5.25IN',
+        'Patty Paper 5.25x5.25in (1000/CS)',
+        'Food Packaging · Food Wrap | Item Code: 199014 | Pack: Case-1000-Pcs | Base UOM: Pieces | Target: Case | Min SP: $9.50 | Desired SP: $10.00 | Max SP: $10.60',
+        '00000000-0000-0000-0002-000000000001',
+        '00000000-0000-0000-0003-000000000001',
+        10.00, 'available', '5.25x5.25 burger patty interleaving paper (1000/CS).', NULL
+    ),
+    (
+        '00000000-0000-0000-0004-000000000020',
+        'FPK-GEN-WAXPAPER-12X12IN',
+        'Wax Paper – Black & White – Liner Basket Black Check - 12×12in (1000/CS)',
+        'Food Packaging · Food Wrap | Item Code: 199015 | Pack: Case-1000-Pcs | Base UOM: Pieces | Target: Case | Min SP: $34.00 | Desired SP: $36.00 | Max SP: $41.70',
+        '00000000-0000-0000-0002-000000000001',
+        '00000000-0000-0000-0003-000000000001',
+        36.00, 'available', 'Black check printed basket liner wax paper (1000/CS).', NULL
     )
 ON CONFLICT (sku) DO NOTHING;
 
@@ -604,40 +740,40 @@ INSERT INTO public.orders
         'ORD-000001',
         '10000000-0000-0000-0000-000000000001',
         'b2222222-2222-2222-2222-222222222222',
-        'invoiced', 1450.00, 50.00, 140.00, 1540.00,
-        'Heavy machinery hydraulic components shipment.',
+        'invoiced', 1010.00, 20.00, 50.50, 1040.50,
+        'Bulk food packaging foil rolls and dry wax paper shipment.',
         'b2222222-2222-2222-2222-222222222222',
         'b2222222-2222-2222-2222-222222222222'
     ),
     (
         '00000000-0000-0000-0005-000000000002',
         'ORD-000002',
-        '10000000-0000-0000-0000-000000000002',
-        'b2222222-2222-2222-2222-222222222222',
-        'dispatched', 2800.00, 100.00, 270.00, 2970.00,
-        'Priority freight delivery to logistics terminal hub.',
-        'b2222222-2222-2222-2222-222222222222',
-        'b2222222-2222-2222-2222-222222222222'
+        '10000000-0000-0000-0000-000000000006',
+        'd4444444-4444-4444-4444-444444444444',
+        'dispatched', 958.00, 30.00, 47.90, 975.90,
+        'Restaurant food wrap and corrugated pizza liner order.',
+        'd4444444-4444-4444-4444-444444444444',
+        'd4444444-4444-4444-4444-444444444444'
     ),
     (
         '00000000-0000-0000-0005-000000000003',
         'ORD-000003',
-        '10000000-0000-0000-0000-000000000003',
-        'a1111111-1111-1111-1111-111111111111',
-        'order_received', 750.00, 0.00, 75.00, 825.00,
-        'Sterile healthcare supplies replenishment order.',
-        'a1111111-1111-1111-1111-111111111111',
-        'a1111111-1111-1111-1111-111111111111'
+        '10000000-0000-0000-0000-000000000007',
+        'b2222222-2222-2222-2222-222222222222',
+        'order_received', 870.00, 0.00, 43.50, 913.50,
+        'Fast food sandwich bags and black check basket liners.',
+        'b2222222-2222-2222-2222-222222222222',
+        'b2222222-2222-2222-2222-222222222222'
     ),
     (
         '00000000-0000-0000-0005-000000000004',
         'ORD-000004',
-        '10000000-0000-0000-0000-000000000004',
-        'b2222222-2222-2222-2222-222222222222',
-        'completed', 4200.00, 200.00, 400.00, 4400.00,
-        'Bulk packaging and retail distribution order.',
-        'b2222222-2222-2222-2222-222222222222',
-        'b2222222-2222-2222-2222-222222222222'
+        '10000000-0000-0000-0000-000000000002',
+        'a1111111-1111-1111-1111-111111111111',
+        'completed', 2239.80, 100.00, 111.99, 2251.79,
+        'Commercial cling wrap 24in and parchment paper sheets.',
+        'a1111111-1111-1111-1111-111111111111',
+        'a1111111-1111-1111-1111-111111111111'
     )
 ON CONFLICT (order_number) DO NOTHING;
 
@@ -647,31 +783,31 @@ INSERT INTO public.customer_queries
     (
         '00000000-0000-0000-0006-000000000001',
         'QRY-000001',
-        '10000000-0000-0000-0000-000000000001',
-        'Urgent Delivery Status for Hydraulic Degreaser Order',
-        'Customer requested immediate delivery tracking for order ORD-000001. Carrier shipment appears delayed near Chicago hub.',
+        '10000000-0000-0000-0000-000000000006',
+        'Delivery Status for Cling Wrap & Pizza Liners Order',
+        'Afrofusion Kamloops requested delivery tracking for order ORD-000002. Dispatch confirmation needed for Kamloops delivery.',
         '00000000-0000-0000-0001-000000000002',
         'high', 'in_progress',
         'c3333333-3333-3333-3333-333333333333',
-        'b2222222-2222-2222-2222-222222222222'
+        'd4444444-4444-4444-4444-444444444444'
     ),
     (
         '00000000-0000-0000-0006-000000000002',
         'QRY-000002',
-        '10000000-0000-0000-0000-000000000002',
-        'Availability Inquiry for Heavy Stretch Film 80G',
-        'Vanguard Freight wants to place a bulk order of 200 rolls of PackGuard Heavy Stretch Film 80G. Product is marked Out of Stock.',
+        '10000000-0000-0000-0000-000000000001',
+        'Restock Lead Time for Freezer Roll Natural 18in',
+        '0941791 BC.ltd requested stock availability and restock date for Freezer Roll Natural 18in (FPK-FOIL-FREEZENATURA-18IN).',
         '00000000-0000-0000-0001-000000000005',
         'urgent', 'waiting_customer',
-        'c3333333-3333-3333-3333-333333333333',
-        'c3333333-3333-3333-3333-333333333333'
+        'e5555555-5555-5555-5555-555555555555',
+        'b2222222-2222-2222-2222-222222222222'
     ),
     (
         '00000000-0000-0000-0006-000000000003',
         'QRY-000003',
-        '10000000-0000-0000-0000-000000000003',
-        'Sterile Glove Certificate of Compliance',
-        'Horizon Healthcare requested formal QA compliance documentation for SafeShield Nitrile Gloves.',
+        '10000000-0000-0000-0000-000000000007',
+        'Sandwich Bags Material Quality & Compliance Inquiry',
+        'Alcatraz Chicken requested QA specification sheet for Grease Proof Dry Wax Sandwich Bags (FPK-BAG-GREASEPROOF-6X0.75X6.75).',
         '00000000-0000-0000-0001-000000000004',
         'medium', 'resolved',
         'c3333333-3333-3333-3333-333333333333',
@@ -681,13 +817,15 @@ ON CONFLICT (query_number) DO NOTHING;
 
 -- Order Items
 INSERT INTO public.order_items (id, order_id, product_id, product_name_snapshot, sku_snapshot, quantity, unit_price, discount, tax, line_total, notes) VALUES
-    ('00000000-0000-0000-0007-000000000001', '00000000-0000-0000-0005-000000000001', '00000000-0000-0000-0004-000000000001', 'ProClean Heavy-Duty Degreaser 5Gal', 'IND-CLEAN-500', 10, 145.00, 50.00, 140.00, 1540.00, 'Standard 5gal drum packaging.'),
-    ('00000000-0000-0000-0007-000000000002', '00000000-0000-0000-0005-000000000002', '00000000-0000-0000-0004-000000000002', 'PackGuard Heavy Stretch Film 80 Gauge', 'PKG-FILM-80G', 40, 65.00, 100.00, 270.00, 2970.00, 'Palletized 4-roll bundles.')
+    ('00000000-0000-0000-0007-000000000001', '00000000-0000-0000-0005-000000000001', '00000000-0000-0000-0004-000000000001', 'Aluminum Foil Roll - Width 12 inches x 500ft (6/Case)', 'FPK-GEN-ALUMINFOIL-500FT', 10, 29.00, 10.00, 14.50, 294.50, 'Case-6-Pcs packaging.'),
+    ('00000000-0000-0000-0007-000000000002', '00000000-0000-0000-0005-000000000001', '00000000-0000-0000-0004-000000000008', 'Paper Wax Dry 8×11in Scale - 2000/Pack (4/CS)', 'FPK-GEN-PAPERWAX-8X11IN', 5, 144.00, 10.00, 36.00, 746.00, 'Case of 4 packs.'),
+    ('00000000-0000-0000-0007-000000000003', '00000000-0000-0000-0005-000000000002', '00000000-0000-0000-0004-000000000006', 'Cling Wrap Roll 18in – Film PVC 2000 ft (with cutter)', 'FPK-GEN-CLINGWRAPFILMPVC-2000FT', 10, 37.00, 15.00, 18.50, 373.50, 'With safety cutter box.'),
+    ('00000000-0000-0000-0007-000000000004', '00000000-0000-0000-0005-000000000002', '00000000-0000-0000-0004-000000000015', 'Pizza Liner 13x13 - Corrugated - 400/CS', 'FPK-GEN-PIZZALINER-13X13', 5, 84.00, 15.00, 21.00, 426.00, 'Corrugated 400/CS.')
 ON CONFLICT (id) DO NOTHING;
 
 -- Order Status History
 INSERT INTO public.order_status_history (id, order_id, previous_status, new_status, action, notes, performed_by) VALUES
-    ('00000000-0000-0000-0008-000000000001', '00000000-0000-0000-0005-000000000001', NULL, 'order_received', 'Order Received', 'Initial customer order registered.', 'b2222222-2222-2222-2222-222222222222')
+    ('00000000-0000-0000-0008-000000000001', '00000000-0000-0000-0005-000000000001', NULL, 'order_received', 'Order Received', 'Initial customer order registered by Muzammil.', 'b2222222-2222-2222-2222-222222222222')
 ON CONFLICT (id) DO NOTHING;
 
 -- Order Documents
@@ -697,23 +835,23 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Query Activities
 INSERT INTO public.query_activities (id, query_id, event_type, previous_value, new_value, description, performed_by) VALUES
-    ('00000000-0000-0000-0014-000000000001', '00000000-0000-0000-0006-000000000001', 'query_created', NULL, 'open', 'Query QRY-000001 created for customer', 'b2222222-2222-2222-2222-222222222222'),
+    ('00000000-0000-0000-0014-000000000001', '00000000-0000-0000-0006-000000000001', 'query_created', NULL, 'open', 'Query QRY-000001 created for customer', 'd4444444-4444-4444-4444-444444444444'),
     ('00000000-0000-0000-0014-000000000002', '00000000-0000-0000-0006-000000000001', 'status_change', 'open', 'in_progress', 'Query status changed from Open to In Progress', 'c3333333-3333-3333-3333-333333333333')
 ON CONFLICT (id) DO NOTHING;
 
 -- Query Notes
 INSERT INTO public.query_internal_notes (id, query_id, note, author_id) VALUES
-    ('00000000-0000-0000-0015-000000000001', '00000000-0000-0000-0006-000000000001', 'Initial carrier contact established with Chicago dispatch terminal manager.', 'c3333333-3333-3333-3333-333333333333')
+    ('00000000-0000-0000-0015-000000000001', '00000000-0000-0000-0006-000000000001', 'Carrier tracking updated for Kamloops regional hub.', 'c3333333-3333-3333-3333-333333333333')
 ON CONFLICT (id) DO NOTHING;
 
 -- Notifications
 INSERT INTO public.notifications (id, recipient_user_id, actor_user_id, notification_type, title, message, entity_type, entity_id, priority, link_path) VALUES
-    ('00000000-0000-0000-0016-000000000001', 'c3333333-3333-3333-3333-333333333333', 'a1111111-1111-1111-1111-111111111111', 'query.assigned', '🎫 Support Ticket Assigned', 'Query QRY-000001 for Apex Industrial Logistics has been assigned to your support queue. Priority: HIGH', 'query', '00000000-0000-0000-0006-000000000001', 'high', '/queries/00000000-0000-0000-0006-000000000001'),
-    ('00000000-0000-0000-0016-000000000002', 'b2222222-2222-2222-2222-222222222222', 'a1111111-1111-1111-1111-111111111111', 'product.availability_changed', '🔴 Product Out of Stock Alert', 'Product PKG-FILM-80G (PackGuard Heavy Stretch Film) is now OUT OF STOCK. Reason: Resupply resin delay.', 'product', '00000000-0000-0000-0004-000000000002', 'high', '/products/00000000-0000-0000-0004-000000000002')
+    ('00000000-0000-0000-0016-000000000001', 'c3333333-3333-3333-3333-333333333333', 'a1111111-1111-1111-1111-111111111111', 'query.assigned', '🎫 Support Ticket Assigned', 'Query QRY-000001 for Afrofusion Kamloops has been assigned to your support queue. Priority: HIGH', 'query', '00000000-0000-0000-0006-000000000001', 'high', '/queries/00000000-0000-0000-0006-000000000001'),
+    ('00000000-0000-0000-0016-000000000002', 'b2222222-2222-2222-2222-222222222222', 'a1111111-1111-1111-1111-111111111111', 'product.availability_changed', '🔴 Product Out of Stock Alert', 'Product FPK-FOIL-FREEZENATURA-18IN (Freezer Roll – Natural – Width 18in) is OUT OF STOCK. Reason: Resupply in transit.', 'product', '00000000-0000-0000-0004-000000000009', 'high', '/products/00000000-0000-0000-0004-000000000009')
 ON CONFLICT (id) DO NOTHING;
 
 -- System Settings
 INSERT INTO public.system_settings (id, company_name, crm_title, timezone, date_format, currency_symbol, pagination_limit, updated_by) VALUES
-    ('00000000-0000-0000-0000-0000000000a1', 'J&T Supplies', 'J&T Supplies CRM', 'America/New_York', 'MMM D, YYYY h:mm A', '$', 10, 'a1111111-1111-1111-1111-111111111111')
+    ('00000000-0000-0000-0000-0000000000a1', 'J&T Supplies', 'J&T Supplies CRM', 'America/Vancouver', 'MMM D, YYYY h:mm A', '$', 10, 'a1111111-1111-1111-1111-111111111111')
 ON CONFLICT (id) DO NOTHING;
 

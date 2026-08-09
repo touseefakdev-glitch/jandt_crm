@@ -496,14 +496,14 @@ USING (
 -- =============================================================================
 
 INSERT INTO public.teams (id, name, shift_info, shift_start, shift_end) VALUES
-    ('t1111111-1111-1111-1111-111111111111', 'Team 1', '3 PM – 11 AM', '15:00', '11:00'),
-    ('t2222222-2222-2222-2222-222222222222', 'Team 2', '12 PM – 8 AM', '12:00', '08:00')
+    ('11111111-1111-1111-1111-111111111111', 'Team 1', '3 PM – 11 AM', '15:00', '11:00'),
+    ('22222222-2222-2222-2222-222222222222', 'Team 2', '12 PM – 8 AM', '12:00', '08:00')
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO public.profiles (id, email, full_name, role, team_id) VALUES
-    ('a1111111-1111-1111-1111-111111111111', 'admin@jtsupplies.com', 'Sarah Connor (Admin)', 'admin', 't1111111-1111-1111-1111-111111111111'),
-    ('b2222222-2222-2222-2222-222222222222', 'sales@jtsupplies.com', 'Alex Mercer (Sales)', 'sales_agent', 't1111111-1111-1111-1111-111111111111'),
-    ('c3333333-3333-3333-3333-333333333333', 'support@jtsupplies.com', 'Elena Rostova (Support)', 'support_agent', 't2222222-2222-2222-2222-222222222222')
+    ('a1111111-1111-1111-1111-111111111111', 'admin@jtsupplies.com', 'Sarah Connor (Admin)', 'admin', '11111111-1111-1111-1111-111111111111'),
+    ('b2222222-2222-2222-2222-222222222222', 'sales@jtsupplies.com', 'Alex Mercer (Sales)', 'sales_agent', '11111111-1111-1111-1111-111111111111'),
+    ('c3333333-3333-3333-3333-333333333333', 'support@jtsupplies.com', 'Elena Rostova (Support)', 'support_agent', '22222222-2222-2222-2222-222222222222')
 ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO public.customers (id, customer_code, company_name, contact_person, phone, email, address, city, country, status) VALUES

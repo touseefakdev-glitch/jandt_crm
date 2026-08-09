@@ -13,7 +13,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TYPE user_role AS ENUM ('admin', 'sales_agent', 'support_agent');
 CREATE TYPE customer_status AS ENUM ('active', 'inactive');
 CREATE TYPE query_priority AS ENUM ('low', 'medium', 'high', 'urgent');
-CREATE TYPE query_status AS ENUM ('open', 'in_progress', 'waiting_customer', 'resolved', 'closed', 'reopened');
+CREATE TYPE query_status AS ENUM ('new', 'assigned', 'open', 'in_progress', 'waiting_customer', 'resolved', 'closed', 'reopened');
 CREATE TYPE order_status AS ENUM ('order_received', 'sales_order_done', 'invoiced', 'dispatched', 'signed_invoice_sent', 'completed', 'cancelled');
 CREATE TYPE document_type AS ENUM ('sales_order', 'invoice', 'dispatch_document', 'signed_invoice', 'other');
 CREATE TYPE product_availability AS ENUM ('available', 'out_of_stock', 'discontinued');

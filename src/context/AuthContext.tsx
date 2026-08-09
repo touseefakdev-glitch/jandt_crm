@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserProfile, UserRole } from '../types';
 import { localDb, supabase } from '../services/db';
+import { initializeFromSupabase, storageClear } from '../services/supabaseSync';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -85,6 +86,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (data.user?.email) {
           const profile = localDb.getUserByEmail(data.user.email);
           if (profile) {
+            // Live data layer: hydrate the in-memory store from Supabase tables
+            await initializeFromSupabase();
             setUser(profile);
             return true;
           }
@@ -122,6 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await supabase.auth.signOut();
       }
       localStorage.removeItem(SESSION_KEY);
+      storageClear();
       setUser(null);
     } catch (err) {
       console.error('Logout error:', err);

@@ -1,4 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
+// Supabase client + in-memory store + write-through helpers are provided by supabaseSync
+import { supabase, storageGet, storageSet, storagePrime } from './supabaseSync';
+export { supabase };
 import { 
   Team, 
   UserProfile, 
@@ -49,13 +51,8 @@ import {
 import { notificationService } from './notificationService';
 import { permissions } from './permissions';
 
-// Environment variables for optional live Supabase connection
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-export const supabase = (supabaseUrl && supabaseAnonKey) 
-  ? createClient(supabaseUrl, supabaseAnonKey) 
-  : null;
+
 
 // Initial Teams Seed Data
 export const SEED_TEAMS: Team[] = [
@@ -712,8 +709,8 @@ export const SEED_SHIFTS: Shift[] = [
     id: 'shift-1001',
     team_id: '11111111-1111-1111-1111-111111111111',
     shift_date: new Date().toISOString().split('T')[0],
-    start_time: '3:00 PM',
-    end_time: '11:00 AM',
+    start_time: '15:00',
+    end_time: '11:00',
     status: 'active',
     opened_at: new Date(Date.now() - 3600000 * 4).toISOString(),
     opened_by: 'b2222222-2222-2222-2222-222222222222',
@@ -724,8 +721,8 @@ export const SEED_SHIFTS: Shift[] = [
     id: 'shift-1002',
     team_id: '22222222-2222-2222-2222-222222222222',
     shift_date: new Date().toISOString().split('T')[0],
-    start_time: '12:00 PM',
-    end_time: '8:00 AM',
+    start_time: '12:00',
+    end_time: '08:00',
     status: 'active',
     opened_at: new Date(Date.now() - 3600000 * 6).toISOString(),
     opened_by: 'c3333333-3333-3333-3333-333333333333',
@@ -828,69 +825,41 @@ class LocalDatabaseService {
   }
 
   private init() {
-    if (!localStorage.getItem(this.teamsKey)) {
-      localStorage.setItem(this.teamsKey, JSON.stringify(SEED_TEAMS));
-    }
-    if (!localStorage.getItem(this.usersKey)) {
-      localStorage.setItem(this.usersKey, JSON.stringify(SEED_USERS));
-    }
-    if (!localStorage.getItem(this.customersKey)) {
-      localStorage.setItem(this.customersKey, JSON.stringify(SEED_CUSTOMERS));
-    }
-    if (!localStorage.getItem(this.categoriesKey)) {
-      localStorage.setItem(this.categoriesKey, JSON.stringify(SEED_CATEGORIES));
-    }
-    if (!localStorage.getItem(this.queriesKey)) {
-      localStorage.setItem(this.queriesKey, JSON.stringify(SEED_QUERIES));
-    }
-    if (!localStorage.getItem(this.activitiesKey)) {
-      localStorage.setItem(this.activitiesKey, JSON.stringify(SEED_ACTIVITIES));
-    }
-    if (!localStorage.getItem(this.notesKey)) {
-      localStorage.setItem(this.notesKey, JSON.stringify(SEED_NOTES));
-    }
-    if (!localStorage.getItem(this.notificationsKey)) {
-      localStorage.setItem(this.notificationsKey, JSON.stringify(SEED_NOTIFICATIONS));
-    }
-    if (!localStorage.getItem(this.ordersKey)) {
-      localStorage.setItem(this.ordersKey, JSON.stringify(SEED_ORDERS));
-    }
-    if (!localStorage.getItem(this.orderItemsKey)) {
-      localStorage.setItem(this.orderItemsKey, JSON.stringify(SEED_ORDER_ITEMS));
-    }
-    if (!localStorage.getItem(this.orderHistoryKey)) {
-      localStorage.setItem(this.orderHistoryKey, JSON.stringify(SEED_ORDER_HISTORY));
-    }
-    if (!localStorage.getItem(this.orderDocsKey)) {
-      localStorage.setItem(this.orderDocsKey, JSON.stringify(SEED_ORDER_DOCUMENTS));
-    }
-    if (!localStorage.getItem(this.productCategoriesKey)) {
-      localStorage.setItem(this.productCategoriesKey, JSON.stringify(SEED_PRODUCT_CATEGORIES));
-    }
-    if (!localStorage.getItem(this.productBrandsKey)) {
-      localStorage.setItem(this.productBrandsKey, JSON.stringify(SEED_PRODUCT_BRANDS));
-    }
-    if (!localStorage.getItem(this.productsKey)) {
-      localStorage.setItem(this.productsKey, JSON.stringify(SEED_PRODUCTS));
-    }
-    if (!localStorage.getItem(this.productHistoryKey)) {
-      localStorage.setItem(this.productHistoryKey, JSON.stringify(SEED_PRODUCT_HISTORY));
-    }
-    if (!localStorage.getItem(this.shiftsKey)) {
-      localStorage.setItem(this.shiftsKey, JSON.stringify(SEED_SHIFTS));
-    }
-    if (!localStorage.getItem(this.handoversKey)) {
-      localStorage.setItem(this.handoversKey, JSON.stringify(SEED_HANDOVERS));
-    }
-    if (!localStorage.getItem(this.handoverItemsKey)) {
-      localStorage.setItem(this.handoverItemsKey, JSON.stringify(SEED_HANDOVER_ITEMS));
-    }
-    if (!localStorage.getItem(this.queryAttachmentsKey)) {
-      localStorage.setItem(this.queryAttachmentsKey, JSON.stringify([]));
-    }
-    if (!localStorage.getItem(this.systemSettingsKey)) {
+    // Seed the in-memory store with demo data so the app is usable before any
+    // Supabase connection exists. initializeFromSupabase() (called on login)
+    // overwrites these keys with live data when a connection is configured.
+    const seeds: Array<[string, unknown]> = [
+      [this.teamsKey, SEED_TEAMS],
+      [this.usersKey, SEED_USERS],
+      [this.customersKey, SEED_CUSTOMERS],
+      [this.categoriesKey, SEED_CATEGORIES],
+      [this.queriesKey, SEED_QUERIES],
+      [this.activitiesKey, SEED_ACTIVITIES],
+      [this.notesKey, SEED_NOTES],
+      [this.notificationsKey, SEED_NOTIFICATIONS],
+      [this.ordersKey, SEED_ORDERS],
+      [this.orderItemsKey, SEED_ORDER_ITEMS],
+      [this.orderHistoryKey, SEED_ORDER_HISTORY],
+      [this.orderDocsKey, SEED_ORDER_DOCUMENTS],
+      [this.productCategoriesKey, SEED_PRODUCT_CATEGORIES],
+      [this.productBrandsKey, SEED_PRODUCT_BRANDS],
+      [this.productsKey, SEED_PRODUCTS],
+      [this.productHistoryKey, SEED_PRODUCT_HISTORY],
+      [this.shiftsKey, SEED_SHIFTS],
+      [this.handoversKey, SEED_HANDOVERS],
+      [this.handoverItemsKey, SEED_HANDOVER_ITEMS],
+      [this.queryAttachmentsKey, []],
+    ];
+
+    seeds.forEach(([key, rows]) => {
+      if (storageGet(key) === null) {
+        storagePrime(key, JSON.stringify(rows));
+      }
+    });
+
+    if (storageGet(this.systemSettingsKey) === null) {
       const defaultSettings: SystemSettings = {
-        id: 'sys-settings-001',
+        id: '00000000-0000-0000-0000-0000000000a1',
         company_name: 'J&T Supplies',
         crm_title: 'J&T Supplies CRM',
         timezone: 'America/New_York',
@@ -900,9 +869,10 @@ class LocalDatabaseService {
         updated_at: new Date().toISOString(),
         updated_by: 'a1111111-1111-1111-1111-111111111111',
       };
-      localStorage.setItem(this.systemSettingsKey, JSON.stringify(defaultSettings));
+      storagePrime(this.systemSettingsKey, JSON.stringify(defaultSettings));
     }
-    if (!localStorage.getItem(this.auditLogsKey)) {
+
+    if (storageGet(this.auditLogsKey) === null) {
       const seedAuditLogs: AuditLog[] = [
         {
           id: 'audit-001',
@@ -929,13 +899,13 @@ class LocalDatabaseService {
           new_value: 'out_of_stock',
         },
       ];
-      localStorage.setItem(this.auditLogsKey, JSON.stringify(seedAuditLogs));
+      storagePrime(this.auditLogsKey, JSON.stringify(seedAuditLogs));
     }
   }
 
   public getTeams(): Team[] {
     try {
-      const data = localStorage.getItem(this.teamsKey);
+      const data = storageGet(this.teamsKey);
       return data ? JSON.parse(data) : SEED_TEAMS;
     } catch {
       return SEED_TEAMS;
@@ -949,7 +919,7 @@ class LocalDatabaseService {
 
   public getUsers(): UserProfile[] {
     try {
-      const data = localStorage.getItem(this.usersKey);
+      const data = storageGet(this.usersKey);
       const users: UserProfile[] = data ? JSON.parse(data) : SEED_USERS;
       const teams = this.getTeams();
       
@@ -976,7 +946,7 @@ class LocalDatabaseService {
 
   public getCustomers(searchTerm: string = '', statusFilter: 'all' | 'active' | 'inactive' = 'all'): Customer[] {
     try {
-      const data = localStorage.getItem(this.customersKey);
+      const data = storageGet(this.customersKey);
       let customers: Customer[] = data ? JSON.parse(data) : SEED_CUSTOMERS;
       const users = this.getUsers();
 
@@ -1052,7 +1022,7 @@ class LocalDatabaseService {
       updated_by: userId,
     };
 
-    localStorage.setItem(this.customersKey, JSON.stringify([newCustomer, ...customers]));
+    storageSet(this.customersKey, JSON.stringify([newCustomer, ...customers]));
 
     const userProfile = this.getUserById(userId);
     return {
@@ -1063,7 +1033,7 @@ class LocalDatabaseService {
   }
 
   public updateCustomer(id: string, input: CustomerFormInput, userId: string): Customer | null {
-    const rawData = localStorage.getItem(this.customersKey);
+    const rawData = storageGet(this.customersKey);
     const customers: Customer[] = rawData ? JSON.parse(rawData) : SEED_CUSTOMERS;
     
     const index = customers.findIndex(c => c.id === id);
@@ -1086,7 +1056,7 @@ class LocalDatabaseService {
     };
 
     customers[index] = updated;
-    localStorage.setItem(this.customersKey, JSON.stringify(customers));
+    storageSet(this.customersKey, JSON.stringify(customers));
 
     const updater = this.getUserById(userId);
     const creator = existing.created_by ? this.getUserById(existing.created_by) : null;
@@ -1099,7 +1069,7 @@ class LocalDatabaseService {
   }
 
   public toggleCustomerStatus(id: string, status: CustomerStatus, userId: string): Customer | null {
-    const rawData = localStorage.getItem(this.customersKey);
+    const rawData = storageGet(this.customersKey);
     const customers: Customer[] = rawData ? JSON.parse(rawData) : SEED_CUSTOMERS;
     
     const index = customers.findIndex(c => c.id === id);
@@ -1114,7 +1084,7 @@ class LocalDatabaseService {
     };
 
     customers[index] = updated;
-    localStorage.setItem(this.customersKey, JSON.stringify(customers));
+    storageSet(this.customersKey, JSON.stringify(customers));
 
     const updater = this.getUserById(userId);
     const creator = existing.created_by ? this.getUserById(existing.created_by) : null;
@@ -1130,7 +1100,7 @@ class LocalDatabaseService {
 
   public getCategories(): QueryCategory[] {
     try {
-      const data = localStorage.getItem(this.categoriesKey);
+      const data = storageGet(this.categoriesKey);
       return data ? JSON.parse(data) : SEED_CATEGORIES;
     } catch {
       return SEED_CATEGORIES;
@@ -1161,7 +1131,7 @@ class LocalDatabaseService {
 
   private getQueriesRaw(): CustomerQuery[] {
     try {
-      const data = localStorage.getItem(this.queriesKey);
+      const data = storageGet(this.queriesKey);
       return data ? JSON.parse(data) : SEED_QUERIES;
     } catch {
       return SEED_QUERIES;
@@ -1291,7 +1261,7 @@ class LocalDatabaseService {
       internal_notes: input.internal_notes?.trim() || null,
     };
 
-    localStorage.setItem(this.queriesKey, JSON.stringify([newQuery, ...queries]));
+    storageSet(this.queriesKey, JSON.stringify([newQuery, ...queries]));
 
     this.logActivity({
       query_id: newQuery.id,
@@ -1353,7 +1323,7 @@ class LocalDatabaseService {
     };
 
     queries[index] = updated;
-    localStorage.setItem(this.queriesKey, JSON.stringify(queries));
+    storageSet(this.queriesKey, JSON.stringify(queries));
 
     this.logActivity({
       query_id: id,
@@ -1388,7 +1358,7 @@ class LocalDatabaseService {
     };
 
     queries[index] = updated;
-    localStorage.setItem(this.queriesKey, JSON.stringify(queries));
+    storageSet(this.queriesKey, JSON.stringify(queries));
 
     const assigneeName = assignee ? assignee.full_name : 'Unassigned Queue';
 
@@ -1472,7 +1442,7 @@ class LocalDatabaseService {
     }
 
     queries[index] = updated;
-    localStorage.setItem(this.queriesKey, JSON.stringify(queries));
+    storageSet(this.queriesKey, JSON.stringify(queries));
 
     this.logActivity({
       query_id: queryId,
@@ -1502,7 +1472,7 @@ class LocalDatabaseService {
 
   public getQueryAttachments(queryId: string): QueryAttachment[] {
     try {
-      const data = localStorage.getItem(this.queryAttachmentsKey);
+      const data = storageGet(this.queryAttachmentsKey);
       const list: QueryAttachment[] = data ? JSON.parse(data) : [];
       const users = this.getUsers();
 
@@ -1526,7 +1496,7 @@ class LocalDatabaseService {
     fileType?: string,
     userId?: string
   ): QueryAttachment {
-    const data = localStorage.getItem(this.queryAttachmentsKey);
+    const data = storageGet(this.queryAttachmentsKey);
     const list: QueryAttachment[] = data ? JSON.parse(data) : [];
 
     const newAtt: QueryAttachment = {
@@ -1540,7 +1510,7 @@ class LocalDatabaseService {
       uploaded_at: new Date().toISOString(),
     };
 
-    localStorage.setItem(this.queryAttachmentsKey, JSON.stringify([...list, newAtt]));
+    storageSet(this.queryAttachmentsKey, JSON.stringify([...list, newAtt]));
 
     if (userId) {
       this.logActivity({
@@ -1560,7 +1530,7 @@ class LocalDatabaseService {
 
   public getQueryActivities(queryId: string): QueryActivity[] {
     try {
-      const data = localStorage.getItem(this.activitiesKey);
+      const data = storageGet(this.activitiesKey);
       let activities: QueryActivity[] = data ? JSON.parse(data) : SEED_ACTIVITIES;
       const users = this.getUsers();
 
@@ -1577,7 +1547,7 @@ class LocalDatabaseService {
   }
 
   public logActivity(activity: Omit<QueryActivity, 'id' | 'created_at'>): QueryActivity {
-    const data = localStorage.getItem(this.activitiesKey);
+    const data = storageGet(this.activitiesKey);
     const activities: QueryActivity[] = data ? JSON.parse(data) : SEED_ACTIVITIES;
 
     const newActivity: QueryActivity = {
@@ -1586,7 +1556,7 @@ class LocalDatabaseService {
       created_at: new Date().toISOString(),
     };
 
-    localStorage.setItem(this.activitiesKey, JSON.stringify([...activities, newActivity]));
+    storageSet(this.activitiesKey, JSON.stringify([...activities, newActivity]));
     return newActivity;
   }
 
@@ -1594,7 +1564,7 @@ class LocalDatabaseService {
 
   public getQueryInternalNotes(queryId: string): QueryInternalNote[] {
     try {
-      const data = localStorage.getItem(this.notesKey);
+      const data = storageGet(this.notesKey);
       let notes: QueryInternalNote[] = data ? JSON.parse(data) : SEED_NOTES;
       const users = this.getUsers();
 
@@ -1611,7 +1581,7 @@ class LocalDatabaseService {
   }
 
   public addQueryInternalNote(queryId: string, noteText: string, authorUserId: string): QueryInternalNote {
-    const data = localStorage.getItem(this.notesKey);
+    const data = storageGet(this.notesKey);
     const notes: QueryInternalNote[] = data ? JSON.parse(data) : SEED_NOTES;
 
     const newNote: QueryInternalNote = {
@@ -1622,7 +1592,7 @@ class LocalDatabaseService {
       created_at: new Date().toISOString(),
     };
 
-    localStorage.setItem(this.notesKey, JSON.stringify([...notes, newNote]));
+    storageSet(this.notesKey, JSON.stringify([...notes, newNote]));
 
     this.logActivity({
       query_id: queryId,
@@ -1652,7 +1622,7 @@ class LocalDatabaseService {
     }
   ): CRMNotification[] {
     try {
-      const data = localStorage.getItem(this.notificationsKey);
+      const data = storageGet(this.notificationsKey);
       let notifs: CRMNotification[] = data ? JSON.parse(data) : SEED_NOTIFICATIONS;
 
       // Ensure backward compatibility mapping recipient_user_id <-> user_id
@@ -1740,7 +1710,7 @@ class LocalDatabaseService {
       created_at: new Date().toISOString(),
     };
 
-    localStorage.setItem(this.notificationsKey, JSON.stringify([newNotif, ...allNotifs]));
+    storageSet(this.notificationsKey, JSON.stringify([newNotif, ...allNotifs]));
     return newNotif;
   }
 
@@ -1751,7 +1721,7 @@ class LocalDatabaseService {
 
     notifs[index].is_read = true;
     notifs[index].read_at = new Date().toISOString();
-    localStorage.setItem(this.notificationsKey, JSON.stringify(notifs));
+    storageSet(this.notificationsKey, JSON.stringify(notifs));
     return true;
   }
 
@@ -1762,7 +1732,7 @@ class LocalDatabaseService {
 
     notifs[index].is_read = false;
     notifs[index].read_at = null;
-    localStorage.setItem(this.notificationsKey, JSON.stringify(notifs));
+    storageSet(this.notificationsKey, JSON.stringify(notifs));
     return true;
   }
 
@@ -1780,7 +1750,7 @@ class LocalDatabaseService {
     });
 
     if (updated) {
-      localStorage.setItem(this.notificationsKey, JSON.stringify(notifs));
+      storageSet(this.notificationsKey, JSON.stringify(notifs));
     }
     return updated;
   }
@@ -1806,7 +1776,7 @@ class LocalDatabaseService {
 
   private getOrdersRaw(): Order[] {
     try {
-      const data = localStorage.getItem(this.ordersKey);
+      const data = storageGet(this.ordersKey);
       return data ? JSON.parse(data) : SEED_ORDERS;
     } catch {
       return SEED_ORDERS;
@@ -1962,7 +1932,7 @@ class LocalDatabaseService {
 
   private getAllOrderItemsRaw(): OrderItem[] {
     try {
-      const data = localStorage.getItem(this.orderItemsKey);
+      const data = storageGet(this.orderItemsKey);
       return data ? JSON.parse(data) : SEED_ORDER_ITEMS;
     } catch {
       return SEED_ORDER_ITEMS;
@@ -1971,7 +1941,7 @@ class LocalDatabaseService {
 
   private getAllOrderHistoryRaw(): OrderStatusHistory[] {
     try {
-      const data = localStorage.getItem(this.orderHistoryKey);
+      const data = storageGet(this.orderHistoryKey);
       return data ? JSON.parse(data) : SEED_ORDER_HISTORY;
     } catch {
       return SEED_ORDER_HISTORY;
@@ -1980,7 +1950,7 @@ class LocalDatabaseService {
 
   private getAllOrderDocsRaw(): OrderDocument[] {
     try {
-      const data = localStorage.getItem(this.orderDocsKey);
+      const data = storageGet(this.orderDocsKey);
       return data ? JSON.parse(data) : SEED_ORDER_DOCUMENTS;
     } catch {
       return SEED_ORDER_DOCUMENTS;
@@ -2026,7 +1996,7 @@ class LocalDatabaseService {
       cancelled_by: null,
     };
 
-    localStorage.setItem(this.ordersKey, JSON.stringify([newOrder, ...orders]));
+    storageSet(this.ordersKey, JSON.stringify([newOrder, ...orders]));
 
     // Store Order Items
     const currentItems = this.getAllOrderItemsRaw();
@@ -2046,7 +2016,7 @@ class LocalDatabaseService {
       updated_at: nowStr,
     }));
 
-    localStorage.setItem(this.orderItemsKey, JSON.stringify([...currentItems, ...newItems]));
+    storageSet(this.orderItemsKey, JSON.stringify([...currentItems, ...newItems]));
 
     // Log History Event
     this.logOrderStatusHistory({
@@ -2129,7 +2099,7 @@ class LocalDatabaseService {
     };
 
     orders[index] = updated;
-    localStorage.setItem(this.ordersKey, JSON.stringify(orders));
+    storageSet(this.ordersKey, JSON.stringify(orders));
 
     // Update Items
     const allItems = this.getAllOrderItemsRaw().filter(i => i.order_id !== id);
@@ -2149,7 +2119,7 @@ class LocalDatabaseService {
       updated_at: nowStr,
     }));
 
-    localStorage.setItem(this.orderItemsKey, JSON.stringify([...allItems, ...updatedItems]));
+    storageSet(this.orderItemsKey, JSON.stringify([...allItems, ...updatedItems]));
 
     this.logOrderStatusHistory({
       order_id: id,
@@ -2236,7 +2206,7 @@ class LocalDatabaseService {
     }
 
     orders[index] = updated;
-    localStorage.setItem(this.ordersKey, JSON.stringify(orders));
+    storageSet(this.ordersKey, JSON.stringify(orders));
 
     let actionLabel = `Status Advanced: ${targetStatus.replace(/_/g, ' ').toUpperCase()}`;
     if (extraData?.is_admin_override) {
@@ -2288,7 +2258,7 @@ class LocalDatabaseService {
     notes?: string;
     performed_by: string;
   }): OrderStatusHistory {
-    const data = localStorage.getItem(this.orderHistoryKey);
+    const data = storageGet(this.orderHistoryKey);
     const list: OrderStatusHistory[] = data ? JSON.parse(data) : SEED_ORDER_HISTORY;
 
     const newEvt: OrderStatusHistory = {
@@ -2302,7 +2272,7 @@ class LocalDatabaseService {
       created_at: new Date().toISOString(),
     };
 
-    localStorage.setItem(this.orderHistoryKey, JSON.stringify([...list, newEvt]));
+    storageSet(this.orderHistoryKey, JSON.stringify([...list, newEvt]));
     return newEvt;
   }
 
@@ -2310,7 +2280,7 @@ class LocalDatabaseService {
 
   public getOrderDocuments(orderId: string): OrderDocument[] {
     try {
-      const data = localStorage.getItem(this.orderDocsKey);
+      const data = storageGet(this.orderDocsKey);
       let docs: OrderDocument[] = data ? JSON.parse(data) : SEED_ORDER_DOCUMENTS;
       const users = this.getUsers();
 
@@ -2333,7 +2303,7 @@ class LocalDatabaseService {
     filePath: string,
     currentUserId: string
   ): OrderDocument {
-    const data = localStorage.getItem(this.orderDocsKey);
+    const data = storageGet(this.orderDocsKey);
     const docs: OrderDocument[] = data ? JSON.parse(data) : SEED_ORDER_DOCUMENTS;
 
     const newDoc: OrderDocument = {
@@ -2346,7 +2316,7 @@ class LocalDatabaseService {
       uploaded_at: new Date().toISOString(),
     };
 
-    localStorage.setItem(this.orderDocsKey, JSON.stringify([...docs, newDoc]));
+    storageSet(this.orderDocsKey, JSON.stringify([...docs, newDoc]));
 
     const uploader = this.getUserById(currentUserId);
     this.logOrderStatusHistory({
@@ -2368,7 +2338,7 @@ class LocalDatabaseService {
 
   public getProductCategories(): ProductCategory[] {
     try {
-      const data = localStorage.getItem(this.productCategoriesKey);
+      const data = storageGet(this.productCategoriesKey);
       return data ? JSON.parse(data) : SEED_PRODUCT_CATEGORIES;
     } catch {
       return SEED_PRODUCT_CATEGORIES;
@@ -2377,7 +2347,7 @@ class LocalDatabaseService {
 
   public getProductBrands(): ProductBrand[] {
     try {
-      const data = localStorage.getItem(this.productBrandsKey);
+      const data = storageGet(this.productBrandsKey);
       return data ? JSON.parse(data) : SEED_PRODUCT_BRANDS;
     } catch {
       return SEED_PRODUCT_BRANDS;
@@ -2386,7 +2356,7 @@ class LocalDatabaseService {
 
   private getProductsRaw(): Product[] {
     try {
-      const data = localStorage.getItem(this.productsKey);
+      const data = storageGet(this.productsKey);
       return data ? JSON.parse(data) : SEED_PRODUCTS;
     } catch {
       return SEED_PRODUCTS;
@@ -2477,7 +2447,7 @@ class LocalDatabaseService {
       updated_at: nowStr,
     };
 
-    localStorage.setItem(this.productsKey, JSON.stringify([newProduct, ...products]));
+    storageSet(this.productsKey, JSON.stringify([newProduct, ...products]));
 
     // Log initial history if created as Out of Stock
     if (newProduct.availability_status !== 'available') {
@@ -2524,7 +2494,7 @@ class LocalDatabaseService {
     };
 
     products[index] = updated;
-    localStorage.setItem(this.productsKey, JSON.stringify(products));
+    storageSet(this.productsKey, JSON.stringify(products));
 
     return this.getProductById(id);
   }
@@ -2559,7 +2529,7 @@ class LocalDatabaseService {
     };
 
     products[index] = updated;
-    localStorage.setItem(this.productsKey, JSON.stringify(products));
+    storageSet(this.productsKey, JSON.stringify(products));
 
     // Log Availability History
     this.logProductAvailabilityHistory({
@@ -2587,7 +2557,7 @@ class LocalDatabaseService {
 
   public getProductAvailabilityHistory(productId: string): ProductAvailabilityHistory[] {
     try {
-      const data = localStorage.getItem(this.productHistoryKey);
+      const data = storageGet(this.productHistoryKey);
       let list: ProductAvailabilityHistory[] = data ? JSON.parse(data) : SEED_PRODUCT_HISTORY;
       const users = this.getUsers();
 
@@ -2611,7 +2581,7 @@ class LocalDatabaseService {
     expected_available_date: string | null;
     changed_by: string;
   }): ProductAvailabilityHistory {
-    const data = localStorage.getItem(this.productHistoryKey);
+    const data = storageGet(this.productHistoryKey);
     const list: ProductAvailabilityHistory[] = data ? JSON.parse(data) : SEED_PRODUCT_HISTORY;
 
     const newEvt: ProductAvailabilityHistory = {
@@ -2625,7 +2595,7 @@ class LocalDatabaseService {
       changed_at: new Date().toISOString(),
     };
 
-    localStorage.setItem(this.productHistoryKey, JSON.stringify([...list, newEvt]));
+    storageSet(this.productHistoryKey, JSON.stringify([...list, newEvt]));
     return newEvt;
   }
 
@@ -2637,7 +2607,7 @@ class LocalDatabaseService {
 
   public getShifts(): Shift[] {
     try {
-      const data = localStorage.getItem(this.shiftsKey);
+      const data = storageGet(this.shiftsKey);
       const list: Shift[] = data ? JSON.parse(data) : SEED_SHIFTS;
       const teams = this.getTeams();
       return list.map(s => ({
@@ -2661,14 +2631,14 @@ class LocalDatabaseService {
         team_id: teamId,
         team: team || null,
         shift_date: nowStr.split('T')[0],
-        start_time: team?.shift_start || '3:00 PM',
-        end_time: team?.shift_end || '11:00 AM',
+        start_time: team?.shift_start || '15:00',
+        end_time: team?.shift_end || '11:00',
         status: 'active',
         opened_at: nowStr,
         created_at: nowStr,
         updated_at: nowStr,
       };
-      localStorage.setItem(this.shiftsKey, JSON.stringify([current, ...shifts]));
+      storageSet(this.shiftsKey, JSON.stringify([current, ...shifts]));
     }
     return current;
   }
@@ -2679,7 +2649,7 @@ class LocalDatabaseService {
     searchTerm?: string;
   } = {}): ShiftHandover[] {
     try {
-      const data = localStorage.getItem(this.handoversKey);
+      const data = storageGet(this.handoversKey);
       let list: ShiftHandover[] = data ? JSON.parse(data) : SEED_HANDOVERS;
       const teams = this.getTeams();
       const users = this.getUsers();
@@ -2723,7 +2693,7 @@ class LocalDatabaseService {
 
   public getHandoverItems(handoverId: string): ShiftHandoverItem[] {
     try {
-      const data = localStorage.getItem(this.handoverItemsKey);
+      const data = storageGet(this.handoverItemsKey);
       const list: ShiftHandoverItem[] = data ? JSON.parse(data) : SEED_HANDOVER_ITEMS;
       const users = this.getUsers();
 
@@ -2780,7 +2750,7 @@ class LocalDatabaseService {
     };
 
     // Store Handover Items
-    const rawItems = localStorage.getItem(this.handoverItemsKey);
+    const rawItems = storageGet(this.handoverItemsKey);
     const allItems: ShiftHandoverItem[] = rawItems ? JSON.parse(rawItems) : SEED_HANDOVER_ITEMS;
 
     const newItems: ShiftHandoverItem[] = input.items.map(item => ({
@@ -2799,11 +2769,11 @@ class LocalDatabaseService {
       created_at: nowStr,
     }));
 
-    const rawHandovers = localStorage.getItem(this.handoversKey);
+    const rawHandovers = storageGet(this.handoversKey);
     const allHandovers: ShiftHandover[] = rawHandovers ? JSON.parse(rawHandovers) : SEED_HANDOVERS;
 
-    localStorage.setItem(this.handoversKey, JSON.stringify([newHandover, ...allHandovers]));
-    localStorage.setItem(this.handoverItemsKey, JSON.stringify([...allItems, ...newItems]));
+    storageSet(this.handoversKey, JSON.stringify([newHandover, ...allHandovers]));
+    storageSet(this.handoverItemsKey, JSON.stringify([...allItems, ...newItems]));
 
     // Trigger Notification to incoming team
     const outgoingTeam = this.getTeams().find(t => t.id === outgoingTeamId);
@@ -2819,7 +2789,7 @@ class LocalDatabaseService {
   }
 
   public acknowledgeHandover(handoverId: string, userId: string): ShiftHandover | null {
-    const rawHandovers = localStorage.getItem(this.handoversKey);
+    const rawHandovers = storageGet(this.handoversKey);
     const allHandovers: ShiftHandover[] = rawHandovers ? JSON.parse(rawHandovers) : SEED_HANDOVERS;
 
     const index = allHandovers.findIndex(h => h.id === handoverId);
@@ -2837,7 +2807,7 @@ class LocalDatabaseService {
     };
 
     allHandovers[index] = updated;
-    localStorage.setItem(this.handoversKey, JSON.stringify(allHandovers));
+    storageSet(this.handoversKey, JSON.stringify(allHandovers));
 
     // Trigger Notification to outgoing team
     const incomingTeam = this.getTeams().find(t => t.id === existing.incoming_team_id);
@@ -2853,7 +2823,7 @@ class LocalDatabaseService {
   }
 
   public completeHandoverItem(itemId: string, userId: string, completionNote?: string): boolean {
-    const rawItems = localStorage.getItem(this.handoverItemsKey);
+    const rawItems = storageGet(this.handoverItemsKey);
     const allItems: ShiftHandoverItem[] = rawItems ? JSON.parse(rawItems) : SEED_HANDOVER_ITEMS;
 
     const index = allItems.findIndex(i => i.id === itemId);
@@ -2868,7 +2838,7 @@ class LocalDatabaseService {
       completion_note: completionNote?.trim() || 'Action completed by incoming agent.',
     };
 
-    localStorage.setItem(this.handoverItemsKey, JSON.stringify(allItems));
+    storageSet(this.handoverItemsKey, JSON.stringify(allItems));
     return true;
   }
 
@@ -2917,7 +2887,7 @@ class LocalDatabaseService {
       updated_at: new Date().toISOString(),
     };
 
-    localStorage.setItem(this.usersKey, JSON.stringify([...users, newUser]));
+    storageSet(this.usersKey, JSON.stringify([...users, newUser]));
 
     this.logAudit({
       user_id: currentUserId,
@@ -2952,7 +2922,7 @@ class LocalDatabaseService {
     };
 
     users[index] = updated;
-    localStorage.setItem(this.usersKey, JSON.stringify(users));
+    storageSet(this.usersKey, JSON.stringify(users));
 
     if (roleChanged) {
       this.logAudit({
@@ -3006,7 +2976,7 @@ class LocalDatabaseService {
     };
 
     users[index] = updated;
-    localStorage.setItem(this.usersKey, JSON.stringify(users));
+    storageSet(this.usersKey, JSON.stringify(users));
 
     this.logAudit({
       user_id: currentUserId,
@@ -3048,7 +3018,7 @@ class LocalDatabaseService {
       updated_at: new Date().toISOString(),
     };
 
-    localStorage.setItem(this.teamsKey, JSON.stringify([...teams, newTeam]));
+    storageSet(this.teamsKey, JSON.stringify([...teams, newTeam]));
 
     this.logAudit({
       user_id: currentUserId,
@@ -3079,7 +3049,7 @@ class LocalDatabaseService {
     };
 
     teams[index] = updated;
-    localStorage.setItem(this.teamsKey, JSON.stringify(teams));
+    storageSet(this.teamsKey, JSON.stringify(teams));
 
     this.logAudit({
       user_id: currentUserId,
@@ -3107,7 +3077,7 @@ class LocalDatabaseService {
       created_at: new Date().toISOString(),
     };
 
-    localStorage.setItem(this.categoriesKey, JSON.stringify([...list, newCat]));
+    storageSet(this.categoriesKey, JSON.stringify([...list, newCat]));
 
     this.logAudit({
       user_id: currentUserId,
@@ -3137,7 +3107,7 @@ class LocalDatabaseService {
     };
 
     list[index] = updated;
-    localStorage.setItem(this.categoriesKey, JSON.stringify(list));
+    storageSet(this.categoriesKey, JSON.stringify(list));
 
     this.logAudit({
       user_id: currentUserId,
@@ -3163,7 +3133,7 @@ class LocalDatabaseService {
       created_at: new Date().toISOString(),
     };
 
-    localStorage.setItem(this.productCategoriesKey, JSON.stringify([...list, newCat]));
+    storageSet(this.productCategoriesKey, JSON.stringify([...list, newCat]));
 
     this.logAudit({
       user_id: currentUserId,
@@ -3193,7 +3163,7 @@ class LocalDatabaseService {
     };
 
     list[index] = updated;
-    localStorage.setItem(this.productCategoriesKey, JSON.stringify(list));
+    storageSet(this.productCategoriesKey, JSON.stringify(list));
 
     this.logAudit({
       user_id: currentUserId,
@@ -3219,7 +3189,7 @@ class LocalDatabaseService {
       created_at: new Date().toISOString(),
     };
 
-    localStorage.setItem(this.productBrandsKey, JSON.stringify([...list, newBrand]));
+    storageSet(this.productBrandsKey, JSON.stringify([...list, newBrand]));
 
     this.logAudit({
       user_id: currentUserId,
@@ -3249,7 +3219,7 @@ class LocalDatabaseService {
     };
 
     list[index] = updated;
-    localStorage.setItem(this.productBrandsKey, JSON.stringify(list));
+    storageSet(this.productBrandsKey, JSON.stringify(list));
 
     this.logAudit({
       user_id: currentUserId,
@@ -3269,7 +3239,7 @@ class LocalDatabaseService {
 
   public getSystemSettings(): SystemSettings {
     try {
-      const data = localStorage.getItem(this.systemSettingsKey);
+      const data = storageGet(this.systemSettingsKey);
       if (data) {
         const parsed: SystemSettings = JSON.parse(data);
         const users = this.getUsers();
@@ -3281,7 +3251,7 @@ class LocalDatabaseService {
     } catch {}
 
     return {
-      id: 'sys-settings-001',
+      id: '00000000-0000-0000-0000-0000000000a1',
       company_name: 'J&T Supplies',
       crm_title: 'J&T Supplies CRM',
       timezone: 'America/New_York',
@@ -3306,7 +3276,7 @@ class LocalDatabaseService {
       updated_by: currentUserId,
     };
 
-    localStorage.setItem(this.systemSettingsKey, JSON.stringify(updated));
+    storageSet(this.systemSettingsKey, JSON.stringify(updated));
 
     this.logAudit({
       user_id: currentUserId,
@@ -3331,7 +3301,7 @@ class LocalDatabaseService {
     searchTerm?: string;
   } = {}): AuditLog[] {
     try {
-      const data = localStorage.getItem(this.auditLogsKey);
+      const data = storageGet(this.auditLogsKey);
       let logs: AuditLog[] = data ? JSON.parse(data) : [];
       const users = this.getUsers();
 
@@ -3367,7 +3337,7 @@ class LocalDatabaseService {
 
   public logAudit(entry: Omit<AuditLog, 'id' | 'timestamp'>): AuditLog {
     try {
-      const data = localStorage.getItem(this.auditLogsKey);
+      const data = storageGet(this.auditLogsKey);
       const logs: AuditLog[] = data ? JSON.parse(data) : [];
 
       const newLog: AuditLog = {
@@ -3376,7 +3346,7 @@ class LocalDatabaseService {
         ...entry,
       };
 
-      localStorage.setItem(this.auditLogsKey, JSON.stringify([newLog, ...logs]));
+      storageSet(this.auditLogsKey, JSON.stringify([newLog, ...logs]));
       return newLog;
     } catch {
       return {

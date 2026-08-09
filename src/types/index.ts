@@ -184,17 +184,6 @@ export interface UserNotificationPreferences {
   urgent_alerts: boolean;
 }
 
-export interface QueryFormInput {
-  customer_id: string;
-  subject: string;
-  description: string;
-  category_id?: string;
-  product_id?: string;
-  priority?: QueryPriority;
-  assigned_to?: string;
-  internal_notes?: string;
-}
-
 // --- Step 4: Order Management Types ---
 
 export type OrderStatus = 

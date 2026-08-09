@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { localDb } from '../../services/db';
 import { notificationService } from '../../services/notificationService';
+import { forceResyncFromSupabase } from '../../services/supabaseSync';
 import { CRMNotification, NotificationPriority } from '../../types';
 import { 
   LogOut, 
@@ -16,14 +17,25 @@ import {
   CheckCheck,
   ArrowRight,
   AlertTriangle,
-  Info
+  Info,
+  RefreshCw
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, dbVersion } = useAuth();
   const navigate = useNavigate();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSyncClick = async () => {
+    setIsSyncing(true);
+    try {
+      await forceResyncFromSupabase();
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Subscribe to real-time notification events
   useEffect(() => {
@@ -132,6 +144,17 @@ export const Header: React.FC = () => {
             <Calendar className="w-3.5 h-3.5 text-slate-500" />
             <span>{todayFormatted}</span>
           </div>
+
+          {/* Sync Supabase Live Button */}
+          <button
+            onClick={handleSyncClick}
+            disabled={isSyncing}
+            title="Force refresh and sync all data from live Supabase database"
+            className="hidden sm:flex items-center space-x-1.5 text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-md border border-emerald-200 transition-colors disabled:opacity-50 font-medium"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-emerald-600' : 'text-emerald-600'}`} />
+            <span>{isSyncing ? 'Syncing...' : 'Sync Supabase'}</span>
+          </button>
 
           {/* User Team & Shift Info */}
           {user.team && (

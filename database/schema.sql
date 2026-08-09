@@ -507,7 +507,7 @@ INSERT INTO public.profiles (id, email, full_name, role, team_id) VALUES
 ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO public.customers (id, customer_code, company_name, contact_person, phone, email, address, city, country, status) VALUES
-    ('10000000-0000-0000-0000-000000000001', 'CUST-000001', 'Apex Industrial Dynamics', 'Marcus Vance', '+1 (555) 234-5678', 'm.vance@apexind.com', '100 Industrial Parkway', 'Chicago', 'USA', 'active'),
+    ('10000000-0000-0000-0000-000000000001', 'CUST-000001', 'Salsa and Sabor', 'Jacquie', '+1 (555) 234-5678', 'm.vance@apexind.com', '100 Industrial Parkway', 'Chicago', 'USA', 'active'),
     ('10000000-0000-0000-0000-000000000002', 'CUST-000002', 'Vanguard Freight & Logistics', 'Brenda Holloway', '+1 (555) 876-5432', 'b.holloway@vanguardfl.com', '450 Terminal Way', 'Houston', 'USA', 'active'),
     ('10000000-0000-0000-0000-000000000003', 'CUST-000003', 'Horizon Healthcare Systems', 'Dr. David Chen', '+1 (555) 345-6789', 'd.chen@horizonhealth.org', '780 Medical Center Blvd', 'Boston', 'USA', 'active'),
     ('10000000-0000-0000-0000-000000000004', 'CUST-000004', 'Summit Retail Distributors', 'Rachel Adams', '+1 (555) 901-2345', 'radams@summitretail.com', '120 Commerce Way', 'Atlanta', 'USA', 'active'),

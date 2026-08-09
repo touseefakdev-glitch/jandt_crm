@@ -120,8 +120,8 @@ export const SEED_CUSTOMERS: Customer[] = [
   {
     id: '10000000-0000-0000-0000-000000000001',
     customer_code: 'CUST-000001',
-    company_name: 'Apex Industrial Dynamics',
-    contact_person: 'Marcus Vance',
+    company_name: 'Salsa and Sabor',
+    contact_person: 'Jacquie',
     phone: '+1 (555) 234-5678',
     email: 'm.vance@apexind.com',
     address: '100 Industrial Parkway',

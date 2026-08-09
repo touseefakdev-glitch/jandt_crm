@@ -187,7 +187,10 @@ function sanitizeRow(table: string, row: Record<string, unknown>): Record<string
  * Loads all Supabase tables into memory and localStorage.
  */
 export async function initializeFromSupabase(): Promise<void> {
-  if (!supabase) return;
+  if (!supabase) {
+    console.warn('[Supabase] Client is null — VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY is missing.');
+    return;
+  }
 
   try {
     const entries = Object.entries(TABLE_MAP);
@@ -217,6 +220,7 @@ export async function initializeFromSupabase(): Promise<void> {
           lsKey,
           new Set(data.map((row) => (row as { id?: unknown }).id as string))
         );
+        console.log(`[Supabase] Loaded ${data.length} rows into '${lsKey}' from Supabase table '${TABLE_MAP[lsKey]}'.`);
       } else {
         const localData = storageGet(lsKey);
         if (localData) {
@@ -229,4 +233,15 @@ export async function initializeFromSupabase(): Promise<void> {
     console.error('[Supabase] initializeFromSupabase failed:', err);
   }
 }
+
+/**
+ * Clears local cache and re-hydrates completely from Supabase.
+ */
+export async function forceResyncFromSupabase(): Promise<boolean> {
+  if (!supabase) return false;
+  storageClear();
+  await initializeFromSupabase();
+  return true;
+}
+
 

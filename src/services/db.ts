@@ -371,8 +371,9 @@ class LocalDatabaseService {
     const codeToProductMap = new Map<string, Product>();
     const newProducts: Product[] = SEED_HTML_PRODUCTS.map((p, idx) => {
       const catId = catMap.get(p.category.toLowerCase()) || defaultCatId;
+      const prodUuid = `00000000-0000-0000-0001-${String(idx + 1).padStart(12, '0')}`;
       const prodObj: Product = {
-        id: `prod-${p.itemCode}`,
+        id: prodUuid,
         sku: p.sku || `ITEM-${p.itemCode}`,
         product_name: p.name,
         description: p.subcategory ? `${p.category} > ${p.subcategory}` : p.category,
@@ -399,11 +400,11 @@ class LocalDatabaseService {
     const newHistory: CustomerProductHistory[] = [];
 
     SEED_HTML_CUSTOMERS.forEach((c, cIdx) => {
-      const custId = `cust-html-${cIdx + 1}`;
+      const custUuid = `00000000-0000-0000-0002-${String(cIdx + 1).padStart(12, '0')}`;
       const custCode = `CUST-${String(cIdx + 1).padStart(4, '0')}`;
       
       const custObj: Customer = {
-        id: custId,
+        id: custUuid,
         customer_code: custCode,
         company_name: c.customerName,
         contact_person: null,
@@ -426,9 +427,10 @@ class LocalDatabaseService {
 
       c.items.forEach((item, itemIdx) => {
         const matchedProd = codeToProductMap.get(item.itemCode);
+        const histUuid = `00000000-0000-0000-0003-${String(newHistory.length + 1).padStart(12, '0')}`;
         const histObj: CustomerProductHistory = {
-          id: `cph-${cIdx + 1}-${itemIdx + 1}`,
-          customer_id: custId,
+          id: histUuid,
+          customer_id: custUuid,
           customer_name: c.customerName,
           product_id: matchedProd ? matchedProd.id : null,
           source_item_code: item.itemCode,
@@ -444,6 +446,7 @@ class LocalDatabaseService {
         newHistory.push(histObj);
       });
     });
+
 
     storageSet(this.customersKey, JSON.stringify(newCustomers));
     storageSet(this.customerProductHistoryKey, JSON.stringify(newHistory));
@@ -3596,7 +3599,7 @@ class LocalDatabaseService {
     });
 
     preview.productDetails.forEach((p) => {
-      const existing = products.find(prod => prod.sku === p.sku || prod.id === `prod-${p.itemCode}`);
+      const existing = products.find(prod => prod.sku === p.sku || prod.id.endsWith(p.itemCode));
       if (existing) {
         if (strategy === 'update_existing') {
           existing.product_name = p.name;
@@ -3610,8 +3613,10 @@ class LocalDatabaseService {
         }
       } else {
         const catId = catMap.get(p.category.toLowerCase()) || defaultCatId;
+        const nextIdx = products.length + 1;
+        const prodUuid = `00000000-0000-0000-0001-${String(nextIdx).padStart(12, '0')}`;
         const newProd: Product = {
-          id: `prod-${p.itemCode}`,
+          id: prodUuid,
           sku: p.sku || `ITEM-${p.itemCode}`,
           product_name: p.name,
           description: p.subcategory ? `${p.category} > ${p.subcategory}` : p.category,
@@ -3650,8 +3655,9 @@ class LocalDatabaseService {
 
       if (!cust) {
         const nextIdx = customers.length + 1;
+        const custUuid = `00000000-0000-0000-0002-${String(nextIdx).padStart(12, '0')}`;
         const newCust: Customer = {
-          id: `cust-html-${nextIdx}`,
+          id: custUuid,
           customer_code: `CUST-${String(nextIdx).padStart(4, '0')}`,
           company_name: c.customerName,
           contact_person: null,
@@ -3683,8 +3689,9 @@ class LocalDatabaseService {
         const matchedProd = codeToProductMap.get(item.itemCode);
 
         if (!histMap.has(key)) {
+          const histUuid = `00000000-0000-0000-0003-${String(existingHist.length + 1).padStart(12, '0')}`;
           const histRecord: CustomerProductHistory = {
-            id: `cph-${cust!.id}-${item.itemCode}-${itemIdx}`,
+            id: histUuid,
             customer_id: cust!.id,
             customer_name: c.customerName,
             product_id: matchedProd ? matchedProd.id : null,
@@ -3704,6 +3711,7 @@ class LocalDatabaseService {
         }
       });
     });
+
 
     storageSet(this.customersKey, JSON.stringify(customers));
     storageSet(this.customerProductHistoryKey, JSON.stringify(existingHist));

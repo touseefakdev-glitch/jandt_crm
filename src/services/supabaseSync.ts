@@ -46,12 +46,12 @@ export const TABLE_MAP: Record<string, string> = {
   jt_crm_query_notes:        'query_internal_notes',
   jt_crm_query_attachments:  'query_attachments',
   jt_crm_handover_items:     'shift_handover_items',
-  jt_crm_product_history:    'product_availability_history',
-
-  // Level 6: System & Logs
+  // Level 6: Customer Product History & System Logs
+  jt_crm_customer_product_history: 'customer_product_history',
   jt_crm_system_settings:    'system_settings',
   jt_crm_audit_logs:         'audit_logs',
 };
+
 
 // In-memory data store cache backed by localStorage & Supabase sync
 const memoryStore = new Map<string, string>();

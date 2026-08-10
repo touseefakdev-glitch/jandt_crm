@@ -7,7 +7,7 @@ import { CustomerFormModal } from '../components/customers/CustomerFormModal';
 import { Badge, Button, ConfirmDialog, EmptyState, Input, PageHeader, Pagination, Table, Tabs, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
 import { getCustomerStatusBadge } from '../utils/badges';
 import { formatDate } from '../utils/format';
-import { Users, Plus, Eye, Edit, Power, Building2, XCircle } from 'lucide-react';
+import { Users, Plus, Eye, Edit, Power, Building2, XCircle, Upload } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -84,9 +84,20 @@ export const Customers: React.FC = () => {
         title="Customer Directory"
         description="Centralized business customer records and account management"
         actions={
-          <Button onClick={handleOpenCreateModal} icon={<Plus className="w-4 h-4" />}>
-            New Customer
-          </Button>
+          <div className="flex items-center gap-3">
+            {isAdmin && (
+              <Button
+                variant="outline"
+                onClick={() => navigate('/admin/import?type=customers')}
+                icon={<Upload className="w-4 h-4" />}
+              >
+                Import CSV
+              </Button>
+            )}
+            <Button onClick={handleOpenCreateModal} icon={<Plus className="w-4 h-4" />}>
+              New Customer
+            </Button>
+          </div>
         }
       />
 

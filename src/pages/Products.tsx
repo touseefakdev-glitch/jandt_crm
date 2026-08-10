@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Product, ProductAvailabilityStatus, ProductFormInput } from '../types';
 import { localDb } from '../services/db';
@@ -8,7 +8,7 @@ import { ProductAvailabilityModal } from '../components/products/ProductAvailabi
 import { Badge, Button, Card, EmptyState, Input, PageHeader, Pagination, Select, Table, Tabs, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
 import { getProductAvailabilityBadge } from '../utils/badges';
 import { formatCurrency, formatDate } from '../utils/format';
-import { Package, Search, Plus, Edit, RotateCcw, X, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Package, Search, Plus, Edit, RotateCcw, X, AlertTriangle, ArrowRight, Upload } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -17,6 +17,7 @@ type ProductsTab = 'all' | 'out_of_stock' | 'discontinued';
 export const Products: React.FC = () => {
   const { user, hasRole, dbVersion } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const isAdmin = hasRole('admin');
 
@@ -128,15 +129,24 @@ export const Products: React.FC = () => {
         description="Track item availability status and resupply schedules across product line"
         actions={
           isAdmin ? (
-            <Button
-              onClick={() => {
-                setProductToEdit(null);
-                setIsFormModalOpen(true);
-              }}
-              icon={<Plus className="w-4 h-4" />}
-            >
-              New Catalog Product
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/admin/import?type=products')}
+                icon={<Upload className="w-4 h-4" />}
+              >
+                Import CSV
+              </Button>
+              <Button
+                onClick={() => {
+                  setProductToEdit(null);
+                  setIsFormModalOpen(true);
+                }}
+                icon={<Plus className="w-4 h-4" />}
+              >
+                New Catalog Product
+              </Button>
+            </div>
           ) : undefined
         }
       />

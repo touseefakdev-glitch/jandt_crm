@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { 
   ImportType, 
@@ -46,10 +46,12 @@ export const AdminImport: React.FC = () => {
   const canImport = permissions.canPerformImport(user).allowed;
 
   const [currentStep, setCurrentStep] = useState<Step>('select_type');
-  const [importType, setImportType] = useState<ImportType>('products');
+  const [searchParams] = useSearchParams();
+  const requestedType: ImportType = searchParams.get('type') === 'customers' ? 'customers' : 'products';
+  const [importType, setImportType] = useState<ImportType>(requestedType);
   const [importStrategy, setImportStrategy] = useState<ImportStrategy>('create_new_only');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  
+
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
 
@@ -59,6 +61,12 @@ export const AdminImport: React.FC = () => {
   const [isImporting, setIsImporting] = useState(false);
   const [completedJob, setCompletedJob] = useState<ImportJob | null>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (currentStep === 'select_type' && searchParams.get('type')) {
+      setCurrentStep('upload');
+    }
+  }, []);
 
   if (!canImport) {
     return (

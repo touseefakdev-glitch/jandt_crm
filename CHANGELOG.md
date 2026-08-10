@@ -11,6 +11,7 @@ and this project adheres to Semantic Versioning.
 
 ### Added
 - **CSV Import System for Products & Customers (Step 11)**: Built a complete, production-grade CSV import system allowing authorized Administrators to import product catalog items and customer accounts with full validation, duplicate detection, strategy selection, preview, error report downloads, import history, audit logging, and availability change notifications under the **NO INVENTORY** architecture.
+- **Import Discoverability**: Added admin-gated "Import CSV" buttons to the Products Catalog and Customer Directory page headers, deep-linking into the import wizard with the matching import type pre-selected (`/admin/import?type=products` / `?type=customers`).
 - **NO INVENTORY Architecture Enforced**:
   - Product CSV import manages product catalog display names, categories, SKUs, and availability status (`Available` / `Out of Stock`) only.
   - Stock quantity, warehouse stock, reserved quantity, reorder level, and inventory movement are explicitly excluded.

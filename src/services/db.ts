@@ -355,10 +355,11 @@ class LocalDatabaseService {
     const existingHist = storageGet(this.customerProductHistoryKey);
     const parsedHist: CustomerProductHistory[] = existingHist ? JSON.parse(existingHist) : [];
 
-    if (parsedProds.length === 0 && parsedCusts.length === 0 && parsedHist.length === 0) {
+    if (parsedProds.length < 500 || parsedCusts.length < 100 || parsedHist.length < 1000) {
       this.seedHtmlBusinessData();
     }
   }
+
 
   public seedHtmlBusinessData() {
     const categories = SEED_PRODUCT_CATEGORIES;

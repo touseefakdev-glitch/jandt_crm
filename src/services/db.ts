@@ -52,7 +52,13 @@ import {
   ImportStrategy,
   ImportJobStatus,
   ImportErrorItem,
-  ImportDuplicateItem
+  ImportDuplicateItem,
+  DayOfWeek,
+  PortalType,
+  RouteSchedule,
+  DailyOrderOperationStatus,
+  DailyOrderOperation,
+  DailyOrderOperationHistory,
 } from '../types';
 import { notificationService } from './notificationService';
 import { permissions } from './permissions';
@@ -151,9 +157,11 @@ export const SEED_CUSTOMERS: Customer[] = [
     company_name: '0941791 BC.ltd',
     contact_person: 'Gurpreet Singh',
     phone: '+1 (604) 555-0191',
+    whatsapp_number: '+1 (604) 555-0191',
     email: 'contact@0941791bc.ca',
     address: '10245 152 St',
-    city: 'Surrey',
+    city: 'Kelowna',
+    route: 'Kelowna',
     country: 'Canada',
     notes: '17 items priced. Key commercial food packaging account.',
     status: 'active',
@@ -168,9 +176,11 @@ export const SEED_CUSTOMERS: Customer[] = [
     company_name: '4G Commercial',
     contact_person: 'Tariq Mahmood',
     phone: '+1 (250) 555-0144',
+    whatsapp_number: '+1 (250) 555-0144',
     email: 'orders@4gcommercial.com',
     address: '880 Commercial Way',
-    city: 'Vancouver',
+    city: 'Kelowna',
+    route: 'Kelowna',
     country: 'Canada',
     notes: '8 items priced. Commercial supply client.',
     status: 'active',
@@ -185,9 +195,11 @@ export const SEED_CUSTOMERS: Customer[] = [
     company_name: '5309 Main street, Unit 100',
     contact_person: 'Usman Ali',
     phone: '+1 (604) 555-5309',
+    whatsapp_number: '+1 (604) 555-5309',
     email: 'unit100@mainstreetsupplies.ca',
     address: '5309 Main Street, Unit 100',
-    city: 'Vancouver',
+    city: 'Kelowna',
+    route: 'Kelowna',
     country: 'Canada',
     notes: '1 item priced. Retail location customer.',
     status: 'active',
@@ -202,9 +214,11 @@ export const SEED_CUSTOMERS: Customer[] = [
     company_name: 'AA Tire Kelowna',
     contact_person: 'Bilal Ahmed',
     phone: '+1 (250) 555-0177',
+    whatsapp_number: '+1 (250) 555-0177',
     email: 'service@aatilekelowna.com',
     address: '1920 Enterprise Way',
     city: 'Kelowna',
+    route: 'Kelowna',
     country: 'Canada',
     notes: '3 items priced. Commercial customer.',
     status: 'active',
@@ -216,14 +230,16 @@ export const SEED_CUSTOMERS: Customer[] = [
   {
     id: '10000000-0000-0000-0000-000000000005',
     customer_code: 'CUST-000005',
-    company_name: 'Academy Store',
+    company_name: 'Westside Bakery & Deli',
     contact_person: 'Farhan Khan',
-    phone: '+1 (604) 555-0122',
-    email: 'manager@academystore.ca',
-    address: '3450 Academy Way',
-    city: 'Burnaby',
+    phone: '+1 (250) 555-0122',
+    whatsapp_number: '+1 (250) 555-0122',
+    email: 'orders@westsidebakery.ca',
+    address: '3450 Boucherie Rd',
+    city: 'West Kelowna',
+    route: 'West Kelowna',
     country: 'Canada',
-    notes: '5 items priced. Campus supply store.',
+    notes: 'Bakery food packaging & wrap client.',
     status: 'active',
     created_at: new Date('2026-02-18').toISOString(),
     updated_at: new Date('2026-02-18').toISOString(),
@@ -236,9 +252,11 @@ export const SEED_CUSTOMERS: Customer[] = [
     company_name: 'Afrofusion Kamloops',
     contact_person: 'Zubair Siddiqui',
     phone: '+1 (250) 555-0188',
+    whatsapp_number: '+1 (250) 555-0188',
     email: 'kitchen@afrofusionkamloops.com',
     address: '450 Tranquille Rd',
     city: 'Kamloops',
+    route: 'Kamloops',
     country: 'Canada',
     notes: '18 items priced. Restaurant & food wrapping customer.',
     status: 'active',
@@ -250,20 +268,290 @@ export const SEED_CUSTOMERS: Customer[] = [
   {
     id: '10000000-0000-0000-0000-000000000007',
     customer_code: 'CUST-000007',
-    company_name: 'Alcatraz Chicken',
+    company_name: 'Summerland Fruit Wraps',
     contact_person: 'Hamza Malik',
-    phone: '+1 (604) 555-0199',
-    email: 'info@alcatrazchicken.com',
-    address: '1120 Robson St',
-    city: 'Vancouver',
+    phone: '+1 (250) 555-0199',
+    whatsapp_number: '+1 (250) 555-0199',
+    email: 'info@summerlandfruitwraps.com',
+    address: '1120 Main St',
+    city: 'Summerland',
+    route: 'Summerland',
     country: 'Canada',
-    notes: '5 items priced. Fast food chain - regular foil & wrap orders.',
+    notes: 'Fruit packaging & foil wrap supplier.',
     status: 'active',
     created_at: new Date('2026-02-22').toISOString(),
     updated_at: new Date('2026-03-01').toISOString(),
     created_by: 'a1111111-1111-1111-1111-111111111111',
     updated_by: 'a1111111-1111-1111-1111-111111111111',
   },
+  {
+    id: '10000000-0000-0000-0000-000000000008',
+    customer_code: 'CUST-000008',
+    company_name: 'Penticton Lakeshore Resort',
+    contact_person: 'Sarah Jenkins',
+    phone: '+1 (250) 555-0210',
+    whatsapp_number: '+1 (250) 555-0210',
+    email: 'supplies@pentictonlakeshore.com',
+    address: '200 Lakeshore Dr W',
+    city: 'Penticton',
+    route: 'Penticton',
+    country: 'Canada',
+    notes: 'Hospitality supply account.',
+    status: 'active',
+    created_at: new Date('2026-03-01').toISOString(),
+    updated_at: new Date('2026-03-01').toISOString(),
+    created_by: 'a1111111-1111-1111-1111-111111111111',
+    updated_by: 'a1111111-1111-1111-1111-111111111111',
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000009',
+    customer_code: 'CUST-000009',
+    company_name: 'Osoyoos Winery Supplies',
+    contact_person: 'Marcello Rossi',
+    phone: '+1 (250) 555-0344',
+    whatsapp_number: '+1 (250) 555-0344',
+    email: 'orders@osoyooswinerysupplies.ca',
+    address: '8900 Main St',
+    city: 'Osoyoos',
+    route: 'Osoyoos',
+    country: 'Canada',
+    notes: 'Packaging & foil supplies for vineyards.',
+    status: 'active',
+    created_at: new Date('2026-03-02').toISOString(),
+    updated_at: new Date('2026-03-02').toISOString(),
+    created_by: 'b2222222-2222-2222-2222-222222222222',
+    updated_by: 'b2222222-2222-2222-2222-222222222222',
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000010',
+    customer_code: 'CUST-000010',
+    company_name: 'Oliver Orchard Packing',
+    contact_person: 'David Miller',
+    phone: '+1 (250) 555-0455',
+    whatsapp_number: '+1 (250) 555-0455',
+    email: 'packing@oliverorchard.ca',
+    address: '560 Station St',
+    city: 'Oliver',
+    route: 'Oliver',
+    country: 'Canada',
+    notes: 'Orchard packaging customer.',
+    status: 'active',
+    created_at: new Date('2026-03-03').toISOString(),
+    updated_at: new Date('2026-03-03').toISOString(),
+    created_by: 'a1111111-1111-1111-1111-111111111111',
+    updated_by: 'a1111111-1111-1111-1111-111111111111',
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000011',
+    customer_code: 'CUST-000011',
+    company_name: 'Princeton Mining Supplies',
+    contact_person: 'Robert Vance',
+    phone: '+1 (250) 555-0566',
+    whatsapp_number: '+1 (250) 555-0566',
+    email: 'supplies@princetonmining.com',
+    address: '120 Bridge St',
+    city: 'Princeton',
+    route: 'Princeton',
+    country: 'Canada',
+    notes: 'Heavy duty commercial supplies account.',
+    status: 'active',
+    created_at: new Date('2026-03-04').toISOString(),
+    updated_at: new Date('2026-03-04').toISOString(),
+    created_by: 'b2222222-2222-2222-2222-222222222222',
+    updated_by: 'b2222222-2222-2222-2222-222222222222',
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000012',
+    customer_code: 'CUST-000012',
+    company_name: 'Keremeos Organics & Packing',
+    contact_person: 'Anita Sharma',
+    phone: '+1 (250) 555-0677',
+    whatsapp_number: '+1 (250) 555-0677',
+    email: 'info@keremeosorganics.ca',
+    address: '710 7th Ave',
+    city: 'Keremeos',
+    route: 'Keremeos',
+    country: 'Canada',
+    notes: 'Organic produce packaging client.',
+    status: 'active',
+    created_at: new Date('2026-03-05').toISOString(),
+    updated_at: new Date('2026-03-05').toISOString(),
+    created_by: 'a1111111-1111-1111-1111-111111111111',
+    updated_by: 'a1111111-1111-1111-1111-111111111111',
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000013',
+    customer_code: 'CUST-000013',
+    company_name: 'Merritt Freight Depot',
+    contact_person: 'Jason Campbell',
+    phone: '+1 (250) 555-0788',
+    whatsapp_number: '+1 (250) 555-0788',
+    email: 'depot@merrittfreight.ca',
+    address: '2150 Nicola Ave',
+    city: 'Merritt',
+    route: 'Merritt',
+    country: 'Canada',
+    notes: 'Regional logistics & packaging customer.',
+    status: 'active',
+    created_at: new Date('2026-03-06').toISOString(),
+    updated_at: new Date('2026-03-06').toISOString(),
+    created_by: 'b2222222-2222-2222-2222-222222222222',
+    updated_by: 'b2222222-2222-2222-2222-222222222222',
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000014',
+    customer_code: 'CUST-000014',
+    company_name: 'Vernon Jubilee Supplies',
+    contact_person: 'Dr. Michael Chen',
+    phone: '+1 (250) 555-0899',
+    whatsapp_number: '+1 (250) 555-0899',
+    email: 'procurement@vernonjubilee.ca',
+    address: '2101 32nd St',
+    city: 'Vernon',
+    route: 'Vernon',
+    country: 'Canada',
+    notes: 'Healthcare & sanitation packaging client.',
+    status: 'active',
+    created_at: new Date('2026-03-07').toISOString(),
+    updated_at: new Date('2026-03-07').toISOString(),
+    created_by: 'a1111111-1111-1111-1111-111111111111',
+    updated_by: 'a1111111-1111-1111-1111-111111111111',
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000015',
+    customer_code: 'CUST-000015',
+    company_name: 'Salmon Arm Shuswap Traders',
+    contact_person: 'Karen White',
+    phone: '+1 (250) 555-0911',
+    whatsapp_number: '+1 (250) 555-0911',
+    email: 'traders@shuswapsupplies.com',
+    address: '1100 Lakeshore Dr NW',
+    city: 'Salmon Arm',
+    route: 'Salmon Arm',
+    country: 'Canada',
+    notes: 'Shuswap commercial supplies client.',
+    status: 'active',
+    created_at: new Date('2026-03-08').toISOString(),
+    updated_at: new Date('2026-03-08').toISOString(),
+    created_by: 'b2222222-2222-2222-2222-222222222222',
+    updated_by: 'b2222222-2222-2222-2222-222222222222',
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000016',
+    customer_code: 'CUST-000016',
+    company_name: 'Lake Country Distributing',
+    contact_person: 'Tyler Scott',
+    phone: '+1 (250) 555-0922',
+    whatsapp_number: '+1 (250) 555-0922',
+    email: 'info@lakecountrydistributing.ca',
+    address: '10150 Main St',
+    city: 'Lake Country',
+    route: 'Lake Country',
+    country: 'Canada',
+    notes: 'Regional distribution hub account.',
+    status: 'active',
+    created_at: new Date('2026-03-09').toISOString(),
+    updated_at: new Date('2026-03-09').toISOString(),
+    created_by: 'a1111111-1111-1111-1111-111111111111',
+    updated_by: 'a1111111-1111-1111-1111-111111111111',
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000017',
+    customer_code: 'CUST-000017',
+    company_name: 'Armstrong Cheese & Packaging',
+    contact_person: 'Monique Laurent',
+    phone: '+1 (250) 555-0933',
+    whatsapp_number: '+1 (250) 555-0933',
+    email: 'orders@armstrongcheese.ca',
+    address: '2510 Smith Dr',
+    city: 'Armstrong',
+    route: 'Armstrong',
+    country: 'Canada',
+    notes: 'Dairy food wrap & parchment paper account.',
+    status: 'active',
+    created_at: new Date('2026-03-10').toISOString(),
+    updated_at: new Date('2026-03-10').toISOString(),
+    created_by: 'b2222222-2222-2222-2222-222222222222',
+    updated_by: 'b2222222-2222-2222-2222-222222222222',
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000018',
+    customer_code: 'CUST-000018',
+    company_name: 'Falkland General Store',
+    contact_person: 'Craig Henderson',
+    phone: '+1 (250) 555-0944',
+    whatsapp_number: '+1 (250) 555-0944',
+    email: 'store@falklandgeneral.ca',
+    address: '5610 Highway 97',
+    city: 'Falkland',
+    route: 'Falkland',
+    country: 'Canada',
+    notes: 'General store retail customer.',
+    status: 'active',
+    created_at: new Date('2026-03-11').toISOString(),
+    updated_at: new Date('2026-03-11').toISOString(),
+    created_by: 'a1111111-1111-1111-1111-111111111111',
+    updated_by: 'a1111111-1111-1111-1111-111111111111',
+  },
+  {
+    id: '10000000-0000-0000-0000-000000000019',
+    customer_code: 'CUST-000019',
+    company_name: 'Chase Shuswap Supply',
+    contact_person: 'Derek Taylor',
+    phone: '+1 (250) 555-0955',
+    whatsapp_number: '+1 (250) 555-0955',
+    email: 'sales@chaseshuswap.ca',
+    address: '820 Shuswap Ave',
+    city: 'Chase',
+    route: 'Chase',
+    country: 'Canada',
+    notes: 'Retail & commercial supply customer.',
+    status: 'active',
+    created_at: new Date('2026-03-12').toISOString(),
+    updated_at: new Date('2026-03-12').toISOString(),
+    created_by: 'b2222222-2222-2222-2222-222222222222',
+    updated_by: 'b2222222-2222-2222-2222-222222222222',
+  }
+];
+
+export const SEED_ROUTE_SCHEDULES: RouteSchedule[] = [
+  { id: '00000000-0000-0000-0020-000000000001', day_of_week: 'monday', city_or_route: 'Kelowna', portal: 'kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  
+  { id: '00000000-0000-0000-0020-000000000002', day_of_week: 'tuesday', city_or_route: 'Kelowna', portal: 'kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000003', day_of_week: 'tuesday', city_or_route: 'West Kelowna', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000004', day_of_week: 'tuesday', city_or_route: 'Summerland', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  
+  { id: '00000000-0000-0000-0020-000000000005', day_of_week: 'wednesday', city_or_route: 'Kelowna', portal: 'kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000006', day_of_week: 'wednesday', city_or_route: 'Penticton', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000007', day_of_week: 'wednesday', city_or_route: 'West Kelowna', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000008', day_of_week: 'wednesday', city_or_route: 'Osoyoos', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000009', day_of_week: 'wednesday', city_or_route: 'Oliver', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  
+  { id: '00000000-0000-0000-0020-000000000010', day_of_week: 'thursday', city_or_route: 'Kelowna', portal: 'kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000011', day_of_week: 'thursday', city_or_route: 'Penticton', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000012', day_of_week: 'thursday', city_or_route: 'Princeton', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000013', day_of_week: 'thursday', city_or_route: 'Keremeos', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000014', day_of_week: 'thursday', city_or_route: 'Osoyoos', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000015', day_of_week: 'thursday', city_or_route: 'Oliver', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000016', day_of_week: 'thursday', city_or_route: 'Merritt', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  
+  { id: '00000000-0000-0000-0020-000000000017', day_of_week: 'friday', city_or_route: 'Vernon', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000018', day_of_week: 'friday', city_or_route: 'Salmon Arm', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000019', day_of_week: 'friday', city_or_route: 'Lake Country', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000020', day_of_week: 'friday', city_or_route: 'Armstrong', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  
+  { id: '00000000-0000-0000-0020-000000000021', day_of_week: 'saturday', city_or_route: 'Vernon', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000022', day_of_week: 'saturday', city_or_route: 'Kamloops', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000023', day_of_week: 'saturday', city_or_route: 'Falkland', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000024', day_of_week: 'saturday', city_or_route: 'Chase', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000025', day_of_week: 'saturday', city_or_route: 'Salmon Arm', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000026', day_of_week: 'saturday', city_or_route: 'Lake Country', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  
+  { id: '00000000-0000-0000-0020-000000000027', day_of_week: 'sunday', city_or_route: 'Kelowna', portal: 'kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000028', day_of_week: 'sunday', city_or_route: 'Penticton', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000029', day_of_week: 'sunday', city_or_route: 'Osoyoos', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000030', day_of_week: 'sunday', city_or_route: 'Oliver', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: '00000000-0000-0000-0020-000000000031', day_of_week: 'sunday', city_or_route: 'West Kelowna', portal: 'outside_kelowna', active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
 ];
 
 // Initial Query Categories Seed Data
@@ -1091,6 +1379,11 @@ class LocalDatabaseService {
   // Step 11 CSV Import System Key
   private importJobsKey = 'jt_crm_import_jobs';
 
+  // Step 10 REBUILD Route Operations Keys
+  private routeSchedulesKey = 'jt_crm_route_schedules';
+  private dailyOrderOperationsKey = 'jt_crm_daily_order_operations';
+  private dailyOrderOperationHistoryKey = 'jt_crm_daily_order_operation_history';
+
   constructor() {
     this.init();
   }
@@ -1120,6 +1413,9 @@ class LocalDatabaseService {
       [this.handoversKey, SEED_HANDOVERS],
       [this.handoverItemsKey, SEED_HANDOVER_ITEMS],
       [this.queryAttachmentsKey, []],
+      [this.routeSchedulesKey, SEED_ROUTE_SCHEDULES],
+      [this.dailyOrderOperationsKey, []],
+      [this.dailyOrderOperationHistoryKey, []],
     ];
 
     seeds.forEach(([key, rows]) => {
@@ -3695,6 +3991,535 @@ class LocalDatabaseService {
     } catch {
       return job;
     }
+  }
+
+  // =========================================================================
+  // STEP 10 REBUILD: ROUTE-BASED DAILY ORDER OPERATIONS METHODS
+  // =========================================================================
+
+  public getRouteSchedules(dayOfWeek?: DayOfWeek): RouteSchedule[] {
+    try {
+      const data = storageGet(this.routeSchedulesKey);
+      let list: RouteSchedule[] = data ? JSON.parse(data) : SEED_ROUTE_SCHEDULES;
+      if (dayOfWeek) {
+        list = list.filter(r => r.day_of_week === dayOfWeek);
+      }
+      return list;
+    } catch {
+      return SEED_ROUTE_SCHEDULES;
+    }
+  }
+
+  public updateRouteSchedule(id: string, updates: Partial<RouteSchedule>, currentUserId: string): RouteSchedule | null {
+    const list = this.getRouteSchedules();
+    const index = list.findIndex(r => r.id === id);
+    if (index === -1) return null;
+
+    const existing = list[index];
+    const updated: RouteSchedule = {
+      ...existing,
+      ...updates,
+      updated_at: new Date().toISOString(),
+    };
+
+    list[index] = updated;
+    storageSet(this.routeSchedulesKey, JSON.stringify(list));
+
+    this.logAudit({
+      user_id: currentUserId,
+      action: 'route_schedule_updated',
+      entity_type: 'route_schedule',
+      entity_id: id,
+      entity_number: `${updated.day_of_week} - ${updated.city_or_route}`,
+      summary: `Updated route schedule for ${updated.city_or_route} (${updated.day_of_week})`,
+      previous_value: null,
+      new_value: null,
+    });
+
+    return updated;
+  }
+
+  public createRouteSchedule(input: { day_of_week: DayOfWeek; city_or_route: string; portal: 'kelowna' | 'outside_kelowna'; active: boolean }, currentUserId: string): RouteSchedule {
+    const list = this.getRouteSchedules();
+    const newSchedule: RouteSchedule = {
+      id: crypto.randomUUID(),
+      day_of_week: input.day_of_week,
+      city_or_route: input.city_or_route.trim(),
+      portal: input.portal,
+      active: input.active,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const updatedList = [...list, newSchedule];
+    storageSet(this.routeSchedulesKey, JSON.stringify(updatedList));
+
+    this.logAudit({
+      user_id: currentUserId,
+      action: 'route_schedule_updated',
+      entity_type: 'route_schedule',
+      entity_id: newSchedule.id,
+      entity_number: `${newSchedule.day_of_week} - ${newSchedule.city_or_route}`,
+      summary: `Created route schedule for ${newSchedule.city_or_route} (${newSchedule.day_of_week})`,
+      previous_value: null,
+      new_value: null,
+    });
+
+    return newSchedule;
+  }
+
+  public getDailyOrderOperations(options: {
+    date: string; // YYYY-MM-DD
+    route?: string;
+    portal?: PortalType;
+    searchTerm?: string;
+    statusFilter?: string;
+    sortBy?: string;
+  }): { operations: DailyOrderOperation[]; activeRoutes: string[]; weekday: DayOfWeek } {
+    try {
+      const selectedDate = new Date(options.date + 'T12:00:00');
+      const dayNames: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const weekday = dayNames[selectedDate.getDay()];
+
+      // Get active route schedules for this weekday
+      let schedules = this.getRouteSchedules(weekday).filter(s => s.active);
+      if (options.portal && options.portal !== 'all') {
+        schedules = schedules.filter(s => s.portal === options.portal);
+      }
+
+      const activeRoutes = Array.from(new Set(schedules.map(s => s.city_or_route)));
+      const targetRoute = options.route || activeRoutes[0] || '';
+
+      if (!targetRoute) {
+        return { operations: [], activeRoutes, weekday };
+      }
+
+      // Find customers assigned to this route or city
+      const customers = this.getCustomers('').filter(c => {
+        const cRoute = (c.route || '').trim().toLowerCase();
+        const cCity = (c.city || '').trim().toLowerCase();
+        const matchRoute = targetRoute.trim().toLowerCase();
+        return cRoute === matchRoute || cCity === matchRoute;
+      });
+
+      // Load operations list from storage
+      const opsData = storageGet(this.dailyOrderOperationsKey);
+      let opsList: DailyOrderOperation[] = opsData ? JSON.parse(opsData) : [];
+      let updatedOpsList = [...opsList];
+
+      const users = this.getUsers();
+      const queries = this.getQueries();
+
+      // Ensure operation record exists for each customer for date & targetRoute
+      const resultOps: DailyOrderOperation[] = customers.map(cust => {
+        let opIndex = updatedOpsList.findIndex(o => o.customer_id === cust.id && o.operation_date === options.date);
+        let op: DailyOrderOperation;
+
+        if (opIndex >= 0) {
+          op = updatedOpsList[opIndex];
+        } else {
+          op = {
+            id: crypto.randomUUID(),
+            customer_id: cust.id,
+            operation_date: options.date,
+            route: targetRoute,
+            order_received: false,
+            sales_order_generated: false,
+            invoiced: false,
+            dispatched: false,
+            error_flag: false,
+            status: 'not_started',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+          updatedOpsList.push(op);
+        }
+
+        // Attach related profiles & customer & query
+        op.customer = cust;
+        if (op.order_received_by) op.order_received_by_profile = users.find(u => u.id === op.order_received_by) || null;
+        if (op.sales_order_generated_by) op.sales_order_generated_by_profile = users.find(u => u.id === op.sales_order_generated_by) || null;
+        if (op.invoiced_by) op.invoiced_by_profile = users.find(u => u.id === op.invoiced_by) || null;
+        if (op.dispatched_by) op.dispatched_by_profile = users.find(u => u.id === op.dispatched_by) || null;
+        if (op.error_query_id) op.error_query = queries.find(q => q.id === op.error_query_id) || null;
+
+        return op;
+      });
+
+      // Save lazily created records if list expanded
+      if (updatedOpsList.length > opsList.length) {
+        storageSet(this.dailyOrderOperationsKey, JSON.stringify(updatedOpsList));
+      }
+
+      // Filter by search & status
+      let filtered = resultOps;
+      if (options.searchTerm) {
+        const q = options.searchTerm.trim().toLowerCase();
+        filtered = filtered.filter(o => 
+          o.customer?.company_name.toLowerCase().includes(q) ||
+          o.customer?.contact_person?.toLowerCase().includes(q) ||
+          o.customer?.phone?.toLowerCase().includes(q) ||
+          o.customer?.whatsapp_number?.toLowerCase().includes(q) ||
+          o.sales_order_number?.toLowerCase().includes(q) ||
+          o.invoice_number?.toLowerCase().includes(q)
+        );
+      }
+
+      if (options.statusFilter && options.statusFilter !== 'all') {
+        filtered = filtered.filter(o => o.status === options.statusFilter);
+      }
+
+      // Sort
+      filtered.sort((a, b) => {
+        if (options.sortBy === 'status') {
+          return a.status.localeCompare(b.status);
+        }
+        if (options.sortBy === 'updated_at') {
+          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+        }
+        return (a.customer?.company_name || '').localeCompare(b.customer?.company_name || '');
+      });
+
+      return { operations: filtered, activeRoutes, weekday };
+    } catch {
+      return { operations: [], activeRoutes: [], weekday: 'monday' };
+    }
+  }
+
+  public updateDailyOrderOperationStep(
+    id: string,
+    step: 'order_received' | 'sales_order_generated' | 'invoiced' | 'dispatched',
+    referenceNumber: string | null,
+    userId: string
+  ): DailyOrderOperation | null {
+    try {
+      const opsData = storageGet(this.dailyOrderOperationsKey);
+      const opsList: DailyOrderOperation[] = opsData ? JSON.parse(opsData) : [];
+      const index = opsList.findIndex(o => o.id === id);
+      if (index === -1) return null;
+
+      const existing = opsList[index];
+      const now = new Date().toISOString();
+      const previousState = existing.status;
+
+      // Enforce dependencies
+      if (step === 'sales_order_generated' && !existing.order_received) {
+        throw new Error('Order Received must be completed before generating a Sales Order.');
+      }
+      if (step === 'invoiced' && !existing.sales_order_generated) {
+        throw new Error('Sales Order must be generated before Invoicing.');
+      }
+      if (step === 'dispatched' && !existing.invoiced) {
+        throw new Error('Customer must be Invoiced before Dispatch.');
+      }
+
+      const updated: DailyOrderOperation = { ...existing };
+
+      if (step === 'order_received') {
+        updated.order_received = true;
+        updated.order_received_at = now;
+        updated.order_received_by = userId;
+      } else if (step === 'sales_order_generated') {
+        if (!referenceNumber || !referenceNumber.trim()) {
+          throw new Error('Sales Order Number is required.');
+        }
+        updated.sales_order_generated = true;
+        updated.sales_order_number = referenceNumber.trim();
+        updated.sales_order_generated_at = now;
+        updated.sales_order_generated_by = userId;
+      } else if (step === 'invoiced') {
+        if (!referenceNumber || !referenceNumber.trim()) {
+          throw new Error('Invoice Number is required.');
+        }
+        updated.invoiced = true;
+        updated.invoice_number = referenceNumber.trim();
+        updated.invoiced_at = now;
+        updated.invoiced_by = userId;
+      } else if (step === 'dispatched') {
+        updated.dispatched = true;
+        updated.dispatched_at = now;
+        updated.dispatched_by = userId;
+      }
+
+      // Derive status
+      if (updated.error_flag) {
+        updated.status = 'error';
+      } else if (updated.order_received && updated.sales_order_generated && updated.invoiced && updated.dispatched) {
+        updated.status = 'completed';
+      } else if (updated.dispatched) {
+        updated.status = 'dispatched';
+      } else if (updated.invoiced) {
+        updated.status = 'invoiced';
+      } else if (updated.sales_order_generated) {
+        updated.status = 'sales_order_generated';
+      } else if (updated.order_received) {
+        updated.status = 'order_received';
+      } else {
+        updated.status = 'not_started';
+      }
+
+      updated.updated_at = now;
+      opsList[index] = updated;
+      storageSet(this.dailyOrderOperationsKey, JSON.stringify(opsList));
+
+      // Log history
+      this.logDailyOperationHistory({
+        operation_id: id,
+        customer_id: updated.customer_id,
+        action: `Completed step: ${step.replace(/_/g, ' ')}`,
+        previous_state: previousState,
+        new_state: updated.status,
+        reference_number: referenceNumber,
+        user_id: userId,
+        timestamp: now,
+      });
+
+      this.logAudit({
+        user_id: userId,
+        action: 'daily_operation_update',
+        entity_type: 'daily_order_operation',
+        entity_id: id,
+        entity_number: updated.sales_order_number || updated.invoice_number || id,
+        summary: `Updated daily operation status to ${updated.status} for step '${step}'`,
+        previous_value: previousState,
+        new_value: updated.status,
+      });
+
+      return updated;
+    } catch (err: any) {
+      throw new Error(err.message || 'Failed to update daily order operation step.');
+    }
+  }
+
+  public revertDailyOrderOperationStep(
+    id: string,
+    step: 'order_received' | 'sales_order_generated' | 'invoiced' | 'dispatched',
+    reason: string,
+    userId: string
+  ): DailyOrderOperation | null {
+    try {
+      if (!reason || !reason.trim()) {
+        throw new Error('A reason is required to revert a workflow step.');
+      }
+
+      const opsData = storageGet(this.dailyOrderOperationsKey);
+      const opsList: DailyOrderOperation[] = opsData ? JSON.parse(opsData) : [];
+      const index = opsList.findIndex(o => o.id === id);
+      if (index === -1) return null;
+
+      const existing = opsList[index];
+      const now = new Date().toISOString();
+      const previousState = existing.status;
+      const updated: DailyOrderOperation = { ...existing };
+
+      if (step === 'order_received') {
+        updated.order_received = false;
+        updated.order_received_at = null;
+        updated.order_received_by = null;
+        updated.sales_order_generated = false;
+        updated.sales_order_number = null;
+        updated.sales_order_generated_at = null;
+        updated.sales_order_generated_by = null;
+        updated.invoiced = false;
+        updated.invoice_number = null;
+        updated.invoiced_at = null;
+        updated.invoiced_by = null;
+        updated.dispatched = false;
+        updated.dispatched_at = null;
+        updated.dispatched_by = null;
+      } else if (step === 'sales_order_generated') {
+        updated.sales_order_generated = false;
+        updated.sales_order_number = null;
+        updated.sales_order_generated_at = null;
+        updated.sales_order_generated_by = null;
+        updated.invoiced = false;
+        updated.invoice_number = null;
+        updated.invoiced_at = null;
+        updated.invoiced_by = null;
+        updated.dispatched = false;
+        updated.dispatched_at = null;
+        updated.dispatched_by = null;
+      } else if (step === 'invoiced') {
+        updated.invoiced = false;
+        updated.invoice_number = null;
+        updated.invoiced_at = null;
+        updated.invoiced_by = null;
+        updated.dispatched = false;
+        updated.dispatched_at = null;
+        updated.dispatched_by = null;
+      } else if (step === 'dispatched') {
+        updated.dispatched = false;
+        updated.dispatched_at = null;
+        updated.dispatched_by = null;
+      }
+
+      // Re-derive status
+      if (updated.error_flag) {
+        updated.status = 'error';
+      } else if (updated.dispatched) {
+        updated.status = 'dispatched';
+      } else if (updated.invoiced) {
+        updated.status = 'invoiced';
+      } else if (updated.sales_order_generated) {
+        updated.status = 'sales_order_generated';
+      } else if (updated.order_received) {
+        updated.status = 'order_received';
+      } else {
+        updated.status = 'not_started';
+      }
+
+      updated.updated_at = now;
+      opsList[index] = updated;
+      storageSet(this.dailyOrderOperationsKey, JSON.stringify(opsList));
+
+      this.logDailyOperationHistory({
+        operation_id: id,
+        customer_id: updated.customer_id,
+        action: `Reverted step: ${step.replace(/_/g, ' ')}`,
+        previous_state: previousState,
+        new_state: updated.status,
+        reason: reason.trim(),
+        user_id: userId,
+        timestamp: now,
+      });
+
+      this.logAudit({
+        user_id: userId,
+        action: 'daily_operation_undo',
+        entity_type: 'daily_order_operation',
+        entity_id: id,
+        summary: `Reverted step '${step}' for reason: ${reason.trim()}`,
+        previous_value: previousState,
+        new_value: updated.status,
+      });
+
+      return updated;
+    } catch (err: any) {
+      throw new Error(err.message || 'Failed to revert workflow step.');
+    }
+  }
+
+  public reportDailyOrderOperationError(
+    id: string,
+    issueDescription: string,
+    priority: 'normal' | 'high' | 'urgent',
+    userId: string
+  ): { operation: DailyOrderOperation; query: CustomerQuery } {
+    try {
+      if (!issueDescription || !issueDescription.trim()) {
+        throw new Error('Error description is required.');
+      }
+
+      const opsData = storageGet(this.dailyOrderOperationsKey);
+      const opsList: DailyOrderOperation[] = opsData ? JSON.parse(opsData) : [];
+      const index = opsList.findIndex(o => o.id === id);
+      if (index === -1) throw new Error('Daily operation record not found.');
+
+      const existing = opsList[index];
+      const customer = this.getCustomerById(existing.customer_id);
+      if (!customer) throw new Error('Customer not found.');
+
+      const categories = this.getCategories();
+      const orderCat = categories.find(c => c.name.toLowerCase().includes('order')) || categories[0];
+
+      // Create Customer Query
+      const query = this.createQuery({
+        customer_id: customer.id,
+        subject: `Daily Operations Issue — ${customer.company_name}`,
+        description: `Daily Operations Error reported on route ${existing.route} (${existing.operation_date}): ${issueDescription.trim()}`,
+        category_id: orderCat ? orderCat.id : '00000000-0000-0000-0001-000000000001',
+        priority: priority === 'normal' ? 'medium' : priority,
+      }, userId);
+
+      const now = new Date().toISOString();
+      const previousState = existing.status;
+
+      const updated: DailyOrderOperation = {
+        ...existing,
+        error_flag: true,
+        error_query_id: query.id,
+        status: 'error',
+        updated_at: now,
+      };
+
+      opsList[index] = updated;
+      storageSet(this.dailyOrderOperationsKey, JSON.stringify(opsList));
+
+      this.logDailyOperationHistory({
+        operation_id: id,
+        customer_id: updated.customer_id,
+        action: `Reported Error: ${query.query_number}`,
+        previous_state: previousState,
+        new_state: 'error',
+        reference_number: query.query_number,
+        user_id: userId,
+        timestamp: now,
+      });
+
+      this.logAudit({
+        user_id: userId,
+        action: 'daily_operation_error_query',
+        entity_type: 'daily_order_operation',
+        entity_id: id,
+        entity_number: query.query_number,
+        summary: `Reported daily operation error creating query ${query.query_number}`,
+        previous_value: previousState,
+        new_value: 'error',
+      });
+
+      return { operation: updated, query };
+    } catch (err: any) {
+      throw new Error(err.message || 'Failed to report daily operation error.');
+    }
+  }
+
+  public getDailyOrderOperationHistory(operationId: string): DailyOrderOperationHistory[] {
+    try {
+      const data = storageGet(this.dailyOrderOperationHistoryKey);
+      const list: DailyOrderOperationHistory[] = data ? JSON.parse(data) : [];
+      const users = this.getUsers();
+
+      return list
+        .filter(h => h.operation_id === operationId)
+        .map(h => ({
+          ...h,
+          user_profile: h.user_id ? users.find(u => u.id === h.user_id) || null : null,
+        }))
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    } catch {
+      return [];
+    }
+  }
+
+  public getCustomerDailyOperations(customerId: string): DailyOrderOperation[] {
+    try {
+      const opsData = storageGet(this.dailyOrderOperationsKey);
+      const opsList: DailyOrderOperation[] = opsData ? JSON.parse(opsData) : [];
+      const queries = this.getQueries();
+
+      return opsList
+        .filter(o => o.customer_id === customerId)
+        .map(o => ({
+          ...o,
+          error_query: o.error_query_id ? queries.find(q => q.id === o.error_query_id) || null : null,
+        }))
+        .sort((a, b) => new Date(b.operation_date).getTime() - new Date(a.operation_date).getTime());
+    } catch {
+      return [];
+    }
+  }
+
+  private logDailyOperationHistory(item: Omit<DailyOrderOperationHistory, 'id'>) {
+    try {
+      const data = storageGet(this.dailyOrderOperationHistoryKey);
+      const list: DailyOrderOperationHistory[] = data ? JSON.parse(data) : [];
+      const newItem: DailyOrderOperationHistory = {
+        ...item,
+        id: crypto.randomUUID(),
+      };
+      list.unshift(newItem);
+      storageSet(this.dailyOrderOperationHistoryKey, JSON.stringify(list));
+    } catch {}
   }
 
 }

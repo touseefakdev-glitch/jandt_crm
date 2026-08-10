@@ -875,4 +875,110 @@ CREATE TABLE IF NOT EXISTS public.import_jobs (
     errors_json TEXT
 );
 
+-- =============================================================================
+-- STEP 10 REBUILD: ROUTE-BASED DAILY ORDER OPERATIONS
+-- =============================================================================
+
+-- Route Schedules Table
+CREATE TABLE IF NOT EXISTS public.route_schedules (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    day_of_week VARCHAR(20) NOT NULL, -- monday, tuesday, wednesday, thursday, friday, saturday, sunday
+    city_or_route VARCHAR(100) NOT NULL,
+    portal VARCHAR(50) NOT NULL DEFAULT 'outside_kelowna', -- kelowna, outside_kelowna
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT unique_day_city UNIQUE (day_of_week, city_or_route)
+);
+
+-- Daily Order Operations Table
+CREATE TABLE IF NOT EXISTS public.daily_order_operations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    customer_id UUID NOT NULL REFERENCES public.customers(id) ON DELETE CASCADE,
+    operation_date DATE NOT NULL,
+    route VARCHAR(100) NOT NULL,
+    
+    order_received BOOLEAN NOT NULL DEFAULT FALSE,
+    order_received_at TIMESTAMPTZ,
+    order_received_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    
+    sales_order_generated BOOLEAN NOT NULL DEFAULT FALSE,
+    sales_order_number VARCHAR(100),
+    sales_order_generated_at TIMESTAMPTZ,
+    sales_order_generated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    
+    invoiced BOOLEAN NOT NULL DEFAULT FALSE,
+    invoice_number VARCHAR(100),
+    invoiced_at TIMESTAMPTZ,
+    invoiced_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    
+    dispatched BOOLEAN NOT NULL DEFAULT FALSE,
+    dispatched_at TIMESTAMPTZ,
+    dispatched_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    
+    error_flag BOOLEAN NOT NULL DEFAULT FALSE,
+    error_query_id UUID REFERENCES public.queries(id) ON DELETE SET NULL,
+    
+    status VARCHAR(50) NOT NULL DEFAULT 'not_started',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT unique_customer_operation_date UNIQUE (customer_id, operation_date)
+);
+
+-- Daily Order Operation History Audit Table
+CREATE TABLE IF NOT EXISTS public.daily_order_operation_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    operation_id UUID NOT NULL REFERENCES public.daily_order_operations(id) ON DELETE CASCADE,
+    customer_id UUID NOT NULL REFERENCES public.customers(id) ON DELETE CASCADE,
+    action VARCHAR(100) NOT NULL,
+    previous_state VARCHAR(50),
+    new_state VARCHAR(50) NOT NULL,
+    reference_number VARCHAR(100),
+    user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    reason TEXT,
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Initial Weekly Route Schedule Seed Data
+INSERT INTO public.route_schedules (id, day_of_week, city_or_route, portal, active) VALUES
+    ('00000000-0000-0000-0020-000000000001', 'monday', 'Kelowna', 'kelowna', true),
+    
+    ('00000000-0000-0000-0020-000000000002', 'tuesday', 'Kelowna', 'kelowna', true),
+    ('00000000-0000-0000-0020-000000000003', 'tuesday', 'West Kelowna', 'outside_kelowna', true),
+    ('00000000-0000-0000-0020-000000000004', 'tuesday', 'Summerland', 'outside_kelowna', true),
+    
+    ('00000000-0000-0000-0020-000000000005', 'wednesday', 'Kelowna', 'kelowna', true),
+    ('00000000-0000-0000-0020-000000000006', 'wednesday', 'Penticton', 'outside_kelowna', true),
+    ('00000000-0000-0000-0020-000000000007', 'wednesday', 'West Kelowna', 'outside_kelowna', true),
+    ('00000000-0000-0000-0020-000000000008', 'wednesday', 'Osoyoos', 'outside_kelowna', true),
+    ('00000000-0000-0000-0020-000000000009', 'wednesday', 'Oliver', 'outside_kelowna', true),
+    
+    ('00000000-0000-0000-0020-000000000010', 'thursday', 'Kelowna', 'kelowna', true),
+    ('00000000-0000-0000-0020-000000000011', 'thursday', 'Penticton', 'outside_kelowna', true),
+    ('00000000-0000-0000-0020-000000000012', 'thursday', 'Princeton', 'outside_kelowna', true),
+    ('00000000-0000-0000-0020-000000000013', 'thursday', 'Keremeos', 'outside_kelowna', true),
+    ('00000000-0000-0000-0020-000000000014', 'thursday', 'Osoyoos', 'outside_kelowna', true),
+    ('00000000-0000-0000-0020-000000000015', 'thursday', 'Oliver', 'outside_kelowna', true),
+    ('00000000-0000-0000-0020-000000000016', 'thursday', 'Merritt', 'outside_kelowna', true),
+    
+    ('00000000-0000-0000-0020-000000000017', 'friday', 'Vernon', 'outside_kelowna', true),
+    ('00000000-0000-0000-0020-000000000018', 'friday', 'Salmon Arm', 'outside_kelowna', true),
+    ('00000000-0000-0000-0020-000000000019', 'friday', 'Lake Country', 'outside_kelowna', true),
+    ('00000000-0000-0000-0020-000000000020', 'friday', 'Armstrong', 'outside_kelowna', true),
+    
+    ('00000000-0000-0000-0020-000000000021', 'saturday', 'Vernon', 'outside_kelowna', true),
+    ('00000000-0000-0000-0020-000000000022', 'saturday', 'Kamloops', 'outside_kelowna', true),
+    ('00000000-0000-0000-0020-000000000023', 'saturday', 'Falkland', 'outside_kelowna', true),
+    ('00000000-0000-0000-0020-000000000024', 'saturday', 'Chase', 'outside_kelowna', true),
+    ('00000000-0000-0000-0020-000000000025', 'saturday', 'Salmon Arm', 'outside_kelowna', true),
+    ('00000000-0000-0000-0020-000000000026', 'saturday', 'Lake Country', 'outside_kelowna', true),
+    
+    ('00000000-0000-0000-0020-000000000027', 'sunday', 'Kelowna', 'kelowna', true),
+    ('00000000-0000-0000-0020-000000000028', 'sunday', 'Penticton', 'outside_kelowna', true),
+    ('00000000-0000-0000-0020-000000000029', 'sunday', 'Osoyoos', 'outside_kelowna', true),
+    ('00000000-0000-0000-0020-000000000030', 'sunday', 'Oliver', 'outside_kelowna', true),
+    ('00000000-0000-0000-0020-000000000031', 'sunday', 'West Kelowna', 'outside_kelowna', true)
+ON CONFLICT (id) DO NOTHING;
+
+
 

@@ -68,9 +68,31 @@ export class PermissionsService {
     return { allowed: false, reason: 'Only System Administrators can deactivate customer accounts.' };
   }
 
-  // --- Order Permissions ---
+  // --- Order & Daily Operations Permissions ---
   public static canViewOrders(user: UserProfile | null): boolean {
     return !!user;
+  }
+
+  public static canViewDailyOperations(user: UserProfile | null): boolean {
+    return !!user;
+  }
+
+  public static canUpdateDailyOperations(user: UserProfile | null): PermissionCheckResult {
+    if (!user) return { allowed: false, reason: 'Authentication required.' };
+    if (user.role === 'admin' || user.role === 'sales_agent') return { allowed: true };
+    return { allowed: false, reason: 'Support Agents have read-only access to daily operations.' };
+  }
+
+  public static canRevertDailyOperations(user: UserProfile | null): PermissionCheckResult {
+    if (!user) return { allowed: false, reason: 'Authentication required.' };
+    if (user.role === 'admin' || user.role === 'sales_agent') return { allowed: true };
+    return { allowed: false, reason: 'Only Sales Agents and Admins can revert completed workflow steps.' };
+  }
+
+  public static canManageRouteSchedules(user: UserProfile | null): PermissionCheckResult {
+    if (!user) return { allowed: false, reason: 'Authentication required.' };
+    if (user.role === 'admin') return { allowed: true };
+    return { allowed: false, reason: 'Only System Administrators can manage route schedules.' };
   }
 
   public static canCreateOrders(user: UserProfile | null): PermissionCheckResult {

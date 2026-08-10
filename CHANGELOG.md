@@ -5,6 +5,23 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.11.0] - 2026-08-10
+
+### Added
+- **Route-Based Daily Order Operations Dashboard (Step 10 REBUILD)**: Replaced traditional e-commerce cart/order entry with operational milestone processing for scheduled route customers.
+- **Milestone Workflow Engine**:
+  - `Order Received` ➔ `Sales Order Generated` (requires SO #) ➔ `Invoiced` (requires Invoice #) ➔ `Dispatched`.
+  - Sequential dependency enforcement preventing premature step checks.
+  - Step reversion modal requiring mandatory audit reason logging.
+  - Automatic Customer Query generation when reporting operational errors (`⚠ Error QRY-XXXXXX`).
+- **Portal Views & Route Schedule Management**:
+  - Filtered views for `Kelowna Portal`, `Outside Kelowna Portal`, and `All Portals`.
+  - Admin weekly route schedule manager at `/admin/routes` to toggle and create active city route schedules per day of week.
+- **Database Tables & Types**:
+  - Created `route_schedules`, `daily_order_operations`, and `daily_order_operation_history` tables.
+  - Added TypeScript definitions for `RouteSchedule`, `DailyOrderOperation`, and `DailyOrderOperationHistory`.
+  - Updated seed dataset with realistic Interior BC & Okanagan customers across all route cities.
+
 ---
 
 ## [1.10.0] - 2026-08-10

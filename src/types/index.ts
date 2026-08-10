@@ -514,7 +514,11 @@ export type AuditActionType =
   | 'shift_handover_acknowledged' 
   | 'settings_updated'
   | 'import_products'
-  | 'import_customers';
+  | 'import_customers'
+  | 'daily_operation_update'
+  | 'daily_operation_undo'
+  | 'daily_operation_error_query'
+  | 'route_schedule_updated';
 
 export type AuditEntityType = 
   | 'user' 
@@ -529,7 +533,85 @@ export type AuditEntityType =
   | 'shift' 
   | 'shift_handover' 
   | 'system_settings'
-  | 'import_job';
+  | 'import_job'
+  | 'daily_order_operation'
+  | 'route_schedule';
+
+// --- Step 10 REBUILD: Route-Based Daily Order Operations Types ---
+
+export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+export type PortalType = 'kelowna' | 'outside_kelowna' | 'all';
+
+export interface RouteSchedule {
+  id: string;
+  day_of_week: DayOfWeek;
+  city_or_route: string;
+  portal: 'kelowna' | 'outside_kelowna';
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type DailyOrderOperationStatus = 
+  | 'not_started' 
+  | 'order_received' 
+  | 'sales_order_generated' 
+  | 'invoiced' 
+  | 'dispatched' 
+  | 'completed' 
+  | 'error';
+
+export interface DailyOrderOperation {
+  id: string;
+  customer_id: string;
+  customer?: Customer;
+  operation_date: string; // YYYY-MM-DD
+  route: string; // City / Route name
+
+  order_received: boolean;
+  order_received_at?: string | null;
+  order_received_by?: string | null;
+  order_received_by_profile?: UserProfile | null;
+
+  sales_order_generated: boolean;
+  sales_order_number?: string | null;
+  sales_order_generated_at?: string | null;
+  sales_order_generated_by?: string | null;
+  sales_order_generated_by_profile?: UserProfile | null;
+
+  invoiced: boolean;
+  invoice_number?: string | null;
+  invoiced_at?: string | null;
+  invoiced_by?: string | null;
+  invoiced_by_profile?: UserProfile | null;
+
+  dispatched: boolean;
+  dispatched_at?: string | null;
+  dispatched_by?: string | null;
+  dispatched_by_profile?: UserProfile | null;
+
+  error_flag: boolean;
+  error_query_id?: string | null;
+  error_query?: CustomerQuery | null;
+
+  status: DailyOrderOperationStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DailyOrderOperationHistory {
+  id: string;
+  operation_id: string;
+  customer_id: string;
+  action: string;
+  previous_state?: string | null;
+  new_state: string;
+  reference_number?: string | null;
+  user_id: string | null;
+  user_profile?: UserProfile | null;
+  reason?: string | null;
+  timestamp: string;
+}
 
 export interface AuditLog {
   id: string;

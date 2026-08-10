@@ -30,6 +30,7 @@ import { AdminSettings } from './pages/admin/AdminSettings';
 import { AdminAuditLogs } from './pages/admin/AdminAuditLogs';
 import { AdminImport } from './pages/admin/AdminImport';
 import { AdminImportHistory } from './pages/admin/AdminImportHistory';
+import { AdminRouteSchedules } from './pages/admin/AdminRouteSchedules';
 
 export const App: React.FC = () => {
   return (
@@ -55,7 +56,8 @@ export const App: React.FC = () => {
             <Route path="queries" element={<Queries />} />
             <Route path="queries/:id" element={<QueryDetail />} />
             <Route path="orders" element={<Orders />} />
-            <Route path="orders/:id" element={<OrderDetail />} />
+            <Route path="orders/:id" element={<Navigate to="/orders" replace />} />
+            <Route path="daily-operations" element={<Navigate to="/orders" replace />} />
             <Route path="products" element={<Products />} />
             <Route path="products/:id" element={<ProductDetail />} />
             <Route path="out-of-stock" element={<OutOfStock />} />
@@ -70,6 +72,7 @@ export const App: React.FC = () => {
               <Route path="users/:id" element={<AdminUserProfile />} />
               <Route path="teams" element={<AdminTeams />} />
               <Route path="roles" element={<AdminRoles />} />
+              <Route path="routes" element={<AdminRouteSchedules />} />
               <Route path="import" element={<AdminImport />} />
               <Route path="import/history" element={<AdminImportHistory />} />
               <Route path="query-categories" element={<AdminQueryCategories />} />

@@ -197,42 +197,18 @@ Order Received ➔ Sales Order Done ➔ Invoiced ➔ Dispatched ➔ Signed Invoi
 - **Admin**: Full access (Create, Edit, Workflow Progression, Document Upload, Cancellation, Admin Override).
 - **Sales Agent**: Full sales access (Create, Edit early-stage orders, View assigned orders, Progress workflow stages 1-6, Upload documents, Cancel order with reason).
 - **Support Agent**: View-only access (Search orders, View order details, View status & documents, View customer & product history context). Restricted from status progression, pricing edits, line item edits, or cancellation.
-
-### Order Search & Filters
-- Multi-field search: Order Number, Customer Name/Code, Customer Reference, Sales Agent, Product SKU/Name.
-- Filter controls: Status, Sales Agent, Customer, Date Range (`startDate`, `endDate`), Product, and **Clear Filters** button.
-- Workspace Tabs: `All Orders`, `My Assigned Orders`, `Team Orders`.
-
-### Order Dashboard Metrics
-- Real database metrics for `Pending Orders`, `Awaiting Invoice`, `Awaiting Dispatch`, `Awaiting Signed Invoice`, `Completed Today`, `Cancelled`.
-
-### Order Customer Integration
-- Customer profile displays `Orders` tab with linked customer orders, statuses, and totals. Clicking opens the order.
-
-### Order Query Integration
-- Order Details displays **Related Customer Support Queries** linked to the order (`/queries/:id`). Query Details page displays Related Order card.
-
-### Order Product Integration
-- Product Details page displays **Related Customer Orders** containing the product, explicitly noting demand history (NO INVENTORY MOVEMENT).
-
-### Order Shift Handover Integration
-- Pending orders can be selected as shift handover items, displaying current status and next required action hint.
-
-### Product Availability Rules
-- Selecting an `out_of_stock` product displays a prominent warning banner with expected availability details, but does not block the order. Restoring product availability to `available` does not alter order statuses.
-
-
-### Handover Integration with Product Availability
-Handover items referencing products render the SKU (`PKG-FILM-80G`), product name, availability status (`Out of Stock`), reason, and expected date, with a direct clickable link to `/products/:id`.
-
-### Item Completion Business Rule
-Marking a handover item as `Completed` confirms that the incoming agent has dealt with the shift follow-up task. **Completing a handover item does NOT alter or close the underlying CRM record (query/order/product)**, preserving business workflow contracts and avoiding data inconsistencies.
-
-### Future Shift Reminder Requirements
-Documented for future implementation:
-- Shift ending soon reminder (30 minutes prior to shift end).
-- Unsubmitted handover alert at shift end.
-- Unacknowledged handover alert to incoming team leader.
+### Route-Based Daily Order Operations Dashboard (Step 10 REBUILD)
+- **Operational Model**: Replaced traditional e-commerce order management (shopping cart, product line items, subtotals, unit prices, inventory deductions) with a **Route-Based Daily Order Operations Dashboard**.
+- **Customer Scheduled Workflows**: Agents process scheduled customers per route/city for any selected date using sequential operational milestone checkboxes:
+  1. `Order Received` (Checkbox with timestamp & actor log)
+  2. `Sales Order Generated` (Checkbox requiring mandatory Sales Order Reference #)
+  3. `Invoiced` (Checkbox requiring mandatory Invoice Reference #)
+  4. `Dispatched` (Checkbox with timestamp & actor log)
+- **Workflow Dependency Rules**: Strict progression contract (`Order Received` ➔ `SO Generated` ➔ `Invoiced` ➔ `Dispatched`). Cannot mark a step complete without completing the preceding step.
+- **Reversion / Undo Guard**: Reverting any completed step prompts for a mandatory audit reason and resets subsequent completed steps.
+- **Operational Error Reporting & Query Integration**: Checking `Error` prompts for issue description and priority, automatically creating a Customer Query ticket linked to the daily operation record (`⚠ Error QRY-XXXXXX`).
+- **Portal Views & Weekly Route Schedules**: Filtered views for `Kelowna Portal`, `Outside Kelowna Portal`, and `All Portals`. Admin route schedule management at `/admin/routes` configures day-of-week active cities and routes.
+- **Customer Profile Integration**: Customer Detail displays `Daily Route Operations` history tab with all past operational dates, statuses, SO #, and Invoice #.
 
 ---
 

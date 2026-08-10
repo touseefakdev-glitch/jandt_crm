@@ -50,10 +50,10 @@ export const CustomerDetail: React.FC = () => {
     return localDb.getQueries({ customer_id: id });
   }, [id, isCreateQueryModalOpen, customer]);
 
-  const customerOrders = useMemo(() => {
+  const customerDailyOps = useMemo(() => {
     if (!id) return [];
-    return localDb.getOrders({ customer_id: id });
-  }, [id, isCreateOrderModalOpen, customer]);
+    return localDb.getCustomerDailyOperations(id);
+  }, [id, customer]);
 
   if (!customer) {
     return (
@@ -100,7 +100,7 @@ export const CustomerDetail: React.FC = () => {
   const tabs: { key: TabKey; label: string; icon: React.ReactNode; count?: number }[] = [
     { key: 'overview', label: 'Overview', icon: <User className="w-4 h-4" /> },
     { key: 'queries', label: 'Support Queries', icon: <HelpCircle className="w-4 h-4" />, count: customerQueries.length },
-    { key: 'orders', label: 'Orders & Fulfillment', icon: <ShoppingBag className="w-4 h-4" />, count: customerOrders.length },
+    { key: 'orders', label: 'Daily Route Operations', icon: <ShoppingBag className="w-4 h-4" />, count: customerDailyOps.length },
     { key: 'activity', label: 'Activity Timeline', icon: <Activity className="w-4 h-4" /> },
   ];
 
@@ -333,39 +333,52 @@ export const CustomerDetail: React.FC = () => {
       {activeTab === 'orders' && (
         <Card>
           <CardHeader
-            title={`Customer Orders & Fulfillment (${customerOrders.length})`}
-            actions={
-              <Button size="sm" onClick={() => setIsCreateOrderModalOpen(true)} icon={<Plus className="w-3.5 h-3.5" />}>
-                Create New Order
-              </Button>
-            }
+            title={`Customer Daily Route Operations History (${customerDailyOps.length})`}
           />
-          {customerOrders.length > 0 ? (
+          {customerDailyOps.length > 0 ? (
             <Table>
               <THead>
                 <Tr hover={false}>
-                  <Th>Order Number</Th>
-                  <Th>Order Date</Th>
-                  <Th>Sales Agent</Th>
-                  <Th>Current Status</Th>
-                  <Th className="font-mono">Grand Total</Th>
-                  <Th className="text-right">Action</Th>
+                  <Th>Operation Date</Th>
+                  <Th>Route</Th>
+                  <Th className="text-center">Order Received</Th>
+                  <Th>SO #</Th>
+                  <Th>Invoice #</Th>
+                  <Th className="text-center">Dispatched</Th>
+                  <Th>Operational Status</Th>
                 </Tr>
               </THead>
               <TBody>
-                {customerOrders.map((o) => (
-                  <Tr key={o.id}>
-                    <Td className="font-mono font-bold text-brand-700">
-                      <Link to={`/orders/${o.id}`} className="hover:underline">{o.order_number}</Link>
+                {customerDailyOps.map((op) => (
+                  <Tr key={op.id}>
+                    <Td className="font-mono font-bold text-slate-900 text-xs">
+                      {formatDate(op.operation_date)}
                     </Td>
-                    <Td className="font-mono text-slate-500">{formatDate(o.order_date)}</Td>
-                    <Td className="font-medium text-slate-800">{o.sales_agent_profile?.full_name || 'Unassigned'}</Td>
-                    <Td><Badge badge={getOrderStatusBadge(o.current_status)} /></Td>
-                    <Td className="font-mono font-bold text-slate-900">{formatCurrency(o.grand_total)}</Td>
-                    <Td className="text-right">
-                      <Link to={`/orders/${o.id}`} className="p-1.5 text-slate-500 hover:text-brand-600 hover:bg-brand-50 rounded-lg inline-block transition-colors">
-                        <Eye className="w-4 h-4" />
-                      </Link>
+                    <Td className="font-bold text-brand-700 text-xs">{op.route}</Td>
+                    <Td className="text-center">
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${op.order_received ? 'bg-sky-100 text-sky-800' : 'bg-slate-100 text-slate-400'}`}>
+                        {op.order_received ? '✓ Yes' : 'No'}
+                      </span>
+                    </Td>
+                    <Td className="font-mono text-xs font-bold text-indigo-700">
+                      {op.sales_order_number || '—'}
+                    </Td>
+                    <Td className="font-mono text-xs font-bold text-purple-700">
+                      {op.invoice_number || '—'}
+                    </Td>
+                    <Td className="text-center">
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${op.dispatched ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-400'}`}>
+                        {op.dispatched ? '✓ Yes' : 'No'}
+                      </span>
+                    </Td>
+                    <Td>
+                      <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${
+                        op.status === 'completed' ? 'bg-emerald-100 text-emerald-800' :
+                        op.status === 'error' ? 'bg-rose-100 text-rose-800' :
+                        'bg-sky-50 text-sky-800'
+                      }`}>
+                        {op.status.replace(/_/g, ' ')}
+                      </span>
                     </Td>
                   </Tr>
                 ))}
@@ -374,13 +387,8 @@ export const CustomerDetail: React.FC = () => {
           ) : (
             <EmptyState
               icon={<ShoppingBag className="w-7 h-7" />}
-              title="No Orders Registered"
-              description={`No order records exist for ${customer.company_name}.`}
-              action={
-                <Button size="sm" onClick={() => setIsCreateOrderModalOpen(true)} icon={<Plus className="w-3.5 h-3.5" />}>
-                  Create First Order
-                </Button>
-              }
+              title="No Route Operations Logged"
+              description={`No daily route operation records exist for ${customer.company_name}.`}
             />
           )}
         </Card>

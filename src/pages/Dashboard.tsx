@@ -3,12 +3,11 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { localDb } from '../services/db';
 import { notificationService } from '../services/notificationService';
-import { formatCurrency } from '../utils/format';
-import { getNotificationPriorityBadge, getOrderStatusBadge, getQueryPriorityBadge, getQueryStatusBadge, getRoleBadge } from '../utils/badges';
+import { getNotificationPriorityBadge, getQueryPriorityBadge, getQueryStatusBadge, getRoleBadge } from '../utils/badges';
 import { Avatar, Badge, Card, CardBody, CardHeader, EmptyState, StatCard, Table, TBody, Td, Th, THead, Tr } from '../components/ui';
 import {
   Bell,
-  ShoppingBag,
+  Package,
   HelpCircle,
   AlertTriangle,
   Clock,
@@ -18,6 +17,7 @@ import {
   ArrowRight,
   CheckCircle2,
   CheckCheck,
+  Store,
 } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
@@ -30,7 +30,8 @@ export const Dashboard: React.FC = () => {
   }, []);
 
   const allQueries = useMemo(() => localDb.getQueries(), [dbVersion]);
-  const allOrders = useMemo(() => localDb.getOrders(), [dbVersion]);
+  const allCustomers = useMemo(() => localDb.getCustomers(), [dbVersion]);
+  const allProducts = useMemo(() => localDb.getProducts(), [dbVersion]);
   const outOfStockProducts = useMemo(() => localDb.getOutOfStockProducts(), [dbVersion]);
 
   const userNotifications = useMemo(() => {
@@ -74,21 +75,15 @@ export const Dashboard: React.FC = () => {
   const urgentQueriesCount = allQueries.filter((q) => q.priority === 'urgent' && q.status !== 'closed' && q.status !== 'resolved').length;
   const myOpenQueriesCount = allQueries.filter((q) => q.assigned_to === user.id && q.status !== 'closed' && q.status !== 'resolved').length;
 
-  const pendingOrdersCount = allOrders.filter((o) => o.current_status !== 'completed' && o.current_status !== 'cancelled').length;
+  const activeProductsCount = allProducts.filter((p) => p.is_active).length;
+  const activeCustomersCount = allCustomers.filter((c) => c.status === 'active').length;
 
-  const ordersRequiringAttention = allOrders.filter((o) => o.current_status !== 'completed' && o.current_status !== 'cancelled').slice(0, 5);
   const queriesRequiringAttention = allQueries.filter((q) => q.status !== 'closed' && q.status !== 'resolved').slice(0, 5);
 
-  const nextOrderAction = (status: string) => {
-    switch (status) {
-      case 'order_received': return 'Complete Sales Order';
-      case 'sales_order_done': return 'Issue Commercial Invoice';
-      case 'invoiced': return 'Dispatch Freight Shipment';
-      case 'dispatched': return 'Obtain Signed Invoice';
-      case 'signed_invoice_sent': return 'Finalize Order';
-      default: return '—';
-    }
-  };
+  // Recent customers (last 5 added)
+  const recentCustomers = [...allCustomers]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -205,12 +200,12 @@ export const Dashboard: React.FC = () => {
           to="/notifications"
         />
         <StatCard
-          title="Pending Orders"
-          value={pendingOrdersCount}
-          description="Active orders progressing through workflow"
-          icon={<ShoppingBag className="w-5 h-5" />}
+          title="Active Customers"
+          value={activeCustomersCount}
+          description="Registered business accounts"
+          icon={<Store className="w-5 h-5" />}
           accent="emerald"
-          to="/orders"
+          to="/customers"
         />
         <StatCard
           title="Open Support Queries"
@@ -223,7 +218,7 @@ export const Dashboard: React.FC = () => {
         <StatCard
           title="Out of Stock Items"
           value={outOfStockProducts.length}
-          description="Catalog products currently marked unavailable"
+          description={`${activeProductsCount} products active in catalog`}
           icon={<AlertTriangle className="w-5 h-5" />}
           accent="red"
           to="/out-of-stock"
@@ -262,55 +257,36 @@ export const Dashboard: React.FC = () => {
         </Card>
       )}
 
-      {/* Orders Requiring Attention */}
+      {/* Product Catalog Summary */}
       <Card>
         <CardHeader
-          title="Orders Requiring Workflow Attention"
+          title="Product Catalog Overview"
           actions={
-            <Link to="/orders" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline">
-              View All Orders <ArrowRight className="w-3.5 h-3.5" />
+            <Link to="/products" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline">
+              View Full Catalog ({activeProductsCount} Active) <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           }
         />
-        {ordersRequiringAttention.length > 0 ? (
-          <Table>
-            <THead>
-              <Tr hover={false}>
-                <Th>Order Number</Th>
-                <Th>Customer</Th>
-                <Th>Current Status</Th>
-                <Th>Next Action Required</Th>
-                <Th className="font-mono">Grand Total</Th>
-                <Th className="text-right">Action</Th>
-              </Tr>
-            </THead>
-            <TBody>
-              {ordersRequiringAttention.map((order) => (
-                <Tr key={order.id}>
-                  <Td className="font-mono font-bold text-brand-700">
-                    <Link to={`/orders/${order.id}`} className="hover:underline">{order.order_number}</Link>
-                  </Td>
-                  <Td className="font-semibold text-slate-900">{order.customer?.company_name || 'Unknown'}</Td>
-                  <Td>
-                    <Badge badge={getOrderStatusBadge(order.current_status)} />
-                  </Td>
-                  <Td className="font-medium text-slate-800">{nextOrderAction(order.current_status)}</Td>
-                  <Td className="font-mono font-bold text-slate-900">{formatCurrency(order.grand_total)}</Td>
-                  <Td className="text-right">
-                    <Link
-                      to={`/orders/${order.id}`}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg transition-colors"
-                    >
-                      Process <ArrowRight className="w-3 h-3" />
-                    </Link>
-                  </Td>
-                </Tr>
-              ))}
-            </TBody>
-          </Table>
-        ) : (
-          <EmptyState icon={<ShoppingBag className="w-7 h-7" />} title="All orders are up to date" description="No active orders currently require workflow attention." />
-        )}
+        <CardBody>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 text-center">
+              <div className="text-2xl font-extrabold text-emerald-700">{activeProductsCount}</div>
+              <div className="text-[11px] font-bold text-emerald-600 mt-1 uppercase tracking-wide">Active Products</div>
+            </div>
+            <div className="p-4 bg-red-50 rounded-xl border border-red-200 text-center">
+              <div className="text-2xl font-extrabold text-red-700">{outOfStockProducts.length}</div>
+              <div className="text-[11px] font-bold text-red-600 mt-1 uppercase tracking-wide">Out of Stock</div>
+            </div>
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-center">
+              <div className="text-2xl font-extrabold text-slate-800">{allProducts.filter((p) => p.availability_status === 'discontinued').length}</div>
+              <div className="text-[11px] font-bold text-slate-500 mt-1 uppercase tracking-wide">Discontinued</div>
+            </div>
+            <div className="p-4 bg-teal-50 rounded-xl border border-teal-200 text-center">
+              <div className="text-2xl font-extrabold text-teal-700">{activeCustomersCount}</div>
+              <div className="text-[11px] font-bold text-teal-600 mt-1 uppercase tracking-wide">Active Customers</div>
+            </div>
+          </div>
+        </CardBody>
       </Card>
 
       {/* Support Tickets Requiring Attention */}
@@ -377,33 +353,45 @@ export const Dashboard: React.FC = () => {
         )}
       </Card>
 
-      {/* Bottom Context Cards */}
+      {/* Recent Customers + System Status */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {outOfStockProducts.length > 0 && (
-          <div className="bg-red-50 rounded-xl border border-red-200 p-6 shadow-card flex flex-col justify-between space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2 text-red-950 font-bold">
-                  <AlertTriangle className="w-5 h-5 text-red-600" />
-                  <h3 className="text-base font-bold">Product Availability Alerts</h3>
-                </div>
-                <Link to="/out-of-stock" className="text-xs font-bold text-red-700 hover:underline">View All ({outOfStockProducts.length})</Link>
-              </div>
-              <div className="space-y-2 text-xs">
-                {outOfStockProducts.slice(0, 2).map((p) => (
-                  <Link key={p.id} to={`/products/${p.id}`} className="p-3 bg-white rounded-lg border border-red-200 flex items-center justify-between block hover:border-red-400">
-                    <div>
-                      <span className="font-mono font-bold text-brand-700 mr-2">{p.sku}</span>
-                      <span className="font-bold text-slate-900">{p.product_name}</span>
+        {/* Recent Customers */}
+        <Card>
+          <CardHeader
+            title="Recently Added Customers"
+            actions={
+              <Link to="/customers" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline">
+                View All <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            }
+          />
+          <CardBody className="pt-2">
+            {recentCustomers.length > 0 ? (
+              <div className="space-y-2">
+                {recentCustomers.map((c) => (
+                  <Link
+                    key={c.id}
+                    to={`/customers/${c.id}`}
+                    className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-brand-300 hover:bg-brand-50/30 transition-all group"
+                  >
+                    <Avatar name={c.company_name} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-bold text-slate-900 truncate group-hover:text-brand-700">{c.company_name}</div>
+                      <div className="text-[10px] font-mono text-slate-400">{c.customer_code}</div>
                     </div>
-                    <span className="text-[10px] bg-red-100 text-red-800 px-2 py-0.5 rounded font-bold uppercase">Unavailable</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${c.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                      {c.status}
+                    </span>
                   </Link>
                 ))}
               </div>
-            </div>
-          </div>
-        )}
+            ) : (
+              <EmptyState icon={<Users className="w-6 h-6" />} title="No customers yet" description="Customers will appear here once added." />
+            )}
+          </CardBody>
+        </Card>
 
+        {/* System Module Status */}
         <div className="bg-white rounded-xl p-6 shadow-card border border-slate-200 flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 text-slate-900 font-bold mb-3">
@@ -414,7 +402,7 @@ export const Dashboard: React.FC = () => {
               {[
                 'Customer Management',
                 'Support Ticket System',
-                'Order Management',
+                'Product Catalog',
                 'Product Availability',
                 'Notifications & Alerts',
                 'Shift Handover & Operations',
@@ -428,6 +416,30 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Out of Stock Alert */}
+      {outOfStockProducts.length > 0 && (
+        <div className="bg-red-50 rounded-xl border border-red-200 p-6 shadow-card">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2 text-red-950 font-bold">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+              <h3 className="text-base font-bold">Product Availability Alerts</h3>
+            </div>
+            <Link to="/out-of-stock" className="text-xs font-bold text-red-700 hover:underline">View All ({outOfStockProducts.length})</Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            {outOfStockProducts.slice(0, 4).map((p) => (
+              <Link key={p.id} to={`/products/${p.id}`} className="p-3 bg-white rounded-lg border border-red-200 flex items-center justify-between hover:border-red-400 transition-colors">
+                <div>
+                  <span className="font-mono font-bold text-brand-700 mr-2">{p.sku}</span>
+                  <span className="font-bold text-slate-900">{p.product_name}</span>
+                </div>
+                <span className="text-[10px] bg-red-100 text-red-800 px-2 py-0.5 rounded font-bold uppercase">Unavailable</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

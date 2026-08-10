@@ -13,7 +13,7 @@ import { localDb } from '../services/db';
 
 export const MAX_CSV_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB Limit
 
-// Normalized availability values
+// Normalized availability values (spec supports only Available and Out of Stock)
 export function normalizeAvailability(raw: string | undefined | null): ProductAvailabilityStatus | null {
   if (!raw) return null;
   const clean = raw.trim().toLowerCase();
@@ -22,9 +22,6 @@ export function normalizeAvailability(raw: string | undefined | null): ProductAv
   }
   if (clean === 'out of stock' || clean === 'outofstock' || clean === 'out_of_stock' || clean === 'unavailable') {
     return 'out_of_stock';
-  }
-  if (clean === 'discontinued') {
-    return 'discontinued';
   }
   return null;
 }

@@ -647,7 +647,7 @@ export const AdminImport: React.FC = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-left">
             <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
               <span className="text-[10px] text-slate-500 uppercase font-semibold block">Total Processed</span>
               <span className="text-xl font-bold text-slate-900 mt-0.5 block">{completedJob.total_rows}</span>
@@ -659,6 +659,10 @@ export const AdminImport: React.FC = () => {
             <div className="p-3 bg-sky-50 rounded-lg border border-sky-200">
               <span className="text-[10px] text-sky-700 uppercase font-semibold block">Updated</span>
               <span className="text-xl font-bold text-sky-800 mt-0.5 block">{completedJob.updated_count}</span>
+            </div>
+            <div className="p-3 bg-slate-100 rounded-lg border border-slate-200">
+              <span className="text-[10px] text-slate-500 uppercase font-semibold block">Skipped</span>
+              <span className="text-xl font-bold text-slate-700 mt-0.5 block">{completedJob.skipped_count}</span>
             </div>
             <div className="p-3 bg-rose-50 rounded-lg border border-rose-200">
               <span className="text-[10px] text-rose-700 uppercase font-semibold block">Failed / Errors</span>

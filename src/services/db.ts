@@ -63,6 +63,19 @@ import {
   DailyOrderOperationStatus,
   DailyOrderOperation,
   DailyOrderOperationHistory,
+  WhatsAppContact,
+  WhatsAppConversation,
+  WhatsAppMessage,
+  OrderDraft,
+  OrderDraftItem,
+  OrderDraftStatus,
+  ProductAlias,
+  CustomerProductAlias,
+  RouteDestination,
+  AgentAttentionAlert,
+  AttentionPriority,
+  OrderIntakeEvent,
+  MessageClassification,
 } from '../types';
 import { notificationService } from './notificationService';
 import { permissions } from './permissions';
@@ -288,6 +301,18 @@ class LocalDatabaseService {
   // Step 12 HTML Business Data Integration Key
   private customerProductHistoryKey = 'jt_crm_customer_product_history';
 
+  // WhatsApp Order Intelligence (Phase A) Keys
+  private whatsappContactsKey = 'jt_crm_whatsapp_contacts';
+  private whatsappConversationsKey = 'jt_crm_whatsapp_conversations';
+  private whatsappMessagesKey = 'jt_crm_whatsapp_messages';
+  private orderDraftsKey = 'jt_crm_order_drafts';
+  private orderDraftItemsKey = 'jt_crm_order_draft_items';
+  private productAliasesKey = 'jt_crm_product_aliases';
+  private customerProductAliasesKey = 'jt_crm_customer_product_aliases';
+  private routeDestinationsKey = 'jt_crm_route_destinations';
+  private agentAttentionAlertsKey = 'jt_crm_agent_attention_alerts';
+  private orderIntakeEventsKey = 'jt_crm_order_intake_events';
+
   // Seed version key — used to force re-seed when SEED_DATA_VERSION changes
   private seedVersionKey = 'jt_crm_seed_version';
 
@@ -324,6 +349,16 @@ class LocalDatabaseService {
       [this.dailyOrderOperationHistoryKey, []],
       [this.importJobsKey, []],
       [this.auditLogsKey, []],
+      [this.whatsappContactsKey, []],
+      [this.whatsappConversationsKey, []],
+      [this.whatsappMessagesKey, []],
+      [this.orderDraftsKey, []],
+      [this.orderDraftItemsKey, []],
+      [this.productAliasesKey, []],
+      [this.customerProductAliasesKey, []],
+      [this.routeDestinationsKey, []],
+      [this.agentAttentionAlertsKey, []],
+      [this.orderIntakeEventsKey, []],
     ];
 
     seeds.forEach(([key, rows]) => {
@@ -3774,7 +3809,475 @@ class LocalDatabaseService {
     return job;
   }
 
+  // ===========================================================================
+  // WHATSAPP ORDER INTELLIGENCE — PHASE A DATA ACCESS
+  // ===========================================================================
+
+  // --- WhatsApp Contacts ---
+
+  public getWhatsAppContacts(): WhatsAppContact[] {
+    try {
+      const data = storageGet(this.whatsappContactsKey);
+      const list: WhatsAppContact[] = data ? JSON.parse(data) : [];
+      const customers = this.getCustomers();
+      return list.map(c => ({
+        ...c,
+        customer: c.customer_id ? customers.find(x => x.id === c.customer_id) || null : null,
+      }));
+    } catch { return []; }
+  }
+
+  public getWhatsAppContactById(id: string): WhatsAppContact | null {
+    return this.getWhatsAppContacts().find(c => c.id === id) || null;
+  }
+
+  public getOrCreateWhatsAppContact(whatsappNumber: string, displayName?: string): WhatsAppContact {
+    const clean = whatsappNumber.trim().replace(/[^0-9+]/g, '');
+    const list = this.getWhatsAppContacts();
+    const existing = list.find(c => c.whatsapp_number.replace(/[^0-9+]/g, '') === clean);
+    if (existing) return existing;
+
+    const now = new Date().toISOString();
+    const contact: WhatsAppContact = {
+      id: crypto.randomUUID(),
+      customer_id: this.findCustomerByWhatsAppNumber(clean)?.id || null,
+      whatsapp_number: clean,
+      display_name: displayName || clean,
+      is_verified: clean.length >= 10,
+      created_at: now,
+      updated_at: now,
+    };
+    list.unshift(contact);
+    storageSet(this.whatsappContactsKey, JSON.stringify(list));
+    return contact;
+  }
+
+  /** Finds a customer whose configured WhatsApp number matches the incoming number. */
+  public findCustomerByWhatsAppNumber(whatsappNumber: string): Customer | null {
+    const clean = whatsappNumber.trim().replace(/[^0-9+]/g, '');
+    return (
+      this.getCustomers().find(c =>
+        c.whatsapp_number && c.whatsapp_number.trim().replace(/[^0-9+]/g, '') === clean
+      ) || null
+    );
+  }
+
+  // --- WhatsApp Conversations ---
+
+  public getWhatsAppConversations(): WhatsAppConversation[] {
+    try {
+      const data = storageGet(this.whatsappConversationsKey);
+      return data ? JSON.parse(data) : [];
+    } catch { return []; }
+  }
+
+  public getWhatsAppConversationById(id: string): WhatsAppConversation | null {
+    return this.getWhatsAppConversations().find(c => c.id === id) || null;
+  }
+
+  public getOrCreateWhatsAppConversation(contactId: string, customerId?: string | null): WhatsAppConversation {
+    const list = this.getWhatsAppConversations();
+    const existing = list.find(c => c.whatsapp_contact_id === contactId && c.status === 'active');
+    if (existing) return existing;
+
+    const now = new Date().toISOString();
+    const conversation: WhatsAppConversation = {
+      id: crypto.randomUUID(),
+      customer_id: customerId || null,
+      whatsapp_contact_id: contactId,
+      status: 'active',
+      route: null,
+      delivery_date: null,
+      bot_status: 'active',
+      started_at: now,
+      last_message_at: now,
+      created_at: now,
+      updated_at: now,
+    };
+    list.unshift(conversation);
+    storageSet(this.whatsappConversationsKey, JSON.stringify(list));
+    return conversation;
+  }
+
+  public updateWhatsAppConversation(id: string, patch: Partial<WhatsAppConversation>): WhatsAppConversation | null {
+    const list = this.getWhatsAppConversations();
+    const idx = list.findIndex(c => c.id === id);
+    if (idx === -1) return null;
+    list[idx] = { ...list[idx], ...patch, updated_at: new Date().toISOString() };
+    storageSet(this.whatsappConversationsKey, JSON.stringify(list));
+    return list[idx];
+  }
+
+  // --- WhatsApp Messages ---
+
+  public getWhatsAppMessages(conversationId?: string): WhatsAppMessage[] {
+    try {
+      const data = storageGet(this.whatsappMessagesKey);
+      let list: WhatsAppMessage[] = data ? JSON.parse(data) : [];
+      if (conversationId) {
+        list = list.filter(m => m.conversation_id === conversationId);
+      }
+      return list.sort((a, b) => a.created_at.localeCompare(b.created_at));
+    } catch { return []; }
+  }
+
+  public addWhatsAppMessage(input: Omit<WhatsAppMessage, 'id' | 'created_at'>): WhatsAppMessage {
+    const list = this.getWhatsAppMessages();
+    const now = new Date().toISOString();
+    const message: WhatsAppMessage = {
+      ...input,
+      id: crypto.randomUUID(),
+      processing_status: input.processing_status || 'received',
+      created_at: now,
+    };
+    list.push(message);
+    storageSet(this.whatsappMessagesKey, JSON.stringify(list));
+    this.updateWhatsAppConversation(message.conversation_id, { last_message_at: now });
+    return message;
+  }
+
+  public updateWhatsAppMessage(id: string, patch: Partial<WhatsAppMessage>): WhatsAppMessage | null {
+    const list = this.getWhatsAppMessages();
+    const idx = list.findIndex(m => m.id === id);
+    if (idx === -1) return null;
+    list[idx] = { ...list[idx], ...patch };
+    storageSet(this.whatsappMessagesKey, JSON.stringify(list));
+    return list[idx];
+  }
+
+  // --- Order Drafts ---
+
+  public getOrderDrafts(filters?: { status?: OrderDraftStatus | OrderDraftStatus[]; customerId?: string }): OrderDraft[] {
+    try {
+      const data = storageGet(this.orderDraftsKey);
+      let list: OrderDraft[] = data ? JSON.parse(data) : [];
+      if (filters?.customerId) list = list.filter(d => d.customer_id === filters.customerId);
+      if (filters?.status) {
+        const statuses = Array.isArray(filters.status) ? filters.status : [filters.status];
+        list = list.filter(d => statuses.includes(d.status));
+      }
+      const customers = this.getCustomers();
+      return list.map(d => ({ ...d, customer: d.customer_id ? customers.find(c => c.id === d.customer_id) || null : null }));
+    } catch { return []; }
+  }
+
+  public getOrderDraftById(id: string): OrderDraft | null {
+    return this.getOrderDrafts().find(d => d.id === id) || null;
+  }
+
+  public getActiveDraftForConversation(conversationId: string): OrderDraft | null {
+    const activeStatuses: OrderDraftStatus[] = [
+      'NEW_MESSAGE', 'ANALYZING', 'DRAFT_CREATED', 'NEEDS_CLARIFICATION',
+      'AWAITING_CONFIRMATION', 'CUSTOMER_CORRECTING',
+    ];
+    return this.getOrderDrafts({ status: activeStatuses }).find(d => d.conversation_id === conversationId) || null;
+  }
+
+  public generateInternalReference(): string {
+    const maxSeq = this.getOrderDrafts().reduce((max, d) => {
+      const m = (d.internal_reference || '').match(/CRM-ORD-(\d+)/);
+      return m ? Math.max(max, parseInt(m[1], 10)) : max;
+    }, 0);
+    return `CRM-ORD-${String(maxSeq + 1).padStart(6, '0')}`;
+  }
+
+  public createOrderDraft(input: Partial<OrderDraft> & { customer_id?: string | null }): OrderDraft {
+    const list = this.getOrderDrafts();
+    const now = new Date().toISOString();
+    const draft: OrderDraft = {
+      id: crypto.randomUUID(),
+      customer_id: input.customer_id || null,
+      conversation_id: input.conversation_id || null,
+      route: input.route || null,
+      delivery_date: input.delivery_date || null,
+      status: input.status || 'DRAFT_CREATED',
+      overall_confidence: input.overall_confidence ?? 0,
+      clarification_reason: input.clarification_reason || null,
+      pending_question: input.pending_question || null,
+      confirmed_at: null,
+      confirmed_message: null,
+      internal_reference: null,
+      bot_paused: false,
+      created_at: now,
+      updated_at: now,
+    };
+    list.unshift(draft);
+    storageSet(this.orderDraftsKey, JSON.stringify(list));
+    return draft;
+  }
+
+  public updateOrderDraft(id: string, patch: Partial<OrderDraft>): OrderDraft | null {
+    const list = this.getOrderDrafts();
+    const idx = list.findIndex(d => d.id === id);
+    if (idx === -1) return null;
+    list[idx] = { ...list[idx], ...patch, updated_at: new Date().toISOString() };
+    storageSet(this.orderDraftsKey, JSON.stringify(list));
+    return list[idx];
+  }
+
+  // --- Order Draft Items ---
+
+  public getOrderDraftItems(draftId: string): OrderDraftItem[] {
+    try {
+      const data = storageGet(this.orderDraftItemsKey);
+      let list: OrderDraftItem[] = data ? JSON.parse(data) : [];
+      list = list.filter(i => i.order_draft_id === draftId);
+      const products = this.getProducts();
+      return list.map(i => ({ ...i, product: i.product_id ? products.find(p => p.id === i.product_id) || null : null }));
+    } catch { return []; }
+  }
+
+  public getOrderDraftWithItems(id: string): OrderDraft | null {
+    const draft = this.getOrderDraftById(id);
+    if (!draft) return null;
+    return { ...draft, items: this.getOrderDraftItems(id) };
+  }
+
+  public addOrderDraftItem(input: Omit<OrderDraftItem, 'id' | 'created_at' | 'updated_at'>): OrderDraftItem {
+    const list = this.getAllOrderDraftItems();
+    const now = new Date().toISOString();
+    const item: OrderDraftItem = { ...input, id: crypto.randomUUID(), created_at: now, updated_at: now };
+    list.unshift(item);
+    storageSet(this.orderDraftItemsKey, JSON.stringify(list));
+    return item;
+  }
+
+  private getAllOrderDraftItems(): OrderDraftItem[] {
+    try {
+      const data = storageGet(this.orderDraftItemsKey);
+      return data ? JSON.parse(data) : [];
+    } catch { return []; }
+  }
+
+  public updateOrderDraftItem(id: string, patch: Partial<OrderDraftItem>): OrderDraftItem | null {
+    const list = this.getAllOrderDraftItems();
+    const idx = list.findIndex(i => i.id === id);
+    if (idx === -1) return null;
+    list[idx] = { ...list[idx], ...patch, updated_at: new Date().toISOString() };
+    storageSet(this.orderDraftItemsKey, JSON.stringify(list));
+    return list[idx];
+  }
+
+  public removeOrderDraftItem(id: string): boolean {
+    const list = this.getAllOrderDraftItems();
+    const next = list.filter(i => i.id !== id);
+    if (next.length === list.length) return false;
+    storageSet(this.orderDraftItemsKey, JSON.stringify(next));
+    return true;
+  }
+
+  public setOrderDraftItems(draftId: string, items: OrderDraftItem[]): OrderDraftItem[] {
+    const all = this.getAllOrderDraftItems().filter(i => i.order_draft_id !== draftId);
+    all.push(...items);
+    storageSet(this.orderDraftItemsKey, JSON.stringify(all));
+    return items;
+  }
+
+  // --- Product Aliases ---
+
+  public getProductAliases(activeOnly: boolean = true): ProductAlias[] {
+    try {
+      const data = storageGet(this.productAliasesKey);
+      let list: ProductAlias[] = data ? JSON.parse(data) : [];
+      if (activeOnly) list = list.filter(a => a.is_active);
+      const products = this.getProducts();
+      return list.map(a => ({ ...a, product: products.find(p => p.id === a.product_id) || null }));
+    } catch { return []; }
+  }
+
+  public addProductAlias(productId: string, alias: string): ProductAlias {
+    const list = this.getProductAliases(false);
+    const now = new Date().toISOString();
+    const normalized = alias.toLowerCase().trim().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ');
+    const existing = list.find(a => a.product_id === productId && a.normalized_alias === normalized);
+    if (existing) return existing;
+    const entry: ProductAlias = {
+      id: crypto.randomUUID(),
+      product_id: productId,
+      alias: alias.trim(),
+      normalized_alias: normalized,
+      is_active: true,
+      created_at: now,
+      updated_at: now,
+    };
+    list.unshift(entry);
+    storageSet(this.productAliasesKey, JSON.stringify(list));
+    return entry;
+  }
+
+  // --- Customer-Specific Product Aliases ---
+
+  public getCustomerProductAliases(customerId: string, activeOnly: boolean = true): CustomerProductAlias[] {
+    try {
+      const data = storageGet(this.customerProductAliasesKey);
+      let list: CustomerProductAlias[] = data ? JSON.parse(data) : [];
+      list = list.filter(a => a.customer_id === customerId);
+      if (activeOnly) list = list.filter(a => a.is_active);
+      const products = this.getProducts();
+      return list.map(a => ({ ...a, product: products.find(p => p.id === a.product_id) || null }));
+    } catch { return []; }
+  }
+
+  public addCustomerProductAlias(customerId: string, productId: string, alias: string): CustomerProductAlias {
+    const list: CustomerProductAlias[] = (() => {
+      try { const data = storageGet(this.customerProductAliasesKey); return data ? JSON.parse(data) : []; } catch { return []; }
+    })();
+    const normalized = alias.toLowerCase().trim().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ');
+    const existing = list.find(a => a.customer_id === customerId && a.product_id === productId && a.normalized_alias === normalized);
+    if (existing) return existing;
+    const now = new Date().toISOString();
+    const entry: CustomerProductAlias = {
+      id: crypto.randomUUID(),
+      customer_id: customerId,
+      product_id: productId,
+      alias: alias.trim(),
+      normalized_alias: normalized,
+      is_active: true,
+      created_at: now,
+      updated_at: now,
+    };
+    list.unshift(entry);
+    storageSet(this.customerProductAliasesKey, JSON.stringify(list));
+    return entry;
+  }
+
+  // --- Route Destinations ---
+
+  public getRouteDestinations(activeOnly: boolean = true): RouteDestination[] {
+    try {
+      const data = storageGet(this.routeDestinationsKey);
+      let list: RouteDestination[] = data ? JSON.parse(data) : [];
+      if (activeOnly) list = list.filter(r => r.active);
+      return list;
+    } catch { return []; }
+  }
+
+  public addRouteDestination(input: Omit<RouteDestination, 'id' | 'created_at' | 'updated_at'>): RouteDestination {
+    const list = this.getRouteDestinations(false);
+    const now = new Date().toISOString();
+    const entry: RouteDestination = {
+      ...input,
+      id: crypto.randomUUID(),
+      created_at: now,
+      updated_at: now,
+    };
+    list.unshift(entry);
+    storageSet(this.routeDestinationsKey, JSON.stringify(list));
+    return entry;
+  }
+
+  public updateRouteDestination(id: string, patch: Partial<RouteDestination>): RouteDestination | null {
+    const list = this.getRouteDestinations(false);
+    const idx = list.findIndex(r => r.id === id);
+    if (idx === -1) return null;
+    list[idx] = { ...list[idx], ...patch, updated_at: new Date().toISOString() };
+    storageSet(this.routeDestinationsKey, JSON.stringify(list));
+    return list[idx];
+  }
+
+  // --- Agent Attention Alerts ---
+
+  public getAgentAttentionAlerts(filters?: { status?: string; customerId?: string; conversationId?: string }): AgentAttentionAlert[] {
+    try {
+      const data = storageGet(this.agentAttentionAlertsKey);
+      let list: AgentAttentionAlert[] = data ? JSON.parse(data) : [];
+      if (filters?.status) list = list.filter(a => a.status === filters.status);
+      if (filters?.customerId) list = list.filter(a => a.customer_id === filters.customerId);
+      if (filters?.conversationId) list = list.filter(a => a.conversation_id === filters.conversationId);
+      const customers = this.getCustomers();
+      return list.map(a => ({ ...a, customer: a.customer_id ? customers.find(c => c.id === a.customer_id) || null : null }))
+        .sort((a, b) => b.created_at.localeCompare(a.created_at));
+    } catch { return []; }
+  }
+
+  public getUnresolvedAlertCounts(): { urgent: number; high: number; normal: number; total: number } {
+    const alerts = this.getAgentAttentionAlerts({ status: 'new' });
+    return {
+      urgent: alerts.filter(a => a.priority === 'urgent').length,
+      high: alerts.filter(a => a.priority === 'high').length,
+      normal: alerts.filter(a => a.priority === 'normal').length,
+      total: alerts.length,
+    };
+  }
+
+  public createAgentAttentionAlert(input: Omit<AgentAttentionAlert, 'id' | 'status' | 'created_at' | 'updated_at'>): AgentAttentionAlert {
+    const list = this.getAgentAttentionAlerts();
+    const now = new Date().toISOString();
+    const alert: AgentAttentionAlert = {
+      ...input,
+      id: crypto.randomUUID(),
+      status: 'new',
+      created_at: now,
+      updated_at: now,
+    };
+    list.unshift(alert);
+    storageSet(this.agentAttentionAlertsKey, JSON.stringify(list));
+    return alert;
+  }
+
+  public acknowledgeAgentAttentionAlert(id: string, userId: string): AgentAttentionAlert | null {
+    const list = this.getAgentAttentionAlerts();
+    const idx = list.findIndex(a => a.id === id);
+    if (idx === -1) return null;
+    list[idx] = { ...list[idx], status: 'acknowledged', acknowledged_at: new Date().toISOString(), acknowledged_by: userId, updated_at: new Date().toISOString() };
+    storageSet(this.agentAttentionAlertsKey, JSON.stringify(list));
+    return list[idx];
+  }
+
+  public resolveAgentAttentionAlert(id: string, userId: string, resolution: string): AgentAttentionAlert | null {
+    const list = this.getAgentAttentionAlerts();
+    const idx = list.findIndex(a => a.id === id);
+    if (idx === -1) return null;
+    list[idx] = {
+      ...list[idx], status: 'resolved', resolved_at: new Date().toISOString(),
+      resolved_by: userId, resolution, updated_at: new Date().toISOString(),
+    };
+    storageSet(this.agentAttentionAlertsKey, JSON.stringify(list));
+    return list[idx];
+  }
+
+  public linkAlertToQuery(id: string, queryId: string): AgentAttentionAlert | null {
+    return this.updateAlertField(id, { query_id: queryId });
+  }
+
+  private updateAlertField(id: string, patch: Partial<AgentAttentionAlert>): AgentAttentionAlert | null {
+    const list = this.getAgentAttentionAlerts();
+    const idx = list.findIndex(a => a.id === id);
+    if (idx === -1) return null;
+    list[idx] = { ...list[idx], ...patch, updated_at: new Date().toISOString() };
+    storageSet(this.agentAttentionAlertsKey, JSON.stringify(list));
+    return list[idx];
+  }
+
+  // --- Order Intake Events (Audit Trail) ---
+
+  public getOrderIntakeEvents(orderDraftId?: string): OrderIntakeEvent[] {
+    try {
+      const data = storageGet(this.orderIntakeEventsKey);
+      let list: OrderIntakeEvent[] = data ? JSON.parse(data) : [];
+      if (orderDraftId) list = list.filter(e => e.order_draft_id === orderDraftId);
+      return list.sort((a, b) => b.created_at.localeCompare(a.created_at));
+    } catch { return []; }
+  }
+
+  public logOrderIntakeEvent(input: Omit<OrderIntakeEvent, 'id' | 'created_at'>): OrderIntakeEvent {
+    const list = this.getOrderIntakeEvents();
+    const event: OrderIntakeEvent = { ...input, id: crypto.randomUUID(), created_at: new Date().toISOString() };
+    list.unshift(event);
+    storageSet(this.orderIntakeEventsKey, JSON.stringify(list));
+    return event;
+  }
+
+  // --- Alias helpers for the matching engine ---
+
+  public getProductAliasesForCustomer(customerId: string | null): { productAliases: ProductAlias[]; customerAliases: CustomerProductAlias[] } {
+    const productAliases = this.getProductAliases(true);
+    const customerAliases = customerId ? this.getCustomerProductAliases(customerId, true) : [];
+    return { productAliases, customerAliases };
+  }
+
 }
+
 
 export const localDb = new LocalDatabaseService();
 

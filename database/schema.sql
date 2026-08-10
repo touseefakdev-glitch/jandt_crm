@@ -34,6 +34,41 @@ DO $$ BEGIN
     CREATE TYPE handover_entity_type AS ENUM ('query', 'order', 'product', 'customer', 'general_task');
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
+-- WhatsApp Order Intelligence Enums (Phase A)
+DO $$ BEGIN
+    CREATE TYPE message_classification AS ENUM (
+        'ORDER', 'ORDER_CLARIFICATION', 'ORDER_CONFIRMATION', 'NON_ORDER',
+        'QUESTION', 'COMPLAINT', 'GREETING', 'UNKNOWN'
+    );
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE order_draft_status AS ENUM (
+        'NEW_MESSAGE', 'ANALYZING', 'DRAFT_CREATED', 'NEEDS_CLARIFICATION',
+        'AWAITING_CONFIRMATION', 'CUSTOMER_CORRECTING', 'CONFIRMED',
+        'FORWARDED', 'CANCELLED', 'HUMAN_REVIEW'
+    );
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE match_method AS ENUM (
+        'sku', 'exact_name', 'normalized_name', 'alias', 'customer_alias',
+        'customer_history', 'semantic', 'unknown'
+    );
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE attention_priority AS ENUM ('normal', 'high', 'urgent');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE alert_status AS ENUM ('new', 'acknowledged', 'resolved');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE bot_status AS ENUM ('active', 'paused', 'human_takeover');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
 -- =============================================================================
 -- LEVEL 1: No dependencies
 -- =============================================================================
@@ -705,7 +740,10 @@ CREATE TABLE IF NOT EXISTS public.whatsapp_conversations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     customer_id UUID REFERENCES public.customers(id) ON DELETE SET NULL,
     whatsapp_contact_id UUID REFERENCES public.whatsapp_contacts(id) ON DELETE CASCADE,
-    status VARCHAR(50) NOT NULL DEFAULT 'active',
+    status VARCHAR(50) NOT NULL DEFAULT 'active', -- active, closed, escalated_to_human
+    route VARCHAR(100),
+    delivery_date DATE,
+    bot_status bot_status NOT NULL DEFAULT 'active', -- active, paused, human_takeover
     started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     last_message_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -717,9 +755,169 @@ CREATE TABLE IF NOT EXISTS public.whatsapp_messages (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     conversation_id UUID NOT NULL REFERENCES public.whatsapp_conversations(id) ON DELETE CASCADE,
     direction VARCHAR(20) NOT NULL DEFAULT 'inbound', -- inbound, outbound
-    message_type VARCHAR(50) NOT NULL DEFAULT 'text',
+    message_type VARCHAR(50) NOT NULL DEFAULT 'text', -- text, template, interactive
     message_text TEXT,
     external_message_id VARCHAR(255),
+    sender VARCHAR(255),
+    classification message_classification,
+    processing_status VARCHAR(50) NOT NULL DEFAULT 'received', -- received, classified, parsed, draft_created, awaiting_confirmation, confirmed, escalated, error
+    processed_at TIMESTAMPTZ,
     sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- =============================================================================
+-- WHATSAPP ORDER INTELLIGENCE — PHASE A FOUNDATION
+-- =============================================================================
+
+-- Order Drafts Table (temporary order intake before customer confirmation)
+CREATE TABLE IF NOT EXISTS public.order_drafts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    customer_id UUID REFERENCES public.customers(id) ON DELETE SET NULL,
+    conversation_id UUID REFERENCES public.whatsapp_conversations(id) ON DELETE SET NULL,
+    route VARCHAR(100),
+    delivery_date DATE,
+    status order_draft_status NOT NULL DEFAULT 'NEW_MESSAGE',
+    overall_confidence NUMERIC(5,4) NOT NULL DEFAULT 0,
+    clarification_reason TEXT,
+    pending_question TEXT,
+    confirmed_at TIMESTAMPTZ,
+    confirmed_message TEXT,
+    confirmation_message_id UUID REFERENCES public.whatsapp_messages(id) ON DELETE SET NULL,
+    internal_reference VARCHAR(50),
+    bot_paused BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Order Draft Items Table (preserves what customer said vs matched product)
+CREATE TABLE IF NOT EXISTS public.order_draft_items (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    order_draft_id UUID NOT NULL REFERENCES public.order_drafts(id) ON DELETE CASCADE,
+    product_id UUID REFERENCES public.products(id) ON DELETE SET NULL,
+    customer_text TEXT NOT NULL,
+    matched_product_name VARCHAR(255),
+    quantity NUMERIC(12,2),
+    unit VARCHAR(50),
+    match_method match_method NOT NULL DEFAULT 'unknown',
+    match_confidence NUMERIC(5,4) NOT NULL DEFAULT 0,
+    status VARCHAR(50) NOT NULL DEFAULT 'candidate', -- candidate, matched, needs_clarification, confirmed, rejected
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Global Product Aliases Table (customer-facing names for catalog products)
+CREATE TABLE IF NOT EXISTS public.product_aliases (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    product_id UUID NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+    alias VARCHAR(255) NOT NULL,
+    normalized_alias VARCHAR(255) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT unique_product_alias UNIQUE (product_id, normalized_alias)
+);
+
+-- Customer-Specific Product Aliases Table
+CREATE TABLE IF NOT EXISTS public.customer_product_aliases (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    customer_id UUID NOT NULL REFERENCES public.customers(id) ON DELETE CASCADE,
+    product_id UUID NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+    alias VARCHAR(255) NOT NULL,
+    normalized_alias VARCHAR(255) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT unique_customer_alias UNIQUE (customer_id, product_id, normalized_alias)
+);
+
+-- Route Destinations Table (configurable destination for confirmed route orders)
+CREATE TABLE IF NOT EXISTS public.route_destinations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    route VARCHAR(100) NOT NULL,
+    destination_type VARCHAR(50) NOT NULL DEFAULT 'whatsapp_group', -- whatsapp_group, whatsapp_number, email
+    destination_identifier VARCHAR(255) NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT unique_route_destination UNIQUE (route, destination_type, destination_identifier)
+);
+
+-- Agent Attention Alerts Table (human attention for non-order / question / complaint / unknown)
+CREATE TABLE IF NOT EXISTS public.agent_attention_alerts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    customer_id UUID REFERENCES public.customers(id) ON DELETE SET NULL,
+    conversation_id UUID REFERENCES public.whatsapp_conversations(id) ON DELETE SET NULL,
+    message_id UUID REFERENCES public.whatsapp_messages(id) ON DELETE SET NULL,
+    classification message_classification,
+    message_text TEXT,
+    priority attention_priority NOT NULL DEFAULT 'normal',
+    status alert_status NOT NULL DEFAULT 'new',
+    assigned_to UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    acknowledged_at TIMESTAMPTZ,
+    acknowledged_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    resolved_at TIMESTAMPTZ,
+    resolved_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    resolution TEXT,
+    query_id UUID REFERENCES public.customer_queries(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Order Intake Events Table (audit trail for WhatsApp order intelligence actions)
+CREATE TABLE IF NOT EXISTS public.order_intake_events (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    order_draft_id UUID REFERENCES public.order_drafts(id) ON DELETE SET NULL,
+    conversation_id UUID REFERENCES public.whatsapp_conversations(id) ON DELETE SET NULL,
+    message_id UUID REFERENCES public.whatsapp_messages(id) ON DELETE SET NULL,
+    event_type VARCHAR(50) NOT NULL, -- message_received, classified, candidate_extracted, product_matched, history_used, clarification_requested, customer_confirmed, draft_confirmed, draft_cancelled, route_forwarded, human_takeover, bot_paused, bot_resumed, escalation_created
+    description TEXT NOT NULL,
+    confidence NUMERIC(5,4),
+    payload JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- =============================================================================
+-- WHATSAPP ORDER INTELLIGENCE INDEXES
+-- =============================================================================
+CREATE INDEX IF NOT EXISTS idx_whatsapp_conversations_customer ON public.whatsapp_conversations(customer_id);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_conversations_contact ON public.whatsapp_conversations(whatsapp_contact_id);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_conversation ON public.whatsapp_messages(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_classification ON public.whatsapp_messages(classification);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_processing ON public.whatsapp_messages(processing_status);
+CREATE INDEX IF NOT EXISTS idx_order_drafts_customer ON public.order_drafts(customer_id);
+CREATE INDEX IF NOT EXISTS idx_order_drafts_status ON public.order_drafts(status);
+CREATE INDEX IF NOT EXISTS idx_order_drafts_conversation ON public.order_drafts(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_order_draft_items_draft ON public.order_draft_items(order_draft_id);
+CREATE INDEX IF NOT EXISTS idx_order_draft_items_product ON public.order_draft_items(product_id);
+CREATE INDEX IF NOT EXISTS idx_product_aliases_normalized ON public.product_aliases(normalized_alias);
+CREATE INDEX IF NOT EXISTS idx_customer_product_aliases_customer ON public.customer_product_aliases(customer_id);
+CREATE INDEX IF NOT EXISTS idx_agent_attention_alerts_status ON public.agent_attention_alerts(status);
+CREATE INDEX IF NOT EXISTS idx_agent_attention_alerts_priority ON public.agent_attention_alerts(priority);
+CREATE INDEX IF NOT EXISTS idx_order_intake_events_draft ON public.order_intake_events(order_draft_id);
+CREATE INDEX IF NOT EXISTS idx_route_destinations_route ON public.route_destinations(route);
+
+-- =============================================================================
+-- WHATSAPP ORDER INTELLIGENCE ROW LEVEL SECURITY
+-- =============================================================================
+ALTER TABLE public.whatsapp_contacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.whatsapp_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.whatsapp_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.order_drafts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.order_draft_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.product_aliases ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.customer_product_aliases ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.route_destinations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.agent_attention_alerts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.order_intake_events ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Authenticated users can read whatsapp contacts" ON public.whatsapp_contacts FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can read whatsapp conversations" ON public.whatsapp_conversations FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can read whatsapp messages" ON public.whatsapp_messages FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can read order drafts" ON public.order_drafts FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can read order draft items" ON public.order_draft_items FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can read product aliases" ON public.product_aliases FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can read customer product aliases" ON public.customer_product_aliases FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can read route destinations" ON public.route_destinations FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can read agent attention alerts" ON public.agent_attention_alerts FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can read order intake events" ON public.order_intake_events FOR SELECT USING (auth.role() = 'authenticated');

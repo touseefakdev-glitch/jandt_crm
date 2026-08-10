@@ -2,13 +2,13 @@ import { createClient } from '@supabase/supabase-js';
 
 // Support both Vite (VITE_*) and Vercel/Vercel-Supabase integration (NEXT_PUBLIC_*) env names
 const supabaseUrl =
-  import.meta.env.VITE_SUPABASE_URL ||
-  import.meta.env.NEXT_PUBLIC_SUPABASE_URL ||
+  import.meta.env?.VITE_SUPABASE_URL ||
+  import.meta.env?.NEXT_PUBLIC_SUPABASE_URL ||
   '';
 const supabaseAnonKey =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  import.meta.env?.VITE_SUPABASE_ANON_KEY ||
+  import.meta.env?.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  import.meta.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
   '';
 
 export const supabase =
@@ -50,6 +50,18 @@ export const TABLE_MAP: Record<string, string> = {
   jt_crm_customer_product_history: 'customer_product_history',
   jt_crm_system_settings:    'system_settings',
   jt_crm_audit_logs:         'audit_logs',
+
+  // WhatsApp Order Intelligence (Phase A)
+  jt_crm_whatsapp_contacts:              'whatsapp_contacts',
+  jt_crm_whatsapp_conversations:         'whatsapp_conversations',
+  jt_crm_whatsapp_messages:              'whatsapp_messages',
+  jt_crm_order_drafts:                   'order_drafts',
+  jt_crm_order_draft_items:              'order_draft_items',
+  jt_crm_product_aliases:                'product_aliases',
+  jt_crm_customer_product_aliases:       'customer_product_aliases',
+  jt_crm_route_destinations:             'route_destinations',
+  jt_crm_agent_attention_alerts:         'agent_attention_alerts',
+  jt_crm_order_intake_events:            'order_intake_events',
 };
 
 

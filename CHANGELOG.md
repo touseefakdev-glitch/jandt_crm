@@ -5,6 +5,23 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.15.0] - 2026-08-10
+
+### Added
+- **WhatsApp Order Intelligence — Phase A (Foundation)**:
+  - **Schema (`database/schema.sql`)**: New enums `message_classification`, `order_draft_status`, `match_method`, `attention_priority`, `alert_status`, `bot_status`; extended `whatsapp_conversations` (`route`, `delivery_date`, `bot_status`) and `whatsapp_messages` (`sender`, `classification`, `processing_status`, `processed_at`); new tables `order_drafts`, `order_draft_items`, `product_aliases`, `customer_product_aliases`, `route_destinations`, `agent_attention_alerts`, `order_intake_events` with indexes and `authenticated` RLS read policies.
+  - **Incoming Message Pipeline (`src/services/`)**:
+    - `textNormalizer.ts`: normalization, tokenization, phone normalization, edit-distance / overlap similarity utilities.
+    - `messageClassifier.ts`: classification (`ORDER`, `QUESTION`, `COMPLAINT`, `CONFIRMATION`, `GREETING`, `UNKNOWN`, …) with complaint precedence and urgency detection.
+    - `orderParser.ts`: multi-line segment split into `quantity`/`unit`/mention; strips leading phrases and filler/date words (`kal`, `bhai`, `today`, …); flags missing quantities (never invented).
+    - `productMatcher.ts`: priority matching chain (SKU → exact name → customer/global alias → customer history → normalized name) with `MIN_MATCH_CONFIDENCE = 0.6` and `AMBIGUITY_DELTA = 0.15`; ambiguity-driven clarification instead of guessing.
+    - `orderDraftService.ts`: full draft lifecycle (`NEW_MESSAGE` → `DRAFT_CREATED` / `NEEDS_CLARIFICATION` / `AWAITING_CONFIRMATION` → `CONFIRMED` / `FORWARDED` / `CANCELLED` / `HUMAN_REVIEW`), explicit-only confirmation, `pauseBot`/`resumeBot`/`takeOverConversation`, internal reference assignment (`CRM-ORD-XXXXXX`), and confirmation / order-received / route / order-request message templates.
+    - `attentionAlertService.ts`: human-review alerts with priority assessment and acknowledge/resolve/convert-to-query workflows.
+  - **Data Access (`src/services/db.ts` & `src/services/supabaseSync.ts`)**: Full CRUD for WhatsApp contacts/conversations/messages, order drafts/items, aliases, route destinations, agent alerts, and intake events; new storage keys registered in the Supabase `TABLE_MAP` write-through; defensive `import.meta.env?.*` reads for Node portability.
+  - **Verification**: `tests/quickTest.ts` (31 unit assertions) and `tests/integrationTest.ts` (20 integration assertions against the real 1,022-product / 393-customer / 6,479-history catalog) — all pass; `tsc --noEmit` and `npm run build` clean.
+
+---
+
 ## [1.14.0] - 2026-08-10
 
 ### Added

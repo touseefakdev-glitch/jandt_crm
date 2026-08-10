@@ -468,6 +468,38 @@ The CRM application is configured with a clean, 0-data baseline for immediate pr
 
 ---
 
+## WhatsApp Order Intelligence — Phase A (Foundation)
+
+> Implemented per the WhatsApp Order Intelligence & Route Order Automation Architecture plan (Phase A). This phase delivers the offline foundation: customer identity binding, conversation/message model, order draft model, product matching engine, customer history matching, and human attention alerts. No simulator or live messaging gateway is included.
+
+### Schema Extensions (`database/schema.sql`)
+- New enums: `message_classification`, `order_draft_status`, `match_method`, `attention_priority`, `alert_status`, `bot_status`.
+- `whatsapp_conversations` extended: `route`, `delivery_date`, `bot_status`.
+- `whatsapp_messages` extended: `sender`, `classification`, `processing_status`, `processed_at`.
+- New tables: `order_drafts`, `order_draft_items`, `product_aliases`, `customer_product_aliases`, `route_destinations`, `agent_attention_alerts`, `order_intake_events`.
+- RLS: `authenticated` users receive read access; write flows persist through the in-app service layer.
+
+### Incoming Message Pipeline
+1. **Text Normalization** (`src/services/textNormalizer.ts`) — lowercase, diacritic/URL stripping, Unicode→ASCII, whitespace collapse, phone normalization, token helpers, edit-distance & overlap similarity utilities.
+2. **Message Classification** (`src/services/messageClassifier.ts`) — `ORDER`, `ORDER_CLARIFICATION`, `ORDER_CONFIRMATION`, `NON_ORDER`, `QUESTION`, `COMPLAINT`, `GREETING`, `UNKNOWN`. Complaint messages take precedence when no order-line structure exists; urgency keywords raise priority to `urgent`.
+3. **Order Parsing** (`src/services/orderParser.ts`) — splits multi-line orders into segments, extracts `quantity`, `unit`, and product mention; strips leading phrases (`send`, `i need`, …) and date/filler words (`kal`, `aaj`, `today`, `bhai`, `hi`, …); understands word numbers and trailing units. Quantities are never invented — missing quantity is flagged (`quantityMissing`).
+4. **Product Matching** (`src/services/productMatcher.ts`) — priority chain: SKU (1.0) → exact name (0.97) → customer alias (0.95) → global alias (0.9) → customer history (containment 0.8–0.9; partial overlap de-weighted) → normalized name (containment 0.9 / overlap ≥ 0.6 / fuzzy ratio ≥ 0.75). Constants: `MIN_MATCH_CONFIDENCE = 0.6`, `AMBIGUITY_DELTA = 0.15`. Ambiguous short mentions (≤ 2 tokens with multiple contenders, or top-2 within delta) return a clarification question instead of a guess. SKU/exact-name matches are never ambiguous.
+5. **Order Draft Service** (`src/services/orderDraftService.ts`) — orchestrates `processIncomingMessage`, `confirmDraft`, `applyCorrection`, `pauseBot`, `resumeBot`, `takeOverConversation`; renders confirmation summaries, "order received", route order, and order-request templates. Confirmation is explicit only; drafts move to `CONFIRMED` only on explicit confirmation, then receive an internal reference (`CRM-ORD-XXXXXX`).
+6. **Attention Alerts** (`src/services/attentionAlertService.ts`) — raises human-review alerts for questions, complaints, low-confidence orders, and priority escalations; supports `add`/`acknowledge`/`resolve`/`convertAlertToQuery` and alert summaries by priority.
+
+### Matching Rules (enforced)
+- History is context only and never overrides an explicit mention in the message.
+- Low-confidence matches produce clarification, never guesses.
+- Quantity is never invented; missing quantities are flagged for confirmation.
+
+### Storage
+- New localStorage keys prefixed `jt_crm_order_*`, `jt_crm_whatsapp_*`, `jt_crm_product_aliases`, `jt_crm_customer_product_aliases`, `jt_crm_route_destinations`, `jt_crm_agent_attention_alerts`, `jt_crm_order_intake_events`; all registered in `supabaseSync.ts` `TABLE_MAP` for write-through. `import.meta.env` reads are optional-chained for Node/test portability.
+
+### Verification
+- `npx tsx tests/quickTest.ts` (unit — normalization, classification, parsing, matching, ambiguity, confirmation) and `npx tsx tests/integrationTest.ts` (real 1,022-product / 393-customer catalog flows: order parse → draft → clarification → SKU confirm → internal reference → alerts → intake events). Both suites pass.
+
+---
+
 ## Change Log
 All technical changes are logged in [CHANGELOG.md](file:///c:/Users/TIW%20COMPUTER/Desktop/CRM/CHANGELOG.md).
 

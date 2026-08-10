@@ -766,7 +766,52 @@ export interface HTMLImportPreview {
   customerDetails: HTMLCustomerRecord[];
 }
 
-// --- Future WhatsApp Automation Preparation Types ---
+// --- WhatsApp Order Intelligence (Phase A) Types ---
+
+export type MessageClassification =
+  | 'ORDER'
+  | 'ORDER_CLARIFICATION'
+  | 'ORDER_CONFIRMATION'
+  | 'NON_ORDER'
+  | 'QUESTION'
+  | 'COMPLAINT'
+  | 'GREETING'
+  | 'UNKNOWN';
+
+export type OrderDraftStatus =
+  | 'NEW_MESSAGE'
+  | 'ANALYZING'
+  | 'DRAFT_CREATED'
+  | 'NEEDS_CLARIFICATION'
+  | 'AWAITING_CONFIRMATION'
+  | 'CUSTOMER_CORRECTING'
+  | 'CONFIRMED'
+  | 'FORWARDED'
+  | 'CANCELLED'
+  | 'HUMAN_REVIEW';
+
+export type MatchMethod =
+  | 'sku'
+  | 'exact_name'
+  | 'normalized_name'
+  | 'alias'
+  | 'customer_alias'
+  | 'customer_history'
+  | 'semantic'
+  | 'unknown';
+
+export type AttentionPriority = 'normal' | 'high' | 'urgent';
+export type AlertStatus = 'new' | 'acknowledged' | 'resolved';
+export type BotStatus = 'active' | 'paused' | 'human_takeover';
+export type MessageProcessingStatus =
+  | 'received'
+  | 'classified'
+  | 'parsed'
+  | 'draft_created'
+  | 'awaiting_confirmation'
+  | 'confirmed'
+  | 'escalated'
+  | 'error';
 
 export interface WhatsAppContact {
   id: string;
@@ -784,6 +829,9 @@ export interface WhatsAppConversation {
   customer_id?: string | null;
   whatsapp_contact_id: string;
   status: 'active' | 'closed' | 'escalated_to_human';
+  route?: string | null;
+  delivery_date?: string | null;
+  bot_status?: BotStatus;
   started_at: string;
   last_message_at: string;
   created_at: string;
@@ -797,8 +845,165 @@ export interface WhatsAppMessage {
   message_type: 'text' | 'template' | 'interactive';
   message_text: string;
   external_message_id?: string;
+  sender?: string | null;
+  classification?: MessageClassification | null;
+  processing_status?: MessageProcessingStatus;
+  processed_at?: string | null;
   sent_at: string;
   created_at: string;
+}
+
+export interface OrderDraft {
+  id: string;
+  customer_id?: string | null;
+  conversation_id?: string | null;
+  route?: string | null;
+  delivery_date?: string | null;
+  status: OrderDraftStatus;
+  overall_confidence: number;
+  clarification_reason?: string | null;
+  pending_question?: string | null;
+  confirmed_at?: string | null;
+  confirmed_message?: string | null;
+  internal_reference?: string | null;
+  bot_paused: boolean;
+  created_at: string;
+  updated_at: string;
+  customer?: Customer | null;
+  items?: OrderDraftItem[];
+}
+
+export interface OrderDraftItem {
+  id: string;
+  order_draft_id: string;
+  product_id?: string | null;
+  customer_text: string;
+  matched_product_name?: string | null;
+  quantity?: number | null;
+  unit?: string | null;
+  match_method: MatchMethod;
+  match_confidence: number;
+  status: 'candidate' | 'matched' | 'needs_clarification' | 'confirmed' | 'rejected';
+  created_at: string;
+  updated_at: string;
+  product?: Product | null;
+}
+
+export interface ProductAlias {
+  id: string;
+  product_id: string;
+  alias: string;
+  normalized_alias: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  product?: Product | null;
+}
+
+export interface CustomerProductAlias {
+  id: string;
+  customer_id: string;
+  product_id: string;
+  alias: string;
+  normalized_alias: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  customer?: Customer | null;
+  product?: Product | null;
+}
+
+export interface RouteDestination {
+  id: string;
+  route: string;
+  destination_type: string;
+  destination_identifier: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AgentAttentionAlert {
+  id: string;
+  customer_id?: string | null;
+  conversation_id?: string | null;
+  message_id?: string | null;
+  classification?: MessageClassification | null;
+  message_text: string;
+  priority: AttentionPriority;
+  status: AlertStatus;
+  assigned_to?: string | null;
+  acknowledged_at?: string | null;
+  acknowledged_by?: string | null;
+  resolved_at?: string | null;
+  resolved_by?: string | null;
+  resolution?: string | null;
+  query_id?: string | null;
+  created_at: string;
+  updated_at: string;
+  customer?: Customer | null;
+}
+
+export interface OrderIntakeEvent {
+  id: string;
+  order_draft_id?: string | null;
+  conversation_id?: string | null;
+  message_id?: string | null;
+  event_type: string;
+  description: string;
+  confidence?: number | null;
+  payload?: Record<string, unknown> | null;
+  created_at: string;
+}
+
+// --- WhatsApp Order Intelligence Service Input/Output Types ---
+
+export interface OrderCandidate {
+  rawText: string;
+  mention: string;
+  quantity: number | null;
+  unit: string | null;
+  quantityMissing: boolean;
+}
+
+export interface MatchedProductCandidate {
+  product: Product;
+  mention: string;
+  quantity: number | null;
+  unit: string | null;
+  matchMethod: MatchMethod;
+  confidence: number;
+  ambiguous: boolean;
+  aliases?: string[];
+}
+
+export interface ProductMatchResult {
+  matched: MatchedProductCandidate[];
+  ambiguous: MatchedProductCandidate[];
+  unmatched: OrderCandidate[];
+  needsClarification: boolean;
+  clarificationQuestion?: string;
+}
+
+export interface MessageClassificationResult {
+  classification: MessageClassification;
+  confidence: number;
+  secondary?: MessageClassification | null;
+  isOrder: boolean;
+  requiresHumanAttention: boolean;
+  priority: AttentionPriority;
+  matchedKeywords: string[];
+}
+
+export interface OrderDraftCreationResult {
+  draft: OrderDraft;
+  message?: string;
+  requiresClarification: boolean;
+}
+
+export interface OrderDraftProcessingResult {
+  draft: OrderDraft;
+  message?: string;
 }
 
 

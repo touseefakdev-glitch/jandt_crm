@@ -686,7 +686,7 @@ export interface ImportDuplicateItem {
 
 export interface ImportJob {
   id: string;
-  import_type: ImportType;
+  import_type: ImportType | 'html_business_data';
   file_name: string;
   import_strategy: ImportStrategy;
   total_rows: number;
@@ -700,6 +700,105 @@ export interface ImportJob {
   created_by: string | null;
   created_by_profile?: UserProfile | null;
   errors?: ImportErrorItem[];
+}
+
+// --- Customer Product History & HTML Business Data Integration Types ---
+
+export interface CustomerProductHistory {
+  id: string;
+  customer_id: string;
+  customer_name?: string;
+  product_id?: string | null;
+  source_item_code: string;
+  source_item_name: string;
+  packaging_unit: string; // e.g., Case, Pail, Pack, Sleeve
+  customer_price: number; // Price charged to this customer
+  inner_unit?: string; // e.g., Pieces, Pail, Pounds
+  inner_qty?: number; // e.g., 1000.0, 1.0
+  unit_price?: number; // e.g., price per piece/inner unit
+  import_batch_id?: string | null;
+  created_at: string;
+  updated_at: string;
+  // Resolved product references
+  product?: Product | null;
+}
+
+export interface HTMLProductRecord {
+  itemCode: string;
+  name: string;
+  sku: string;
+  category: string;
+  subcategory?: string;
+  unitName: string;
+  salesUnitName?: string;
+  unitGroup?: string | null;
+  targets?: { unit: string; rate: number }[];
+  desiredSPBase: number;
+  minSPBase: number;
+  maxSPBase: number;
+}
+
+export interface HTMLCustomerRecord {
+  customerName: string;
+  items: {
+    itemCode: string;
+    itemName: string;
+    unit: string;
+    price: number;
+    innerUnit: string;
+    innerQty: number;
+    unitPrice: number;
+  }[];
+}
+
+export interface HTMLImportPreview {
+  productsFound: number;
+  newProducts: number;
+  duplicateProducts: number;
+  customersFound: number;
+  newCustomers: number;
+  duplicateCustomers: number;
+  historicalRelationships: number;
+  relationshipsMatchedByCode: number;
+  relationshipsNeedingReview: number;
+  warnings: string[];
+  productDetails: HTMLProductRecord[];
+  customerDetails: HTMLCustomerRecord[];
+}
+
+// --- Future WhatsApp Automation Preparation Types ---
+
+export interface WhatsAppContact {
+  id: string;
+  customer_id?: string | null;
+  whatsapp_number: string;
+  display_name?: string;
+  is_verified: boolean;
+  created_at: string;
+  updated_at: string;
+  customer?: Customer | null;
+}
+
+export interface WhatsAppConversation {
+  id: string;
+  customer_id?: string | null;
+  whatsapp_contact_id: string;
+  status: 'active' | 'closed' | 'escalated_to_human';
+  started_at: string;
+  last_message_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WhatsAppMessage {
+  id: string;
+  conversation_id: string;
+  direction: 'inbound' | 'outbound';
+  message_type: 'text' | 'template' | 'interactive';
+  message_text: string;
+  external_message_id?: string;
+  sent_at: string;
+  created_at: string;
 }
 
 

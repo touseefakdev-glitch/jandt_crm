@@ -667,5 +667,59 @@ INSERT INTO public.route_schedules (id, day_of_week, city_or_route, portal, acti
     ('00000000-0000-0000-0020-000000000031', 'sunday', 'West Kelowna', 'outside_kelowna', true)
 ON CONFLICT (id) DO NOTHING;
 
+-- =============================================================================
+-- HISTORICAL CUSTOMER-PRODUCT RELATIONSHIPS & FUTURE WHATSAPP AUTOMATION SCHEMA
+-- =============================================================================
 
+-- Customer Product History Table
+CREATE TABLE IF NOT EXISTS public.customer_product_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    customer_id UUID NOT NULL REFERENCES public.customers(id) ON DELETE CASCADE,
+    product_id UUID REFERENCES public.products(id) ON DELETE SET NULL,
+    source_item_code VARCHAR(100) NOT NULL,
+    source_item_name VARCHAR(255) NOT NULL,
+    packaging_unit VARCHAR(50),
+    customer_price NUMERIC(12,2),
+    inner_unit VARCHAR(50),
+    inner_qty NUMERIC(12,2),
+    unit_price NUMERIC(12,4),
+    import_batch_id UUID REFERENCES public.import_jobs(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT unique_customer_source_item UNIQUE (customer_id, source_item_code)
+);
 
+-- Future WhatsApp Contacts Table
+CREATE TABLE IF NOT EXISTS public.whatsapp_contacts (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    customer_id UUID REFERENCES public.customers(id) ON DELETE SET NULL,
+    whatsapp_number VARCHAR(50) NOT NULL UNIQUE,
+    display_name VARCHAR(255),
+    is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Future WhatsApp Conversations Table
+CREATE TABLE IF NOT EXISTS public.whatsapp_conversations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    customer_id UUID REFERENCES public.customers(id) ON DELETE SET NULL,
+    whatsapp_contact_id UUID REFERENCES public.whatsapp_contacts(id) ON DELETE CASCADE,
+    status VARCHAR(50) NOT NULL DEFAULT 'active',
+    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_message_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Future WhatsApp Messages Table
+CREATE TABLE IF NOT EXISTS public.whatsapp_messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    conversation_id UUID NOT NULL REFERENCES public.whatsapp_conversations(id) ON DELETE CASCADE,
+    direction VARCHAR(20) NOT NULL DEFAULT 'inbound', -- inbound, outbound
+    message_type VARCHAR(50) NOT NULL DEFAULT 'text',
+    message_text TEXT,
+    external_message_id VARCHAR(255),
+    sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

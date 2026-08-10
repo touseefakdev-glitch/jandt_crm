@@ -6,8 +6,8 @@ import { localDb } from '../services/db';
 import { CustomerFormModal } from '../components/customers/CustomerFormModal';
 import { QueryFormModal } from '../components/queries/QueryFormModal';
 import { OrderFormModal } from '../components/orders/OrderFormModal';
-import { Avatar, Badge, Button, Card, CardBody, CardHeader, ConfirmDialog, EmptyState, Table, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
-import { getCustomerStatusBadge, getOrderStatusBadge, getQueryPriorityBadge, getQueryStatusBadge } from '../utils/badges';
+import { Avatar, Badge, Pill, Button, Card, CardBody, CardHeader, ConfirmDialog, EmptyState, Table, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
+import { getCustomerStatusBadge, getOrderStatusBadge, getQueryPriorityBadge, getQueryStatusBadge, getProductAvailabilityBadge } from '../utils/badges';
 import { formatCurrency, formatDate, formatDateTime } from '../utils/format';
 import {
   ArrowLeft,
@@ -21,9 +21,10 @@ import {
   Calendar,
   Plus,
   Eye,
+  Package,
 } from 'lucide-react';
 
-type TabKey = 'overview' | 'queries' | 'orders' | 'activity';
+type TabKey = 'overview' | 'queries' | 'orders' | 'history' | 'activity';
 
 export const CustomerDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -54,6 +55,15 @@ export const CustomerDetail: React.FC = () => {
     if (!id) return [];
     return localDb.getCustomerDailyOperations(id);
   }, [id, customer]);
+
+  const productHistory = useMemo(() => {
+    if (!customer) return [];
+    let hist = localDb.getCustomerProductHistory(customer.id);
+    if (hist.length === 0 && customer.company_name) {
+      hist = localDb.getCustomerProductHistoryByCustomerName(customer.company_name);
+    }
+    return hist;
+  }, [customer]);
 
   if (!customer) {
     return (
@@ -101,6 +111,7 @@ export const CustomerDetail: React.FC = () => {
     { key: 'overview', label: 'Overview', icon: <User className="w-4 h-4" /> },
     { key: 'queries', label: 'Support Queries', icon: <HelpCircle className="w-4 h-4" />, count: customerQueries.length },
     { key: 'orders', label: 'Daily Route Operations', icon: <ShoppingBag className="w-4 h-4" />, count: customerDailyOps.length },
+    { key: 'history', label: 'Historical Purchasing Catalog', icon: <Package className="w-4 h-4" />, count: productHistory.length },
     { key: 'activity', label: 'Activity Timeline', icon: <Activity className="w-4 h-4" /> },
   ];
 
@@ -389,6 +400,67 @@ export const CustomerDetail: React.FC = () => {
               icon={<ShoppingBag className="w-7 h-7" />}
               title="No Route Operations Logged"
               description={`No daily route operation records exist for ${customer.company_name}.`}
+            />
+          )}
+        </Card>
+      )}
+
+      {activeTab === 'history' && (
+        <Card className="overflow-hidden">
+          <CardHeader
+            title="Historical Purchasing Catalog"
+            subtitle="Extracted business ordering history — Pricing & packaging agreed for this customer. Separated from live inventory availability."
+          />
+          {productHistory.length > 0 ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <THead className="bg-slate-50">
+                  <Tr>
+                    <Th>Item Code</Th>
+                    <Th>Product Description</Th>
+                    <Th>Packaging Unit</Th>
+                    <Th>Customer Price</Th>
+                    <Th>Inner Pack Details</Th>
+                    <Th>Unit Price</Th>
+                    <Th>Catalog Stock Status</Th>
+                  </Tr>
+                </THead>
+                <TBody>
+                  {productHistory.map((item, idx) => (
+                    <Tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                      <Td className="font-mono text-xs font-bold text-brand-700">{item.source_item_code}</Td>
+                      <Td className="font-semibold text-slate-900">{item.source_item_name}</Td>
+                      <Td>
+                        <Pill className="text-xs font-mono font-semibold">
+                          {item.packaging_unit}
+                        </Pill>
+                      </Td>
+                      <Td className="font-mono font-bold text-slate-900 text-sm">
+                        ${item.customer_price.toFixed(2)}
+                      </Td>
+                      <Td className="text-slate-600 text-xs font-mono">
+                        {item.inner_qty ? `${item.inner_qty.toLocaleString()} ${item.inner_unit || ''}` : 'N/A'}
+                      </Td>
+                      <Td className="font-mono text-xs text-slate-700">
+                        {item.unit_price ? `$${item.unit_price.toFixed(4)} / ${item.inner_unit || 'pc'}` : 'N/A'}
+                      </Td>
+                      <Td>
+                        {item.product ? (
+                          <Badge badge={getProductAvailabilityBadge(item.product.availability_status)} />
+                        ) : (
+                          <Pill className="text-[10px]">Catalog Reference</Pill>
+                        )}
+                      </Td>
+                    </Tr>
+                  ))}
+                </TBody>
+              </Table>
+            </div>
+          ) : (
+            <EmptyState
+              icon={<Package className="w-8 h-8" />}
+              title="No Historical Products Found"
+              description={`No previous purchasing history has been linked to ${customer.company_name}.`}
             />
           )}
         </Card>

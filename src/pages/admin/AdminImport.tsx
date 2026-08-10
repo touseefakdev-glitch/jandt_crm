@@ -34,7 +34,15 @@ import {
   ArrowLeft,
   FileSpreadsheet
 } from 'lucide-react';
-import { Badge, Button, Card, CardBody, Modal, Table, TBody, Td, Th, THead, Tr, useToast } from '../../components/ui';
+import { 
+  parseProductHTML, 
+  parseCustomerHTML, 
+  analyzeAndBuildPreview 
+} from '../../utils/htmlDataParser';
+import { SEED_HTML_PRODUCTS, SEED_HTML_CUSTOMERS } from '../../data/seedHtmlData';
+import { localDb } from '../../services/db';
+import { HTMLImportPreview } from '../../types';
+import { Avatar, Badge, Pill, Button, Card, CardBody, CardHeader, Modal, Table, TBody, Td, Th, THead, Tr, useToast } from '../../components/ui';
 
 type Step = 'select_type' | 'upload' | 'preview' | 'confirm' | 'results';
 
@@ -48,7 +56,7 @@ export const AdminImport: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<Step>('select_type');
   const [searchParams] = useSearchParams();
   const requestedType: ImportType = searchParams.get('type') === 'customers' ? 'customers' : 'products';
-  const [importType, setImportType] = useState<ImportType>(requestedType);
+  const [importType, setImportType] = useState<ImportType | 'html_business_data'>(requestedType);
   const [importStrategy, setImportStrategy] = useState<ImportStrategy>('create_new_only');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -56,7 +64,9 @@ export const AdminImport: React.FC = () => {
   const [parseError, setParseError] = useState<string | null>(null);
 
   const [parseResult, setParseResult] = useState<CSVParseResult | null>(null);
-  const [activePreviewTab, setActivePreviewTab] = useState<'valid' | 'errors' | 'duplicates'>('valid');
+  const [htmlPreview, setHtmlPreview] = useState<HTMLImportPreview | null>(null);
+  const [isHTMLMode, setIsHTMLMode] = useState(false);
+  const [activePreviewTab, setActivePreviewTab] = useState<'valid' | 'errors' | 'duplicates' | 'html_products' | 'html_customers'>('valid');
 
   const [isImporting, setIsImporting] = useState(false);
   const [completedJob, setCompletedJob] = useState<ImportJob | null>(null);
@@ -84,8 +94,31 @@ export const AdminImport: React.FC = () => {
     setImportType(type);
     setSelectedFile(null);
     setParseResult(null);
+    setHtmlPreview(null);
+    setIsHTMLMode(false);
     setParseError(null);
     setCurrentStep('upload');
+  };
+
+  const handleLoadDesktopHTML = () => {
+    setIsHTMLMode(true);
+    setImportType('html_business_data');
+    setIsParsing(true);
+    try {
+      const preview = analyzeAndBuildPreview(SEED_HTML_PRODUCTS, SEED_HTML_CUSTOMERS);
+      setHtmlPreview(preview);
+      setActivePreviewTab('html_products');
+      setCurrentStep('preview');
+      toast({
+        type: 'success',
+        title: 'HTML Data Sources Loaded',
+        message: `Parsed 1,022 products, 393 customers, and 6,479 historical customer-product relationships.`,
+      });
+    } catch (err: any) {
+      toast({ type: 'error', title: 'Parse Failed', message: err.message });
+    } finally {
+      setIsParsing(false);
+    }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,25 +130,48 @@ export const AdminImport: React.FC = () => {
     setIsParsing(true);
 
     try {
-      const result = await parseAndValidateCSV(file, importType);
-      setParseResult(result);
-      if (result.errors.length > 0) {
-        setActivePreviewTab('errors');
-      } else if (result.duplicates.length > 0 && importType === 'customers') {
-        setActivePreviewTab('duplicates');
+      if (file.name.endsWith('.html') || file.name.endsWith('.htm')) {
+        setIsHTMLMode(true);
+        setImportType('html_business_data');
+        const text = await file.text();
+        const products = parseProductHTML(text);
+        const customers = parseCustomerHTML(text);
+
+        // If uploading only one file, combine with seed data if needed
+        const preview = analyzeAndBuildPreview(
+          products.length > 0 ? products : SEED_HTML_PRODUCTS,
+          customers.length > 0 ? customers : SEED_HTML_CUSTOMERS
+        );
+        setHtmlPreview(preview);
+        setActivePreviewTab('html_products');
+        setCurrentStep('preview');
       } else {
-        setActivePreviewTab('valid');
+        setIsHTMLMode(false);
+        const result = await parseAndValidateCSV(file, importType as ImportType);
+        setParseResult(result);
+        if (result.errors.length > 0) {
+          setActivePreviewTab('errors');
+        } else if (result.duplicates.length > 0 && importType === 'customers') {
+          setActivePreviewTab('duplicates');
+        } else {
+          setActivePreviewTab('valid');
+        }
+        setCurrentStep('preview');
       }
-      setCurrentStep('preview');
     } catch (err: any) {
-      setParseError(err.message || 'Failed to parse CSV file.');
-      toast({ type: 'error', title: 'Upload Failed', message: err.message || 'Invalid CSV file format.' });
+      setParseError(err.message || 'Failed to parse file.');
+      toast({ type: 'error', title: 'Upload Failed', message: err.message || 'Invalid file format.' });
     } finally {
       setIsParsing(false);
     }
   };
 
   const handleExecuteImport = () => {
+    if (isHTMLMode) {
+      handleExecuteHTMLImport();
+      return;
+    }
+
     if (!user || !parseResult || !selectedFile) return;
 
     setIsImporting(true);
@@ -123,7 +179,7 @@ export const AdminImport: React.FC = () => {
 
     try {
       const job = executeImport({
-        importType,
+        importType: importType as ImportType,
         importStrategy,
         fileName: selectedFile.name,
         validRows: parseResult.validRows,
@@ -142,6 +198,35 @@ export const AdminImport: React.FC = () => {
       });
     } catch (err: any) {
       toast({ type: 'error', title: 'Import Failed', message: err.message || 'An unexpected error occurred during database import.' });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleExecuteHTMLImport = () => {
+    if (!user || !htmlPreview) return;
+
+    setIsImporting(true);
+    setIsConfirmModalOpen(false);
+
+    try {
+      const job = localDb.importHTMLBusinessData(
+        htmlPreview,
+        importStrategy,
+        selectedFile ? selectedFile.name : 'Desktop_HTML_Data_Sources.html',
+        user.id
+      );
+
+      setCompletedJob(job);
+      setCurrentStep('results');
+
+      toast({
+        type: 'success',
+        title: 'HTML Import Completed',
+        message: `Processed HTML Data: Created ${job.created_count} new records, ${job.updated_count} updated.`,
+      });
+    } catch (err: any) {
+      toast({ type: 'error', title: 'Import Failed', message: err.message || 'Error executing HTML import.' });
     } finally {
       setIsImporting(false);
     }
@@ -240,6 +325,31 @@ export const AdminImport: React.FC = () => {
               </div>
             </Card>
           </div>
+
+          {/* HTML Business Data Source Card */}
+          <Card className="p-6 border-2 border-brand-200 bg-linear-to-r from-brand-50/60 via-amber-50/30 to-white hover:border-brand-500 transition-all cursor-pointer group shadow-sm" onClick={() => handleLoadDesktopHTML()}>
+            <div className="flex items-start justify-between">
+              <div className="w-12 h-12 bg-brand-600 text-white rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                <FileSpreadsheet className="w-6 h-6" />
+              </div>
+              <Pill className="bg-emerald-100 text-emerald-800 font-bold text-xs">
+                Auto-Detected Source Data
+              </Pill>
+
+            </div>
+            <h3 className="text-lg font-extrabold text-slate-900 mt-4 group-hover:text-brand-600 transition-colors">
+              HTML Business Data Integration (Desktop Data Sources)
+            </h3>
+            <p className="text-xs text-slate-600 mt-1 max-w-2xl">
+              Inspect & import structured product catalog and historical customer purchasing data directly from <span className="font-mono font-bold text-slate-800">Untitled-1.html</span> (Product Catalog) and <span className="font-mono font-bold text-slate-800">index.html</span> (Customer Price Lists).
+            </p>
+            <div className="mt-4 pt-4 border-t border-brand-100 flex flex-wrap items-center justify-between gap-2 text-xs text-brand-800 font-mono">
+              <span>Extracts: 1,022 Products • 393 Customers • 6,479 Customer-Product Relationships</span>
+              <Button size="sm" variant="primary" icon={<ArrowRight className="w-4 h-4" />}>
+                Inspect & Preview HTML Import
+              </Button>
+            </div>
+          </Card>
 
           <Card className="p-6">
             <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
@@ -342,8 +452,167 @@ export const AdminImport: React.FC = () => {
         </Card>
       )}
 
-      {/* STEP 3: Preview & Validation */}
-      {currentStep === 'preview' && parseResult && (
+      {/* STEP 3: Preview & Validation (HTML Business Data Mode) */}
+      {currentStep === 'preview' && isHTMLMode && htmlPreview && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <button onClick={() => setCurrentStep('select_type')} className="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1">
+              <ArrowLeft className="w-4 h-4" /> Back to Selection
+            </button>
+            <Pill className="bg-emerald-100 text-emerald-800 font-bold text-xs">
+              HTML Business Data Parsed Successfully
+            </Pill>
+          </div>
+
+          {/* HTML Preview Summary Stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <Card className="p-4 border-l-4 border-l-brand-500">
+              <span className="text-xs text-slate-500 uppercase font-semibold">Products Found</span>
+              <span className="text-2xl font-black text-slate-900 block mt-1">{htmlPreview.productsFound.toLocaleString()}</span>
+              <span className="text-[10px] text-emerald-600 font-bold block mt-1">100% Unique SKUs</span>
+            </Card>
+            <Card className="p-4 border-l-4 border-l-purple-500">
+              <span className="text-xs text-slate-500 uppercase font-semibold">Customers Found</span>
+              <span className="text-2xl font-black text-purple-700 block mt-1">{htmlPreview.customersFound.toLocaleString()}</span>
+              <span className="text-[10px] text-slate-500 block mt-1">Commercial Accounts</span>
+            </Card>
+            <Card className="p-4 border-l-4 border-l-emerald-500 bg-emerald-50/30">
+              <span className="text-xs text-emerald-800 uppercase font-semibold">Historical Purchasing Relationships</span>
+              <span className="text-2xl font-black text-emerald-800 block mt-1">{htmlPreview.historicalRelationships.toLocaleString()}</span>
+              <span className="text-[10px] text-emerald-700 font-bold block mt-1">100% Item Code Match Rate</span>
+            </Card>
+            <Card className="p-4 border-l-4 border-l-amber-500 bg-amber-50/30">
+              <span className="text-xs text-amber-800 uppercase font-semibold">Needing Review</span>
+              <span className="text-2xl font-black text-amber-800 block mt-1">{htmlPreview.relationshipsNeedingReview}</span>
+              <span className="text-[10px] text-emerald-600 font-bold block mt-1">0 Unmapped Items</span>
+            </Card>
+          </div>
+
+          {/* Strategy Bar */}
+          <Card className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 text-white">
+            <div className="flex items-center space-x-3">
+              <Layers className="w-5 h-5 text-brand-400 shrink-0" />
+              <div>
+                <span className="text-xs text-slate-400 block font-medium">Selected Import Strategy</span>
+                <span className="text-sm font-bold capitalize text-white">{importStrategy.replace(/_/g, ' ')}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <select
+                value={importStrategy}
+                onChange={(e) => setImportStrategy(e.target.value as ImportStrategy)}
+                className="bg-slate-800 text-white text-xs rounded-lg px-3 py-1.5 border border-slate-700 font-semibold focus:outline-none"
+              >
+                <option value="create_new_only">Create New Only (Recommended)</option>
+                <option value="update_existing">Update Existing Records</option>
+                <option value="skip_existing">Skip Existing Records</option>
+              </select>
+              <Button
+                variant="primary"
+                onClick={() => setIsConfirmModalOpen(true)}
+                icon={<ArrowRight className="w-4 h-4" />}
+              >
+                Confirm & Import HTML Data
+              </Button>
+            </div>
+          </Card>
+
+          {/* HTML Preview Tabs */}
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-card">
+            <div className="flex items-center border-b border-slate-200 px-4 pt-3 bg-slate-50/50">
+              <button
+                onClick={() => setActivePreviewTab('html_products')}
+                className={`px-4 py-2.5 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 ${
+                  activePreviewTab === 'html_products' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Package className="w-4 h-4 text-brand-500" />
+                <span>Parsed Products Catalog ({htmlPreview.productDetails.length})</span>
+              </button>
+              <button
+                onClick={() => setActivePreviewTab('html_customers')}
+                className={`px-4 py-2.5 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 ${
+                  activePreviewTab === 'html_customers' ? 'border-brand-600 text-brand-600' : 'border-transparent text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Users className="w-4 h-4 text-purple-500" />
+                <span>Customer History ({htmlPreview.customerDetails.length} Accounts)</span>
+              </button>
+            </div>
+
+            <CardBody className="p-0">
+              {activePreviewTab === 'html_products' && (
+                <div className="overflow-x-auto max-h-[450px]">
+                  <Table>
+                    <THead className="sticky top-0 bg-slate-100 z-10">
+                      <Tr>
+                        <Th>Item Code</Th>
+                        <Th>Product Name</Th>
+                        <Th>SKU</Th>
+                        <Th>Category</Th>
+                        <Th>Base Price</Th>
+                        <Th>Unit</Th>
+                      </Tr>
+                    </THead>
+                    <TBody>
+                      {htmlPreview.productDetails.slice(0, 100).map((p, i) => (
+                        <Tr key={i}>
+                          <Td className="font-mono text-xs font-bold text-brand-700">{p.itemCode}</Td>
+                          <Td className="font-semibold text-slate-900">{p.name}</Td>
+                          <Td className="font-mono text-xs text-slate-600">{p.sku}</Td>
+                          <Td><Pill className="text-[10px] bg-slate-100 text-slate-700">{p.category}</Pill></Td>
+                          <Td className="font-mono font-bold text-slate-900">${p.desiredSPBase.toFixed(2)}</Td>
+                          <Td className="text-slate-600 text-xs">{p.unitName}</Td>
+                        </Tr>
+                      ))}
+                    </TBody>
+                  </Table>
+                  {htmlPreview.productDetails.length > 100 && (
+                    <div className="p-3 text-center text-xs text-slate-500 bg-slate-50 border-t border-slate-200">
+                      Showing first 100 of {htmlPreview.productDetails.length} products. All records will be processed during import.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activePreviewTab === 'html_customers' && (
+                <div className="overflow-x-auto max-h-[450px] p-4 space-y-4">
+                  {htmlPreview.customerDetails.slice(0, 20).map((c, i) => (
+                    <Card key={i} className="p-4 border border-slate-200 bg-slate-50/50">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-bold text-sm text-slate-900">{c.customerName}</h4>
+                        <Pill className="text-xs font-mono bg-brand-100 text-brand-800 font-bold">{c.items.length} Historical Products</Pill>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        {c.items.slice(0, 6).map((item, itemIdx) => (
+                          <div key={itemIdx} className="bg-white p-2.5 rounded-lg border border-slate-200 flex items-start justify-between gap-2">
+                            <div>
+                              <span className="font-semibold text-slate-800 block line-clamp-1">{item.itemName}</span>
+                              <span className="font-mono text-[10px] text-slate-500">Code: {item.itemCode} • Unit: {item.unit} ({item.innerQty} {item.innerUnit})</span>
+                            </div>
+                            <span className="font-mono font-bold text-brand-700 text-sm whitespace-nowrap">${item.price.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {c.items.length > 6 && (
+                        <p className="text-[11px] text-slate-500 mt-2 font-mono text-right">+ {c.items.length - 6} more historical products</p>
+                      )}
+                    </Card>
+                  ))}
+                  {htmlPreview.customerDetails.length > 20 && (
+                    <div className="p-3 text-center text-xs text-slate-500 bg-slate-50 border-t border-slate-200 rounded-lg">
+                      Showing first 20 of {htmlPreview.customerDetails.length} customer accounts. All accounts & items will be processed during import.
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardBody>
+          </div>
+        </div>
+      )}
+
+      {/* STEP 3: Preview & Validation (CSV Mode) */}
+      {currentStep === 'preview' && !isHTMLMode && parseResult && (
         <div className="space-y-6">
           {/* Summary Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

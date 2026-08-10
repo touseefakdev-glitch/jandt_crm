@@ -372,6 +372,100 @@ The CRM application is configured with a clean, 0-data baseline for immediate pr
 - **Taxonomies & Settings**: Query Categories, Product Categories, Product Brands, System Settings, and Portals (`Kelowna Portal`, `Outside Kelowna Portal`).
 - **Weekly Route Schedule**: Monday to Sunday schedule preserved (with Thursday deduplicated to a single `Kelowna` route entry).
 
+## External HTML Data Sources
+
+### Product HTML Source
+- **File**: `Untitled-1.html` ("J &T Supplies — Price Reference")
+- **Structure**: Contains JavaScript array `const DATA = [...]` with 1,022 detailed product items.
+- **Fields Extracted**: `itemCode` (e.g. `199001.0`), `name`, `sku` (e.g. `FPK-GEN-ALUMINFOIL-500FT`), `category` (e.g. `Food Packaging`), `subcategory` (e.g. `Food Wrap`), `unitName` (`Pieces`, `Roll`), `salesUnitName`, `unitGroup`, `targets`, `desiredSPBase`, `minSPBase`, `maxSPBase`.
+- **Quality**: 1,022 unique SKUs, 1,022 unique item codes, 0 duplicate records.
+
+### Customer HTML Source
+- **File**: `index.html` ("J &T Supplies — Customer Price List")
+- **Structure**: Contains JavaScript object `const RAW = { data: { "Customer Name": [ [itemCode, itemName, unit, price, innerUnit, innerQty, unitPrice], ... ] } }`.
+- **Fields Extracted**: Customer Name (393 accounts), Historical product ordering list for each customer (6,479 total relationships).
+- **Match Quality**: 100% (6,479 out of 6,479) historical item records match exact `itemCode` keys in the main product catalog.
+
+### Product Data Mapping
+- Maps `name`, `sku`, `category`, `desiredSPBase` to core CRM `products` catalog fields.
+- `desiredSPBase` maps to `unit_price`.
+- Operational & pricing metadata (`minSPBase`, `maxSPBase`, `unitGroup`, `targets`) preserved in structured product attributes.
+
+### Customer Data Mapping
+- Customer Name maps to `company_name` in the CRM `customers` module.
+- `customer_code` auto-generated (`CUST-0001`, `CUST-0002`).
+- Missing fields in HTML source (Phone number, WhatsApp number, City, Route) remain empty (`NULL` / empty string).
+- **No fake data is invented.**
+
+### Historical Customer-Product Data
+- Saved in dedicated `customer_product_history` database table (`customer_id`, `product_id`, `source_item_code`, `source_item_name`, `packaging_unit`, `customer_price`, `inner_unit`, `inner_qty`, `unit_price`, `import_batch_id`).
+- Displayed in the Customer Profile under the **"Historical Purchasing Catalog"** tab.
+- **Separation of Concepts**: Historical customer ordering behavior is strictly separated from live inventory stock availability. Past purchase price does NOT imply current stock availability.
+
+### Data Normalization
+- Customer names trimmed and whitespace-normalized while preserving official display names.
+- Product names and item codes normalized for exact matching across files.
+
+### Duplicate Detection
+- Product SKU and Item Code matching to prevent duplicate product creation.
+- Normalized customer name matching (`lowercase`, whitespace/special char stripped) to prevent duplicate customer accounts.
+
+### Import Process
+- Controlled workflow: Upload / Select HTML Files ➔ Parse & Extract ➔ Validate ➔ Normalize ➔ Match ➔ Interactive Import Preview ➔ Review Warnings ➔ Confirm Import ➔ Execute Batch ➔ Import History Log.
+
+---
+
+## Future WhatsApp Integration
+
+> WhatsApp and AI ordering automation are future capabilities. The current implementation only prepares and structures the data and architecture required for future integration.
+
+### Customer Identification
+- Future incoming WhatsApp conversations will identify customer accounts via verified `whatsapp_number` (phone number string match).
+
+### WhatsApp Architecture
+- Decoupled database schema:
+  - `whatsapp_contacts`: (`id`, `customer_id`, `whatsapp_number`, `display_name`, `is_verified`)
+  - `whatsapp_conversations`: (`id`, `customer_id`, `whatsapp_contact_id`, `status`, `started_at`, `last_message_at`)
+  - `whatsapp_messages`: (`id`, `conversation_id`, `direction`, `message_type`, `message_text`, `external_message_id`, `sent_at`)
+
+### Messaging Layer
+- Abstract interface `MessagingProvider` (`sendMessage`, `receiveWebhook`, `verifyContact`) in `src/services/messagingService.ts` to allow changing messaging gateways (Meta WhatsApp Business API, Twilio) without modifying core CRM business logic.
+
+### AI Service Layer
+- Abstract interface `AIService` in `src/services/aiService.ts` defining strict, validated tool functions:
+  - `findCustomerByWhatsApp(whatsappNumber)`
+  - `searchProducts(query)`
+  - `getProductDetails(productId)`
+  - `getCustomerHistory(customerId)`
+  - `checkProductAvailability(productId)`
+  - `createOrderRequest(customerId, items, notes)` (Generates draft proposal for human review)
+  - `createCustomerQuery(customerId, issueDescription)` (Human escalation to Customer Query module)
+
+### Customer History Context
+- When a customer asks for "my usual order", the future AI bot queries `getCustomerHistory` to provide exact product recommendations based on past purchasing behavior.
+
+### Product Catalog Context
+- The future AI bot checks `checkProductAvailability` to inform customers of live catalog availability (`Available` vs `Out of Stock`).
+
+### Order Confirmation
+- Required human & customer confirmation workflow before any order is created. The AI proposes orders; the customer explicitly confirms before internal draft order requests are generated.
+
+### Human Handoff
+- If the AI cannot process a request with high confidence, it invokes `createCustomerQuery` to assign the conversation to a human support agent in the existing Customer Query system.
+
+### Security Model
+- No direct AI database credentials or SQL execution permissions.
+- The AI communicates exclusively through validated TypeScript/API service functions.
+
+### AI Permissions
+- Read: Customer profiles, Product catalog, Inventory availability status, Customer purchasing history.
+- Propose: Draft order proposals, clarifying questions.
+- Escalate: Create Customer Query for human agent intervention.
+- **Strictly Prohibited**: The AI cannot change product prices, modify customer profiles, alter inventory stock, or automatically issue invoices.
+
+### Future Provider Abstraction
+- The CRM maintains clean service interfaces for both AI models (LLM providers) and WhatsApp gateways, preventing vendor lock-in.
+
 ---
 
 ## Change Log

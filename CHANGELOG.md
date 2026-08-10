@@ -5,6 +5,35 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.14.0] - 2026-08-10
+
+### Added
+- **HTML Business Data Integration & Future WhatsApp/AI Preparation**:
+  - **Source Inspection & Parsing (`src/utils/htmlDataParser.ts`)**:
+    - Inspection of `Untitled-1.html` ("J &T Supplies — Price Reference"): Parsed 1,022 products with unique SKUs and Item Codes (`desiredSPBase`, `minSPBase`, `maxSPBase`, `unitGroup`, `targets`).
+    - Inspection of `index.html` ("J &T Supplies — Customer Price List"): Parsed 393 commercial customer accounts and 6,479 historical customer-product relationships with 100% item code match rate against product catalog.
+    - Zero fake data generated: Phone, WhatsApp, City, and Route remain empty for missing records.
+  - **Database & Model Extensions (`database/schema.sql` & `src/types/index.ts`)**:
+    - Created `customer_product_history` table and TypeScript model (`customer_id`, `product_id`, `source_item_code`, `source_item_name`, `packaging_unit`, `customer_price`, `inner_unit`, `inner_qty`, `unit_price`, `import_batch_id`).
+    - Added future WhatsApp tables (`whatsapp_contacts`, `whatsapp_conversations`, `whatsapp_messages`).
+  - **Database Service Auto-Seeding (`src/services/db.ts` & `src/data/seedHtmlData.ts`)**:
+    - Pre-seeded CRM in-memory & localStorage store with all 1,022 products, 393 customers, and 6,479 historical purchasing relationship records.
+    - Added `getCustomerProductHistory`, `getCustomerProductHistoryByCustomerName`, and `importHTMLBusinessData` methods.
+  - **Admin HTML Import UI (`src/pages/admin/AdminImport.tsx`)**:
+    - Added Auto-Detected HTML Business Data card and upload parser.
+    - Added interactive Import Preview displaying summary statistics (1,022 Products, 393 Customers, 6,479 Relationships, 100% Match Rate) and preview tabs.
+    - Added controlled import confirmation flow logging `import_jobs`.
+  - **Customer Profile Historical Purchasing View (`src/pages/CustomerDetail.tsx`)**:
+    - Added **"Historical Purchasing Catalog"** tab displaying agreed prices, packaging units, inner pack details, and current catalog stock availability badges.
+    - Concept Separation: Kept historical purchase pricing strictly separate from live inventory stock availability.
+  - **Vendor-Agnostic AI & WhatsApp Service Abstractions (`src/services/aiService.ts` & `src/services/messagingService.ts`)**:
+    - `AIService` class with validated tool functions: `findCustomerByWhatsApp`, `searchProducts`, `getProductDetails`, `getCustomerHistory`, `checkProductAvailability`, `createOrderRequest` (draft proposal), `createCustomerQuery` (human escalation).
+    - `MessagingProvider` interface and stub implementation for future WhatsApp gateway integration.
+    - Strict security boundaries: Zero raw SQL/database write access for AI. The AI cannot alter prices, modify stock, change customer data, or issue invoices.
+  - **Documentation**: Updated `PROJECT_SPEC.md` and `CHANGELOG.md` with comprehensive data mappings, import rules, and WhatsApp/AI architectural boundaries.
+
+---
+
 ## [1.13.0] - 2026-08-10
 
 ### Added

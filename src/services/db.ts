@@ -48,6 +48,10 @@ import {
   BrandFormInput,
   ShiftConfigInput,
   ImportJob,
+  CustomerProductHistory,
+  HTMLImportPreview,
+  HTMLProductRecord,
+  HTMLCustomerRecord,
   ImportType,
   ImportStrategy,
   ImportJobStatus,
@@ -62,6 +66,7 @@ import {
 } from '../types';
 import { notificationService } from './notificationService';
 import { permissions } from './permissions';
+import { SEED_HTML_PRODUCTS, SEED_HTML_CUSTOMERS } from '../data/seedHtmlData';
 
 
 
@@ -276,6 +281,9 @@ class LocalDatabaseService {
   private dailyOrderOperationsKey = 'jt_crm_daily_order_operations';
   private dailyOrderOperationHistoryKey = 'jt_crm_daily_order_operation_history';
 
+  // Step 12 HTML Business Data Integration Key
+  private customerProductHistoryKey = 'jt_crm_customer_product_history';
+
   constructor() {
     this.init();
   }
@@ -299,6 +307,7 @@ class LocalDatabaseService {
       [this.productBrandsKey, SEED_PRODUCT_BRANDS],
       [this.productsKey, []],
       [this.productHistoryKey, []],
+      [this.customerProductHistoryKey, []],
       [this.shiftsKey, []],
       [this.handoversKey, []],
       [this.handoverItemsKey, []],
@@ -311,8 +320,10 @@ class LocalDatabaseService {
     ];
 
     seeds.forEach(([key, rows]) => {
-      // Always prime storage with clean state for reset
-      storageSet(key, JSON.stringify(rows));
+      // Always prime storage with clean state for reset if missing
+      if (storageGet(key) === null) {
+        storageSet(key, JSON.stringify(rows));
+      }
     });
 
     if (storageGet(this.systemSettingsKey) === null) {
@@ -329,6 +340,112 @@ class LocalDatabaseService {
       };
       storagePrime(this.systemSettingsKey, JSON.stringify(defaultSettings));
     }
+
+    // Auto-seed HTML Business Data if products/customers/history are empty
+    this.ensureHtmlBusinessDataSeeded();
+  }
+
+  private ensureHtmlBusinessDataSeeded() {
+    const existingProducts = storageGet(this.productsKey);
+    const parsedProds: Product[] = existingProducts ? JSON.parse(existingProducts) : [];
+
+    const existingCusts = storageGet(this.customersKey);
+    const parsedCusts: Customer[] = existingCusts ? JSON.parse(existingCusts) : [];
+
+    const existingHist = storageGet(this.customerProductHistoryKey);
+    const parsedHist: CustomerProductHistory[] = existingHist ? JSON.parse(existingHist) : [];
+
+    if (parsedProds.length === 0 && parsedCusts.length === 0 && parsedHist.length === 0) {
+      this.seedHtmlBusinessData();
+    }
+  }
+
+  public seedHtmlBusinessData() {
+    const categories = SEED_PRODUCT_CATEGORIES;
+    const catMap = new Map<string, string>();
+    categories.forEach(c => catMap.set(c.name.toLowerCase(), c.id));
+    const defaultCatId = categories[0]?.id || '00000000-0000-0000-0003-000000000001';
+
+    // 1. Convert SEED_HTML_PRODUCTS -> Product[]
+    const codeToProductMap = new Map<string, Product>();
+    const newProducts: Product[] = SEED_HTML_PRODUCTS.map((p, idx) => {
+      const catId = catMap.get(p.category.toLowerCase()) || defaultCatId;
+      const prodObj: Product = {
+        id: `prod-${p.itemCode}`,
+        sku: p.sku || `ITEM-${p.itemCode}`,
+        product_name: p.name,
+        description: p.subcategory ? `${p.category} > ${p.subcategory}` : p.category,
+        category_id: catId,
+        brand_id: null,
+        unit_price: p.desiredSPBase || 0,
+        availability_status: 'available',
+        availability_notes: null,
+        expected_available_date: null,
+        is_active: true,
+        created_at: new Date('2026-01-01').toISOString(),
+        updated_at: new Date('2026-01-01').toISOString(),
+        created_by: null,
+        updated_by: null,
+      };
+      codeToProductMap.set(p.itemCode, prodObj);
+      return prodObj;
+    });
+
+    storageSet(this.productsKey, JSON.stringify(newProducts));
+
+    // 2. Convert SEED_HTML_CUSTOMERS -> Customer[] and CustomerProductHistory[]
+    const newCustomers: Customer[] = [];
+    const newHistory: CustomerProductHistory[] = [];
+
+    SEED_HTML_CUSTOMERS.forEach((c, cIdx) => {
+      const custId = `cust-html-${cIdx + 1}`;
+      const custCode = `CUST-${String(cIdx + 1).padStart(4, '0')}`;
+      
+      const custObj: Customer = {
+        id: custId,
+        customer_code: custCode,
+        company_name: c.customerName,
+        contact_person: null,
+        phone: '',
+        whatsapp_number: '',
+        email: null,
+        city: '',
+        route: '',
+        address: '',
+        country: 'USA',
+        notes: null,
+        status: 'active',
+        created_at: new Date('2026-01-01').toISOString(),
+        updated_at: new Date('2026-01-01').toISOString(),
+        created_by: null,
+        updated_by: null,
+      };
+
+      newCustomers.push(custObj);
+
+      c.items.forEach((item, itemIdx) => {
+        const matchedProd = codeToProductMap.get(item.itemCode);
+        const histObj: CustomerProductHistory = {
+          id: `cph-${cIdx + 1}-${itemIdx + 1}`,
+          customer_id: custId,
+          customer_name: c.customerName,
+          product_id: matchedProd ? matchedProd.id : null,
+          source_item_code: item.itemCode,
+          source_item_name: item.itemName,
+          packaging_unit: item.unit,
+          customer_price: item.price,
+          inner_unit: item.innerUnit,
+          inner_qty: item.innerQty,
+          unit_price: item.unitPrice,
+          created_at: new Date('2026-01-01').toISOString(),
+          updated_at: new Date('2026-01-01').toISOString(),
+        };
+        newHistory.push(histObj);
+      });
+    });
+
+    storageSet(this.customersKey, JSON.stringify(newCustomers));
+    storageSet(this.customerProductHistoryKey, JSON.stringify(newHistory));
   }
 
   public clearAllBusinessData(): void {
@@ -344,6 +461,7 @@ class LocalDatabaseService {
       this.orderDocsKey,
       this.productsKey,
       this.productHistoryKey,
+      this.customerProductHistoryKey,
       this.shiftsKey,
       this.handoversKey,
       this.handoverItemsKey,
@@ -3409,6 +3527,217 @@ class LocalDatabaseService {
       list.unshift(newItem);
       storageSet(this.dailyOrderOperationHistoryKey, JSON.stringify(list));
     } catch {}
+  }
+
+  // --- Step 12: Customer Product History & HTML Business Data Import ---
+
+  public getCustomerProductHistory(customerId?: string): CustomerProductHistory[] {
+    try {
+      const data = storageGet(this.customerProductHistoryKey);
+      let list: CustomerProductHistory[] = data ? JSON.parse(data) : [];
+      const products = this.getProducts();
+
+      if (customerId) {
+        list = list.filter(h => h.customer_id === customerId);
+      }
+
+      return list.map(h => ({
+        ...h,
+        product: h.product_id ? products.find(p => p.id === h.product_id) || null : null,
+      })).sort((a, b) => a.source_item_name.localeCompare(b.source_item_name));
+    } catch {
+      return [];
+    }
+  }
+
+  public getCustomerProductHistoryByCustomerName(companyName: string): CustomerProductHistory[] {
+    try {
+      const data = storageGet(this.customerProductHistoryKey);
+      let list: CustomerProductHistory[] = data ? JSON.parse(data) : [];
+      const products = this.getProducts();
+
+      const normSearch = companyName.toLowerCase().trim();
+      list = list.filter(h => (h.customer_name && h.customer_name.toLowerCase().trim() === normSearch));
+
+      return list.map(h => ({
+        ...h,
+        product: h.product_id ? products.find(p => p.id === h.product_id) || null : null,
+      })).sort((a, b) => a.source_item_name.localeCompare(b.source_item_name));
+    } catch {
+      return [];
+    }
+  }
+
+  public importHTMLBusinessData(
+    preview: HTMLImportPreview,
+    strategy: ImportStrategy = 'create_new_only',
+    fileName: string = 'HTML_Business_Data.html',
+    userId?: string
+  ): ImportJob {
+    const jobId = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    let createdCount = 0;
+    let updatedCount = 0;
+    let skippedCount = 0;
+
+    // 1. Process Products
+    const products = this.getProductsRaw();
+    const categories = this.getCategories();
+    const defaultCatId = categories[0]?.id || '00000000-0000-0000-0003-000000000001';
+    const catMap = new Map<string, string>();
+    categories.forEach(c => catMap.set(c.name.toLowerCase(), c.id));
+
+    const codeToProductMap = new Map<string, Product>();
+    products.forEach(p => {
+      // Map itemCode if SKU matches ITEM-xxx or contains itemCode
+      codeToProductMap.set(p.sku.replace('ITEM-', ''), p);
+    });
+
+    preview.productDetails.forEach((p) => {
+      const existing = products.find(prod => prod.sku === p.sku || prod.id === `prod-${p.itemCode}`);
+      if (existing) {
+        if (strategy === 'update_existing') {
+          existing.product_name = p.name;
+          existing.unit_price = p.desiredSPBase || existing.unit_price;
+          existing.updated_at = now;
+          updatedCount++;
+          codeToProductMap.set(p.itemCode, existing);
+        } else {
+          skippedCount++;
+          codeToProductMap.set(p.itemCode, existing);
+        }
+      } else {
+        const catId = catMap.get(p.category.toLowerCase()) || defaultCatId;
+        const newProd: Product = {
+          id: `prod-${p.itemCode}`,
+          sku: p.sku || `ITEM-${p.itemCode}`,
+          product_name: p.name,
+          description: p.subcategory ? `${p.category} > ${p.subcategory}` : p.category,
+          category_id: catId,
+          brand_id: null,
+          unit_price: p.desiredSPBase || 0,
+          availability_status: 'available',
+          availability_notes: null,
+          expected_available_date: null,
+          is_active: true,
+          created_at: now,
+          updated_at: now,
+          created_by: userId || null,
+          updated_by: userId || null,
+        };
+        products.push(newProd);
+        createdCount++;
+        codeToProductMap.set(p.itemCode, newProd);
+      }
+    });
+
+    storageSet(this.productsKey, JSON.stringify(products));
+
+    // 2. Process Customers
+    const customers = this.getCustomers();
+    const existingHist = this.getCustomerProductHistory();
+    const histMap = new Map<string, CustomerProductHistory>();
+    existingHist.forEach(h => histMap.set(`${h.customer_id}_${h.source_item_code}`, h));
+
+    const normCustMap = new Map<string, Customer>();
+    customers.forEach(c => normCustMap.set(c.company_name.toLowerCase().replace(/[^a-z0-9]/g, ''), c));
+
+    preview.customerDetails.forEach((c) => {
+      const normName = c.customerName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      let cust = normCustMap.get(normName);
+
+      if (!cust) {
+        const nextIdx = customers.length + 1;
+        const newCust: Customer = {
+          id: `cust-html-${nextIdx}`,
+          customer_code: `CUST-${String(nextIdx).padStart(4, '0')}`,
+          company_name: c.customerName,
+          contact_person: null,
+          phone: '',
+          whatsapp_number: '',
+          email: null,
+          city: '',
+          route: '',
+          address: '',
+          country: 'USA',
+          notes: null,
+          status: 'active',
+          created_at: now,
+          updated_at: now,
+          created_by: userId || null,
+          updated_by: userId || null,
+        };
+
+        cust = newCust;
+        customers.push(cust);
+        normCustMap.set(normName, cust);
+        createdCount++;
+      }
+
+
+      // Add historical products
+      c.items.forEach((item, itemIdx) => {
+        const key = `${cust!.id}_${item.itemCode}`;
+        const matchedProd = codeToProductMap.get(item.itemCode);
+
+        if (!histMap.has(key)) {
+          const histRecord: CustomerProductHistory = {
+            id: `cph-${cust!.id}-${item.itemCode}-${itemIdx}`,
+            customer_id: cust!.id,
+            customer_name: c.customerName,
+            product_id: matchedProd ? matchedProd.id : null,
+            source_item_code: item.itemCode,
+            source_item_name: item.itemName,
+            packaging_unit: item.unit,
+            customer_price: item.price,
+            inner_unit: item.innerUnit,
+            inner_qty: item.innerQty,
+            unit_price: item.unitPrice,
+            import_batch_id: jobId,
+            created_at: now,
+            updated_at: now,
+          };
+          existingHist.push(histRecord);
+          histMap.set(key, histRecord);
+        }
+      });
+    });
+
+    storageSet(this.customersKey, JSON.stringify(customers));
+    storageSet(this.customerProductHistoryKey, JSON.stringify(existingHist));
+
+    // Record Import Job
+    const job: ImportJob = {
+      id: jobId,
+      import_type: 'html_business_data',
+      file_name: fileName,
+      import_strategy: strategy,
+      total_rows: preview.productsFound + preview.customersFound + preview.historicalRelationships,
+      created_count: createdCount,
+      updated_count: updatedCount,
+      skipped_count: skippedCount,
+      failed_count: 0,
+      status: 'completed',
+      started_at: now,
+      completed_at: now,
+      created_by: userId || null,
+    };
+
+    const jobs = this.getImportJobs();
+    jobs.unshift(job);
+    storageSet(this.importJobsKey, JSON.stringify(jobs));
+
+    this.logAudit({
+      user_id: userId || null,
+      action: 'html_data_import',
+      entity_type: 'import_job',
+      entity_id: jobId,
+      entity_number: fileName,
+      summary: `Imported HTML Business Data: ${preview.productsFound} products, ${preview.customersFound} customers, ${preview.historicalRelationships} historical relationships`,
+    });
+
+    return job;
   }
 
 }

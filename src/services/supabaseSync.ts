@@ -294,16 +294,28 @@ export async function initializeFromSupabase(): Promise<void> {
         continue;
       }
 
-      if (data && data.length > 0) {
-        storagePrime(lsKey, JSON.stringify(data));
+      const remoteData = data || [];
+      const remoteCount = remoteData.length;
+
+      const localData = storageGet(lsKey);
+      let localCount = 0;
+      if (localData) {
+        try {
+          const parsedLocal = JSON.parse(localData);
+          localCount = Array.isArray(parsedLocal) ? parsedLocal.length : (parsedLocal ? 1 : 0);
+        } catch {}
+      }
+
+      if (remoteCount >= localCount && remoteCount > 0) {
+        storagePrime(lsKey, JSON.stringify(remoteData));
         previousRowIds.set(
           lsKey,
-          new Set(data.map((row) => (row as { id?: unknown }).id as string))
+          new Set(remoteData.map((row) => (row as { id?: unknown }).id as string))
         );
-        console.log(`[Supabase] Loaded ${data.length} rows into '${lsKey}' from Supabase table '${TABLE_MAP[lsKey]}'.`);
-      } else {
-        const localData = storageGet(lsKey);
+        console.log(`[Supabase] Loaded ${remoteCount} rows into '${lsKey}' from Supabase table '${TABLE_MAP[lsKey]}'.`);
+      } else if (localCount > 0) {
         if (localData) {
+          console.log(`[Supabase] Local dataset for '${lsKey}' (${localCount} rows) is larger than remote Supabase (${remoteCount} rows). Pushing local data to Supabase...`);
           await syncTableToSupabase(lsKey, localData);
         }
       }
@@ -313,6 +325,7 @@ export async function initializeFromSupabase(): Promise<void> {
     console.error('[Supabase] initializeFromSupabase failed:', err);
   }
 }
+
 
 /**
  * Clears local cache and re-hydrates completely from Supabase.

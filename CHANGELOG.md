@@ -5,6 +5,21 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.13.0] - 2026-08-10
+
+### Added
+- **Full Application Data Reset**: Performed a complete, safe application data reset removing all business, customer, product, query, daily operation, order, notification, import, and audit history records while preserving system infrastructure, database schemas, authentication users, roles, categories, brands, system settings, portals, and weekly route schedules.
+- **Clean Reset State (`src/services/db.ts`)**:
+  - Reset seed datasets for business entities (`SEED_CUSTOMERS`, `SEED_PRODUCTS`, `SEED_QUERIES`, `SEED_ACTIVITIES`, `SEED_NOTES`, `SEED_NOTIFICATIONS`, `SEED_ORDERS`, `SEED_ORDER_ITEMS`, `SEED_ORDER_HISTORY`, `SEED_ORDER_DOCUMENTS`, `SEED_PRODUCT_HISTORY`, `SEED_SHIFTS`, `SEED_HANDOVERS`, `SEED_HANDOVER_ITEMS`) to empty arrays `[]`.
+  - Added `clearAllBusinessData()` helper method in `LocalDatabaseService` to purge any stored in-memory or localStorage demo rows.
+  - Preserved system configuration seeds (`SEED_TEAMS`, `SEED_USERS`, `SEED_CATEGORIES`, `SEED_PRODUCT_CATEGORIES`, `SEED_PRODUCT_BRANDS`, `SEED_ROUTE_SCHEDULES`).
+  - Standardized Thursday weekly route schedule to a single `Kelowna` route entry.
+- **SQL Schema & Seed Reset (`database/schema.sql` & `database/seed.sql`)**:
+  - Removed all business data seed `INSERT` statements from `database/schema.sql` and `database/seed.sql`.
+  - Maintained all table definitions (`CREATE TABLE`), indexes, foreign key constraints, triggers, RLS policies, system setting defaults, and weekly route schedule seeds.
+
+---
+
 ## [1.12.0] - 2026-08-10
 
 ### Added

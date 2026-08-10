@@ -351,6 +351,29 @@ The application follows a curated, operational visual identity designed for high
 
 ---
 
+## Full Application Data Reset
+
+The CRM application is configured with a clean, 0-data baseline for immediate production use and CSV imports.
+
+### Business Data Baseline
+- **Customers**: 0
+- **Products**: 0
+- **Customer Queries**: 0
+- **Daily Operations Records**: 0
+- **Sales Orders & Invoices**: 0
+- **Notifications**: 0
+- **CSV Import History**: 0
+- **Business Audit History**: 0
+
+### Preserved System Infrastructure
+- **Tables & Schemas**: All database tables, columns, indexes, foreign key constraints, triggers, and RLS policies.
+- **Admin Auth & Users**: Admin user `Tauseef (Admin)` (`tauseef@jtsupplies.com`) and team profiles (`Muzammil`, `Abdul Rehman`, `Sohail`, `Aasil`).
+- **Teams & Roles**: `Team 1` (3 PM – 11 AM), `Team 2` (12 PM – 8 AM), and RBAC roles (`admin`, `sales_agent`, `support_agent`).
+- **Taxonomies & Settings**: Query Categories, Product Categories, Product Brands, System Settings, and Portals (`Kelowna Portal`, `Outside Kelowna Portal`).
+- **Weekly Route Schedule**: Monday to Sunday schedule preserved (with Thursday deduplicated to a single `Kelowna` route entry).
+
+---
+
 ## Change Log
 All technical changes are logged in [CHANGELOG.md](file:///c:/Users/TIW%20COMPUTER/Desktop/CRM/CHANGELOG.md).
 

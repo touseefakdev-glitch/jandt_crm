@@ -10,7 +10,7 @@ export const AppShell: React.FC = () => {
 
   return (
     <ToastProvider>
-      <div className="min-h-screen bg-slate-100 flex flex-col font-sans">
+      <div className="min-h-screen bg-[#F5F7FA] text-[#172B4D] flex flex-col font-sans">
         <Header
           onOpenMobileNav={() => setMobileNavOpen(true)}
           sidebarCollapsed={sidebarCollapsed}

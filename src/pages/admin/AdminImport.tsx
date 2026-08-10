@@ -172,25 +172,25 @@ export const AdminImport: React.FC = () => {
       </Card>
 
       {/* Stepper Header */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+      <div className="bg-white rounded-[12px] border border-[#D9E2EC] p-4 shadow-xs">
         <div className="flex items-center justify-between max-w-3xl mx-auto text-xs">
-          <div className={`flex items-center space-x-2 ${currentStep === 'select_type' ? 'text-brand-600 font-bold' : 'text-slate-500'}`}>
-            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${currentStep === 'select_type' ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600'}`}>1</span>
+          <div className={`flex items-center space-x-2 ${currentStep === 'select_type' ? 'text-teal-700 font-extrabold' : 'text-[#52606D]'}`}>
+            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${currentStep === 'select_type' ? 'bg-teal-500 text-white' : 'bg-[#E9EFF5] text-[#52606D]'}`}>1</span>
             <span>Select Type</span>
           </div>
-          <div className="w-8 h-px bg-slate-200" />
-          <div className={`flex items-center space-x-2 ${currentStep === 'upload' ? 'text-brand-600 font-bold' : 'text-slate-500'}`}>
-            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${currentStep === 'upload' ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600'}`}>2</span>
+          <div className="w-8 h-px bg-[#D9E2EC]" />
+          <div className={`flex items-center space-x-2 ${currentStep === 'upload' ? 'text-teal-700 font-extrabold' : 'text-[#52606D]'}`}>
+            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${currentStep === 'upload' ? 'bg-teal-500 text-white' : 'bg-[#E9EFF5] text-[#52606D]'}`}>2</span>
             <span>Upload CSV</span>
           </div>
-          <div className="w-8 h-px bg-slate-200" />
-          <div className={`flex items-center space-x-2 ${currentStep === 'preview' ? 'text-brand-600 font-bold' : 'text-slate-500'}`}>
-            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${currentStep === 'preview' ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600'}`}>3</span>
+          <div className="w-8 h-px bg-[#D9E2EC]" />
+          <div className={`flex items-center space-x-2 ${currentStep === 'preview' ? 'text-teal-700 font-extrabold' : 'text-[#52606D]'}`}>
+            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${currentStep === 'preview' ? 'bg-teal-500 text-white' : 'bg-[#E9EFF5] text-[#52606D]'}`}>3</span>
             <span>Validate & Preview</span>
           </div>
-          <div className="w-8 h-px bg-slate-200" />
-          <div className={`flex items-center space-x-2 ${currentStep === 'results' ? 'text-brand-600 font-bold' : 'text-slate-500'}`}>
-            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${currentStep === 'results' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'}`}>4</span>
+          <div className="w-8 h-px bg-[#D9E2EC]" />
+          <div className={`flex items-center space-x-2 ${currentStep === 'results' ? 'text-green-700 font-extrabold' : 'text-[#52606D]'}`}>
+            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${currentStep === 'results' ? 'bg-green-500 text-white' : 'bg-[#E9EFF5] text-[#52606D]'}`}>4</span>
             <span>Results</span>
           </div>
         </div>

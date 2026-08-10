@@ -186,25 +186,25 @@ export const CustomerDetail: React.FC = () => {
               <CardHeader title="Contact Details" />
               <CardBody className="pt-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                  <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-100">
-                    <span className="text-xs text-slate-500 font-semibold block uppercase">Contact Person</span>
-                    <span className="font-semibold text-slate-900 mt-0.5 block">{customer.contact_person || <span className="text-slate-400 italic">Not specified</span>}</span>
+                  <div className="p-3.5 bg-[#F5F7FA] rounded-[8px] border border-[#D9E2EC]">
+                    <span className="text-[10px] text-[#52606D] font-extrabold block uppercase tracking-wider">Contact Person</span>
+                    <span className="font-bold text-[#172B4D] mt-0.5 block">{customer.contact_person || <span className="text-[#829AB1] italic">Not specified</span>}</span>
                   </div>
-                  <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-100">
-                    <span className="text-xs text-slate-500 font-semibold block uppercase">Telephone</span>
-                    <span className="font-semibold text-slate-900 font-mono mt-0.5 block">{customer.phone || <span className="text-slate-400 italic">Not specified</span>}</span>
+                  <div className="p-3.5 bg-[#F5F7FA] rounded-[8px] border border-[#D9E2EC]">
+                    <span className="text-[10px] text-[#52606D] font-extrabold block uppercase tracking-wider">Telephone</span>
+                    <span className="font-bold text-[#172B4D] font-mono mt-0.5 block">{customer.phone || <span className="text-[#829AB1] italic">Not specified</span>}</span>
                   </div>
-                  <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-100">
-                    <span className="text-xs text-slate-500 font-semibold block uppercase">WhatsApp Number</span>
-                    <span className="font-semibold text-emerald-700 font-mono mt-0.5 block">{customer.whatsapp_number || <span className="text-slate-400 italic">Not specified</span>}</span>
+                  <div className="p-3.5 bg-[#F5F7FA] rounded-[8px] border border-[#D9E2EC]">
+                    <span className="text-[10px] text-teal-800 font-extrabold block uppercase tracking-wider">WhatsApp Number</span>
+                    <span className="font-bold text-teal-600 font-mono mt-0.5 block">{customer.whatsapp_number || <span className="text-[#829AB1] italic">Not specified</span>}</span>
                   </div>
-                  <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-100 sm:col-span-2">
-                    <span className="text-xs text-slate-500 font-semibold block uppercase">Email Address</span>
-                    <span className="font-semibold text-slate-900 font-mono mt-0.5 block">
+                  <div className="p-3.5 bg-[#F5F7FA] rounded-[8px] border border-[#D9E2EC]">
+                    <span className="text-[10px] text-[#52606D] font-extrabold block uppercase tracking-wider">Email Address</span>
+                    <span className="font-bold text-[#172B4D] font-mono mt-0.5 block">
                       {customer.email ? (
-                        <a href={`mailto:${customer.email}`} className="text-brand-600 hover:underline">{customer.email}</a>
+                        <a href={`mailto:${customer.email}`} className="text-teal-600 hover:underline">{customer.email}</a>
                       ) : (
-                        <span className="text-slate-400 italic">Not specified</span>
+                        <span className="text-[#829AB1] italic">Not specified</span>
                       )}
                     </span>
                   </div>
@@ -213,16 +213,16 @@ export const CustomerDetail: React.FC = () => {
             </Card>
 
             <Card>
-              <CardHeader title="Shipping & Business Address" />
+              <CardHeader title="Shipping & Route Information" />
               <CardBody className="pt-4">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                  <div className="sm:col-span-2 p-3.5 bg-slate-50 rounded-lg border border-slate-100">
-                    <span className="text-xs text-slate-500 font-semibold block uppercase">Street Address</span>
-                    <span className="font-medium text-slate-900 mt-0.5 block">{customer.address || <span className="text-slate-400 italic">No street address recorded</span>}</span>
+                  <div className="sm:col-span-2 p-3.5 bg-[#F5F7FA] rounded-[8px] border border-[#D9E2EC]">
+                    <span className="text-[10px] text-[#52606D] font-extrabold block uppercase tracking-wider">Street Address</span>
+                    <span className="font-semibold text-[#172B4D] mt-0.5 block">{customer.address || <span className="text-[#829AB1] italic">No street address recorded</span>}</span>
                   </div>
-                  <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-100">
-                    <span className="text-xs text-slate-500 font-semibold block uppercase">City & Route</span>
-                    <span className="font-medium text-slate-900 mt-0.5 block">{customer.city || 'N/A'} {customer.route ? `(${customer.route})` : ''}</span>
+                  <div className="p-3.5 bg-[#F5F7FA] rounded-[8px] border border-[#D9E2EC]">
+                    <span className="text-[10px] text-[#52606D] font-extrabold block uppercase tracking-wider">City & Route</span>
+                    <span className="font-extrabold text-navy-900 mt-0.5 block">{customer.city || 'N/A'} {customer.route ? `• ${customer.route}` : ''}</span>
                   </div>
                 </div>
               </CardBody>

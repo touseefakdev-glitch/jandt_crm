@@ -10,12 +10,12 @@ export interface EmptyStateProps {
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, description, action, className }) => (
-  <div className={cn('p-12 text-center', className)}>
+  <div className={cn('p-12 text-center bg-white rounded-[12px] border border-[#D9E2EC]', className)}>
     {icon && (
-      <div className="w-14 h-14 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mx-auto mb-4">{icon}</div>
+      <div className="w-12 h-12 bg-[#E9EFF5] text-[#52606D] rounded-[10px] flex items-center justify-center mx-auto mb-3">{icon}</div>
     )}
-    <h3 className="text-base font-bold text-slate-800">{title}</h3>
-    {description && <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1.5 leading-relaxed">{description}</p>}
-    {action && <div className="mt-5 flex items-center justify-center gap-2">{action}</div>}
+    <h3 className="text-sm font-bold text-[#172B4D]">{title}</h3>
+    {description && <p className="text-xs text-[#52606D] max-w-sm mx-auto mt-1 leading-relaxed font-medium">{description}</p>}
+    {action && <div className="mt-4 flex items-center justify-center gap-2">{action}</div>}
   </div>
 );

@@ -95,31 +95,31 @@ export const Modal: React.FC<ModalProps> = ({
         aria-modal="true"
         aria-label={typeof title === 'string' ? title : undefined}
         className={cn(
-          'relative w-full bg-white rounded-2xl shadow-overlay border border-slate-200 animate-scale-in my-auto',
+          'relative w-full bg-white rounded-[12px] shadow-overlay border border-[#D9E2EC] animate-scale-in my-auto',
           sizeClasses[size],
           className
         )}
       >
         {(title || icon) && (
-          <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-slate-200">
+          <div className="flex items-start justify-between gap-4 px-6 pt-4 pb-3.5 border-b border-[#D9E2EC]">
             <div className="flex items-start gap-3 min-w-0">
-              {icon && <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0">{icon}</div>}
+              {icon && <div className="w-9 h-9 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">{icon}</div>}
               <div className="min-w-0">
-                <h2 className="text-base font-bold text-slate-900 tracking-tight leading-snug">{title}</h2>
-                {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
+                <h2 className="text-base font-bold text-[#172B4D] tracking-tight leading-snug">{title}</h2>
+                {subtitle && <p className="mt-0.5 text-xs text-[#52606D]">{subtitle}</p>}
               </div>
             </div>
             <button
               onClick={onClose}
               aria-label="Close dialog"
-              className="p-1.5 -mr-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors shrink-0"
+              className="p-1.5 -mr-1.5 text-[#829AB1] hover:text-[#172B4D] hover:bg-[#E9EFF5] rounded-md transition-colors shrink-0"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         )}
         <div className="px-6 py-5 max-h-[calc(100vh-10rem)] overflow-y-auto">{children}</div>
-        {footer && <div className="px-6 py-4 border-t border-slate-200 bg-slate-50/70 rounded-b-2xl flex items-center justify-end gap-2.5">{footer}</div>}
+        {footer && <div className="px-6 py-3.5 border-t border-[#D9E2EC] bg-[#F5F7FA] rounded-b-[12px] flex items-center justify-end gap-2.5">{footer}</div>}
       </div>
     </div>,
     document.body

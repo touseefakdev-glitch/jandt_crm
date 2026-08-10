@@ -12,16 +12,16 @@ export interface PageHeaderProps {
 }
 
 export const PageHeader: React.FC<PageHeaderProps> = ({ icon, iconBg, title, description, badges, actions, className }) => (
-  <div className={cn('flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-slate-200 shadow-card', className)}>
+  <div className={cn('flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-[12px] border border-[#D9E2EC] shadow-card', className)}>
     <div className="flex items-center gap-3.5 min-w-0">
       {icon && (
-        <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-sm', iconBg || 'bg-slate-900')}>
+        <div className={cn('w-10 h-10 rounded-[8px] flex items-center justify-center shrink-0 text-white font-bold', iconBg || 'bg-navy-900')}>
           {icon}
         </div>
       )}
       <div className="min-w-0">
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight leading-tight">{title}</h1>
-        {description && <p className="text-xs text-slate-500 mt-1">{description}</p>}
+        <h1 className="text-xl font-extrabold text-[#172B4D] tracking-tight leading-tight">{title}</h1>
+        {description && <p className="text-xs text-[#52606D] mt-0.5 font-medium">{description}</p>}
         {badges && <div className="flex flex-wrap items-center gap-1.5 mt-2">{badges}</div>}
       </div>
     </div>

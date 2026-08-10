@@ -7,35 +7,42 @@ export interface StatCardProps {
   value: React.ReactNode;
   description?: React.ReactNode;
   icon: React.ReactNode;
-  accent?: 'brand' | 'emerald' | 'amber' | 'red' | 'slate' | 'violet';
+  accent?: 'teal' | 'green' | 'amber' | 'red' | 'navy' | 'brand' | 'emerald' | 'slate' | 'violet';
   to?: string;
 }
 
-const accentStyles: Record<NonNullable<StatCardProps['accent']>, { icon: string; hover: string }> = {
-  brand: { icon: 'bg-brand-50 text-brand-600', hover: 'group-hover:ring-brand-200' },
-  emerald: { icon: 'bg-emerald-50 text-emerald-600', hover: 'group-hover:ring-emerald-200' },
-  amber: { icon: 'bg-amber-50 text-amber-600', hover: 'group-hover:ring-amber-200' },
-  red: { icon: 'bg-red-50 text-red-600', hover: 'group-hover:ring-red-200' },
-  slate: { icon: 'bg-slate-100 text-slate-600', hover: 'group-hover:ring-slate-200' },
-  violet: { icon: 'bg-violet-50 text-violet-600', hover: 'group-hover:ring-violet-200' },
+const accentStyles: Record<string, { icon: string; indicator: string }> = {
+  teal: { icon: 'bg-teal-50 text-teal-600', indicator: 'bg-teal-500' },
+  green: { icon: 'bg-green-50 text-green-600', indicator: 'bg-green-500' },
+  amber: { icon: 'bg-amber-50 text-amber-600', indicator: 'bg-amber-500' },
+  red: { icon: 'bg-red-50 text-red-600', indicator: 'bg-red-500' },
+  navy: { icon: 'bg-navy-50 text-navy-900', indicator: 'bg-navy-900' },
+  brand: { icon: 'bg-teal-50 text-teal-600', indicator: 'bg-teal-500' },
+  emerald: { icon: 'bg-green-50 text-green-600', indicator: 'bg-green-500' },
+  slate: { icon: 'bg-[#E9EFF5] text-[#52606D]', indicator: 'bg-[#829AB1]' },
+  violet: { icon: 'bg-purple-50 text-purple-700', indicator: 'bg-purple-600' },
 };
 
-export const StatCard: React.FC<StatCardProps> = ({ title, value, description, icon, accent = 'brand', to }) => {
-  const styles = accentStyles[accent];
+export const StatCard: React.FC<StatCardProps> = ({ title, value, description, icon, accent = 'teal', to }) => {
+  const styles = accentStyles[accent] || accentStyles.teal;
   const inner = (
-    <div className={cn('group bg-white rounded-xl border border-slate-200 shadow-card p-5 transition-all duration-200 hover:shadow-card-hover hover:border-slate-300 hover:ring-2 hover:ring-offset-0', styles.hover)}>
-      <div className="flex items-center justify-between gap-3 mb-3">
-        <span className="text-xs font-semibold text-slate-600">{title}</span>
-        <span className={cn('w-9 h-9 rounded-lg flex items-center justify-center shrink-0', styles.icon)}>{icon}</span>
+    <div className="group bg-white rounded-[12px] border border-[#D9E2EC] shadow-card p-4 transition-all duration-150 hover:shadow-card-hover relative overflow-hidden">
+      {/* Subtle indicator bar on top */}
+      <div className={cn('absolute top-0 left-0 right-0 h-1', styles.indicator)} />
+      
+      <div className="flex items-center justify-between gap-3 mb-2 pt-1">
+        <span className="text-xs font-bold uppercase tracking-wider text-[#52606D]">{title}</span>
+        <span className={cn('w-8 h-8 rounded-[8px] flex items-center justify-center shrink-0 text-sm', styles.icon)}>{icon}</span>
       </div>
-      <div className="text-2xl font-extrabold text-slate-900 tracking-tight leading-none">{value}</div>
-      {description && <p className="text-xs text-slate-500 mt-2 leading-snug">{description}</p>}
+      
+      <div className="text-2xl font-extrabold text-[#172B4D] tracking-tight leading-none">{value}</div>
+      {description && <div className="text-xs text-[#52606D] mt-2 leading-snug font-medium">{description}</div>}
     </div>
   );
 
   if (to) {
     return (
-      <Link to={to} className="block">
+      <Link to={to} className="block transition-transform active:scale-[0.99]">
         {inner}
       </Link>
     );

@@ -15,16 +15,16 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={id} className="input-label">
+          <label htmlFor={id} className="crm-input-label">
             {label}
           </label>
         )}
         <div className="relative">
-          {icon && <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">{icon}</span>}
+          {icon && <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#829AB1]">{icon}</span>}
           <input
             ref={ref}
             id={id}
-            className={cn('input', icon ? 'pl-10' : undefined, error && 'border-red-400 focus:border-red-500 focus:ring-red-500/20', className)}
+            className={cn('crm-input', icon ? 'pl-9' : undefined, error && 'border-red-500 focus:border-red-500 focus:ring-red-500/20', className)}
             {...props}
           />
         </div>

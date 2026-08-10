@@ -93,28 +93,27 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-brand-900 rounded-2xl p-6 sm:p-8 text-white shadow-card relative overflow-hidden">
-        <div className="absolute -right-16 -top-16 w-64 h-64 bg-brand-600/20 rounded-full blur-3xl" aria-hidden="true" />
-        <div className="absolute right-24 bottom-0 w-32 h-32 bg-brand-500/10 rounded-full blur-2xl" aria-hidden="true" />
+      <div className="bg-[#102A43] rounded-[12px] p-6 sm:p-7 text-white shadow-card relative overflow-hidden border border-[#243B53]">
+        <div className="absolute -right-16 -top-16 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl" aria-hidden="true" />
         <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-5">
           <div>
-            <div className="flex items-center gap-2 text-xs text-slate-300 mb-2">
-              <Calendar className="w-4 h-4 text-brand-300" />
+            <div className="flex items-center gap-2 text-xs text-[#9FB3C8] mb-1 font-medium">
+              <Calendar className="w-4 h-4 text-teal-400" />
               <span>{todayFormatted}</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Welcome back, <span className="text-brand-300">{user.full_name}</span>
+            <h1 className="text-2xl font-extrabold tracking-tight text-white">
+              Welcome back, <span className="text-teal-400">{user.full_name}</span>
             </h1>
-            <p className="text-sm text-slate-300 mt-1.5">Here is your operational overview for J&T Supplies CRM.</p>
+            <p className="text-xs text-[#9FB3C8] mt-1 font-medium">Internal Operations Control Center — J&T Supplies CRM</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge badge={roleBadge} />
             {userTeam && (
-              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-white/10 ring-1 ring-white/20 text-slate-100">
-                <Users className="w-3.5 h-3.5 text-brand-300" />
-                <span className="font-semibold">{userTeam.name}</span>
-                <span className="text-slate-400">•</span>
-                <Clock className="w-3.5 h-3.5 text-brand-300" />
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-[#243B53] text-[#D9E2EC] border border-[#334E68]">
+                <Users className="w-3.5 h-3.5 text-teal-400" />
+                <span className="font-bold">{userTeam.name}</span>
+                <span className="text-[#627D98]">•</span>
+                <Clock className="w-3.5 h-3.5 text-teal-400" />
                 <span className="font-mono">{userTeam.shift_info}</span>
               </span>
             )}
@@ -124,21 +123,21 @@ export const Dashboard: React.FC = () => {
 
       {/* Handover Action Banner */}
       {pendingIncomingHandover && (
-        <div className="bg-brand-600 text-white rounded-xl shadow-card border border-brand-700 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in">
+        <div className="bg-teal-500 text-white rounded-[12px] shadow-card border border-teal-600 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-in">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-white/15 rounded-xl flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 bg-white/20 rounded-[8px] flex items-center justify-center shrink-0">
               <Clock className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-[11px] font-extrabold uppercase tracking-wider text-brand-200">Shift Handover Action Required</div>
-              <p className="text-sm font-semibold mt-0.5">
+              <div className="text-[10px] font-extrabold uppercase tracking-wider text-teal-100">Shift Handover Action Required</div>
+              <p className="text-xs font-bold mt-0.5">
                 {pendingIncomingHandover.outgoing_team?.name || 'Outgoing Team'} submitted a handover with {pendingIncomingHandover.items?.length || 0} item(s).
               </p>
             </div>
           </div>
           <Link
             to="/shift-handover"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-brand-900 hover:bg-brand-50 font-semibold text-sm rounded-lg shadow-sm transition-colors shrink-0"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-navy-900 text-white hover:bg-navy-950 font-bold text-xs rounded-[8px] shadow-xs transition-colors shrink-0"
           >
             Review & Acknowledge <ArrowRight className="w-4 h-4" />
           </Link>

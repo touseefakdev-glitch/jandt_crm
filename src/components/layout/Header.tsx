@@ -147,32 +147,32 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileNav, sidebarCollapse
   };
 
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-[0_1px_2px_rgb(15_23_42/0.04)]">
+    <header className="bg-white border-b border-[#D9E2EC] sticky top-0 z-40 shadow-xs">
       <div className="h-14 px-3 sm:px-5 lg:px-6 flex items-center justify-between gap-3">
         {/* Left: menu + brand */}
         <div className="flex items-center gap-2 min-w-0">
-          <button onClick={onOpenMobileNav} aria-label="Open navigation" className="md:hidden p-2 -ml-1 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors">
+          <button onClick={onOpenMobileNav} aria-label="Open navigation" className="md:hidden p-2 -ml-1 text-[#52606D] hover:text-[#172B4D] hover:bg-[#E9EFF5] rounded-[8px] transition-colors">
             <Menu className="w-5 h-5" />
           </button>
           <button
             onClick={onToggleSidebar}
             aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="hidden md:inline-flex p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+            className="hidden md:inline-flex p-2 text-[#829AB1] hover:text-[#172B4D] hover:bg-[#E9EFF5] rounded-[8px] transition-colors"
           >
             {sidebarCollapsed ? <PanelLeftOpen className="w-[18px] h-[18px]" /> : <PanelLeftClose className="w-[18px] h-[18px]" />}
           </button>
           <Link to="/dashboard" className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 bg-gradient-to-br from-brand-600 to-brand-800 rounded-lg flex items-center justify-center shadow-sm shrink-0">
+            <div className="w-8 h-8 bg-teal-500 rounded-[8px] flex items-center justify-center shadow-xs shrink-0">
               <span className="text-white font-extrabold text-sm tracking-tight">JT</span>
             </div>
             <div className="min-w-0 hidden sm:block">
               <div className="flex items-center gap-1.5">
-                <h1 className="text-sm font-bold text-slate-900 tracking-tight leading-tight truncate">J&T Supplies</h1>
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase bg-brand-50 text-brand-700 border border-brand-100">
+                <h1 className="text-sm font-extrabold text-[#172B4D] tracking-tight leading-tight truncate">J&T Supplies</h1>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase bg-teal-50 text-teal-800 border border-teal-200">
                   CRM
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 truncate leading-tight">Internal Operations Platform</p>
+              <p className="text-[11px] text-[#52606D] truncate leading-tight font-medium">Internal Operations Platform</p>
             </div>
           </Link>
         </div>
@@ -185,23 +185,23 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileNav, sidebarCollapse
             onClick={handleSyncClick}
             disabled={isSyncing}
             title="Force refresh and sync all data from live Supabase database"
-            className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-lg border border-emerald-200 transition-colors disabled:opacity-50"
+            className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-bold text-teal-800 bg-teal-50 hover:bg-teal-100 px-2.5 py-1.5 rounded-[8px] border border-teal-200 transition-colors disabled:opacity-50"
           >
             <RefreshCw className={cn('w-3.5 h-3.5', isSyncing && 'animate-spin')} />
             {isSyncing ? 'Syncing...' : 'Sync'}
           </button>
 
           {user.team && (
-            <span className="hidden xl:inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-lg">
-              <Clock className="w-3.5 h-3.5 text-slate-400" />
-              <span className="font-semibold text-slate-800">{user.team.name}</span>
-              <span className="text-slate-300">|</span>
-              <span className="font-mono">{user.team.shift_info}</span>
+            <span className="hidden xl:inline-flex items-center gap-1.5 text-[11px] font-medium text-[#52606D] bg-[#F5F7FA] border border-[#D9E2EC] px-2.5 py-1.5 rounded-[8px]">
+              <Clock className="w-3.5 h-3.5 text-[#829AB1]" />
+              <span className="font-bold text-[#172B4D]">{user.team.name}</span>
+              <span className="text-[#D9E2EC]">|</span>
+              <span className="font-mono text-[#52606D]">{user.team.shift_info}</span>
             </span>
           )}
 
-          <span className="hidden 2xl:inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-500 bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-lg">
-            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+          <span className="hidden 2xl:inline-flex items-center gap-1.5 text-[11px] font-medium text-[#52606D] bg-[#F5F7FA] border border-[#D9E2EC] px-2.5 py-1.5 rounded-[8px]">
+            <Calendar className="w-3.5 h-3.5 text-[#829AB1]" />
             {todayFormatted}
           </span>
 
@@ -213,21 +213,21 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileNav, sidebarCollapse
                 setIsUserMenuOpen(false);
               }}
               title="System Alerts & Notifications"
-              className="relative p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+              className="relative p-2 text-[#52606D] hover:text-[#172B4D] hover:bg-[#E9EFF5] rounded-[8px] transition-colors"
             >
               <Bell className="w-5 h-5" />
               {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-red-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center ring-2 ring-white">
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center ring-2 ring-white">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
             </button>
 
             {isNotifOpen && (
-              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-popover border border-slate-200 z-50 overflow-hidden animate-scale-in">
-                <div className="px-4 py-3 bg-slate-900 text-white flex items-center justify-between">
+              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-[12px] shadow-popover border border-[#D9E2EC] z-50 overflow-hidden animate-scale-in">
+                <div className="px-4 py-3 bg-[#102A43] text-white flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-bold">
-                    <Bell className="w-4 h-4 text-brand-300" />
+                    <Bell className="w-4 h-4 text-teal-400" />
                     <span>Notifications ({unreadCount} unread)</span>
                   </div>
                   {unreadCount > 0 && (

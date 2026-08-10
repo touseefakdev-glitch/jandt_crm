@@ -12,6 +12,12 @@ import {
   Bell,
   ArrowLeftRight,
   ShieldAlert,
+  MapPin,
+  UsersRound,
+  Upload,
+  FileText,
+  Settings,
+  ShieldCheck
 } from 'lucide-react';
 import { UserRole } from '../../types';
 
@@ -22,18 +28,26 @@ interface SidebarNavItem {
   icon: React.ComponentType<{ className?: string }>;
   allowedRoles: UserRole[];
   badge?: string;
+  section: 'operations' | 'administration';
 }
 
 const NAV_ITEMS: SidebarNavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, allowedRoles: ['admin', 'sales_agent', 'support_agent'] },
-  { id: 'customers', label: 'Customers', path: '/customers', icon: Users, allowedRoles: ['admin', 'sales_agent', 'support_agent'] },
-  { id: 'queries', label: 'Queries', path: '/queries', icon: HelpCircle, allowedRoles: ['admin', 'support_agent'] },
-  { id: 'orders', label: 'Orders', path: '/orders', icon: ShoppingBag, allowedRoles: ['admin', 'sales_agent', 'support_agent'] },
-  { id: 'products', label: 'Products Catalog', path: '/products', icon: Package, allowedRoles: ['admin', 'sales_agent', 'support_agent'] },
-  { id: 'out-of-stock', label: 'Out of Stock', path: '/out-of-stock', icon: AlertTriangle, allowedRoles: ['admin', 'sales_agent', 'support_agent'] },
-  { id: 'notifications', label: 'Notifications', path: '/notifications', icon: Bell, allowedRoles: ['admin', 'sales_agent', 'support_agent'] },
-  { id: 'shift-handover', label: 'Shift Handover', path: '/shift-handover', icon: ArrowLeftRight, allowedRoles: ['admin', 'sales_agent', 'support_agent'] },
-  { id: 'admin', label: 'Admin', path: '/admin', icon: ShieldAlert, allowedRoles: ['admin'], badge: 'Admin' },
+  { id: 'dashboard', label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
+  { id: 'orders', label: 'Daily Operations', path: '/orders', icon: ShoppingBag, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
+  { id: 'customers', label: 'Customers', path: '/customers', icon: Users, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
+  { id: 'products', label: 'Products Catalog', path: '/products', icon: Package, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
+  { id: 'queries', label: 'Support Queries', path: '/queries', icon: HelpCircle, allowedRoles: ['admin', 'support_agent'], section: 'operations' },
+  { id: 'out-of-stock', label: 'Out of Stock', path: '/out-of-stock', icon: AlertTriangle, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
+  { id: 'notifications', label: 'Notifications', path: '/notifications', icon: Bell, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
+  { id: 'shift-handover', label: 'Shift Handover', path: '/shift-handover', icon: ArrowLeftRight, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
+  
+  // Administration Section
+  { id: 'routes', label: 'Route Schedule', path: '/admin/routes', icon: MapPin, allowedRoles: ['admin'], section: 'administration' },
+  { id: 'users', label: 'Users', path: '/admin/users', icon: Users, allowedRoles: ['admin'], section: 'administration' },
+  { id: 'teams', label: 'Teams', path: '/admin/teams', icon: UsersRound, allowedRoles: ['admin'], section: 'administration' },
+  { id: 'imports', label: 'Data Imports', path: '/admin/import', icon: Upload, allowedRoles: ['admin'], section: 'administration' },
+  { id: 'audit-logs', label: 'Audit Logs', path: '/admin/audit-logs', icon: FileText, allowedRoles: ['admin'], section: 'administration' },
+  { id: 'settings', label: 'Settings', path: '/admin/settings', icon: Settings, allowedRoles: ['admin'], section: 'administration' },
 ];
 
 export interface SidebarProps {
@@ -48,61 +62,103 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, mobileOpen, onMobil
   if (!user) return null;
 
   const visibleNavItems = NAV_ITEMS.filter((item) => hasRole(item.allowedRoles));
+  const opsItems = visibleNavItems.filter((item) => item.section === 'operations');
+  const adminItems = visibleNavItems.filter((item) => item.section === 'administration');
+
+  const renderNavItem = (item: SidebarNavItem) => {
+    const Icon = item.icon;
+    return (
+      <NavLink
+        key={item.id}
+        to={item.path}
+        onClick={onMobileClose}
+        title={collapsed ? item.label : undefined}
+        className={({ isActive }) =>
+          cn(
+            'flex items-center text-xs font-semibold transition-all relative group select-none',
+            collapsed ? 'justify-center px-0 py-2.5 mx-auto w-10 rounded-[8px]' : 'px-3 py-2 rounded-[8px] mx-2',
+            isActive
+              ? 'bg-teal-500/15 text-white font-bold'
+              : 'text-[#9FB3C8] hover:bg-white/5 hover:text-white'
+          )
+        }
+      >
+        {({ isActive }) => (
+          <>
+            {/* Active Left Indicator Bar */}
+            {isActive && !collapsed && (
+              <span className="absolute left-0 top-1 bottom-1 w-1 bg-teal-500 rounded-r-full" />
+            )}
+            <Icon className={cn('w-4 h-4 shrink-0 transition-colors', isActive ? 'text-teal-400' : 'text-[#829AB1] group-hover:text-white')} />
+            {!collapsed && (
+              <>
+                <span className="ml-3 flex-1 truncate">{item.label}</span>
+                {item.badge && (
+                  <span className={cn('text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase', isActive ? 'bg-teal-500 text-white' : 'bg-[#243B53] text-[#9FB3C8]')}>
+                    {item.badge}
+                  </span>
+                )}
+              </>
+            )}
+          </>
+        )}
+      </NavLink>
+    );
+  };
 
   const renderContent = () => (
-    <div className={cn('flex flex-col h-full', collapsed ? 'w-[76px]' : 'w-64')}>
-      <div className="flex-1 px-3 py-4 overflow-y-auto space-y-1">
-        {visibleNavItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <NavLink
-              key={item.id}
-              to={item.path}
-              onClick={onMobileClose}
-              title={collapsed ? item.label : undefined}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center rounded-lg text-sm font-medium transition-all group',
-                  collapsed ? 'justify-center px-0 py-2.5 mx-auto w-11' : 'px-3 py-2.5',
-                  isActive
-                    ? 'bg-brand-600 text-white shadow-sm font-semibold'
-                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon className={cn('w-[18px] h-[18px] shrink-0 transition-colors', isActive ? 'text-white' : 'text-slate-400 group-hover:text-white')} />
-                  {!collapsed && (
-                    <>
-                      <span className="ml-3 flex-1 truncate">{item.label}</span>
-                      {item.badge && (
-                        <span className={cn('text-[10px] px-1.5 py-0.5 rounded font-semibold', isActive ? 'bg-white/20 text-white' : 'bg-purple-500/15 text-purple-300 border border-purple-500/30')}>
-                          {item.badge}
-                        </span>
-                      )}
-                    </>
-                  )}
-                </>
-              )}
-            </NavLink>
-          );
-        })}
+    <div className={cn('flex flex-col h-full bg-[#102A43] text-white', collapsed ? 'w-[72px]' : 'w-64')}>
+      {/* Sidebar Brand Header */}
+      <div className={cn('h-16 flex items-center border-b border-[#243B53] px-4', collapsed ? 'justify-center' : 'justify-start space-x-3')}>
+        <div className="w-8 h-8 rounded-[8px] bg-teal-500 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+          <ShieldCheck className="w-5 h-5 text-white" />
+        </div>
+        {!collapsed && (
+          <div>
+            <span className="font-extrabold text-sm tracking-tight text-white block leading-tight">J&T SUPPLIES</span>
+            <span className="text-[10px] font-bold text-[#829AB1] uppercase tracking-wider block">CRM Portal</span>
+          </div>
+        )}
       </div>
 
-      <div className={cn('border-t border-white/10 bg-black/10 text-xs text-slate-400', collapsed ? 'px-2 py-4' : 'p-4')}>
+      <div className="flex-1 py-4 overflow-y-auto space-y-6">
+        {/* Operations Section */}
+        <div>
+          {!collapsed && (
+            <div className="px-5 mb-2 text-[10px] font-extrabold uppercase tracking-widest text-[#627D98]">
+              Operations
+            </div>
+          )}
+          <div className="space-y-1">{opsItems.map(renderNavItem)}</div>
+        </div>
+
+        {/* Administration Section (Admin only) */}
+        {adminItems.length > 0 && (
+          <div>
+            {!collapsed && (
+              <div className="px-5 mb-2 text-[10px] font-extrabold uppercase tracking-widest text-[#627D98]">
+                Administration
+              </div>
+            )}
+            <div className="space-y-1">{adminItems.map(renderNavItem)}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Active Shift Footer */}
+      <div className={cn('border-t border-[#243B53] bg-[#091A2B]/60 text-xs text-[#9FB3C8]', collapsed ? 'p-3 text-center' : 'p-4')}>
         <div className={cn('flex items-center justify-between mb-1', collapsed && 'justify-center')}>
-          {!collapsed && <span className="font-semibold text-slate-200">Active Shift Session</span>}
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          {!collapsed && <span className="font-bold text-xs text-white">Active Shift Session</span>}
+          <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse shrink-0" />
         </div>
         {!collapsed &&
           (user.team ? (
             <div>
-              <p className="text-slate-300 font-medium">{user.team.name}</p>
-              <p className="text-[11px] text-slate-500 font-mono mt-0.5">{user.team.shift_info}</p>
+              <p className="text-white font-semibold text-xs">{user.team.name}</p>
+              <p className="text-[10px] text-[#829AB1] font-mono mt-0.5">{user.team.shift_info}</p>
             </div>
           ) : (
-            <p className="text-slate-500 italic">No team assigned</p>
+            <p className="text-[#627D98] italic text-[11px]">No team assigned</p>
           ))}
       </div>
     </div>
@@ -113,15 +169,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, mobileOpen, onMobil
       {/* Mobile drawer */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
-          <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-[2px] animate-fade-in" onClick={onMobileClose} aria-hidden="true" />
-          <aside className="absolute inset-y-0 left-0 w-64 bg-slate-900 text-slate-300 shadow-overlay">
-            <div className="h-full bg-slate-900">{renderContent()}</div>
+          <div className="absolute inset-0 bg-[#091A2B]/60 backdrop-blur-[2px] animate-fade-in" onClick={onMobileClose} aria-hidden="true" />
+          <aside className="absolute inset-y-0 left-0 w-64 bg-[#102A43] text-white shadow-overlay">
+            <div className="h-full">{renderContent()}</div>
           </aside>
         </div>
       )}
 
       {/* Desktop sidebar */}
-      <aside className={cn('hidden md:flex flex-col bg-slate-900 text-slate-300 shrink-0 transition-[width] duration-200 ease-in-out', collapsed ? 'w-[76px]' : 'w-64')}>
+      <aside className={cn('hidden md:flex flex-col bg-[#102A43] text-white shrink-0 transition-[width] duration-150 ease-in-out border-r border-[#243B53]', collapsed ? 'w-[72px]' : 'w-64')}>
         {renderContent()}
       </aside>
     </>

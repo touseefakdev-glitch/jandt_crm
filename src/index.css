@@ -4,42 +4,53 @@
 
 @layer base {
   body {
-    @apply bg-slate-100 text-slate-900 font-sans antialiased;
+    @apply bg-[#F5F7FA] text-[#172B4D] font-sans antialiased selection:bg-teal-500 selection:text-white;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-  }
-
-  ::selection {
-    @apply bg-brand-600 text-white;
   }
 }
 
 @layer components {
-  /* Reusable primitives composed into React components */
-  .card {
-    @apply bg-white rounded-xl border border-slate-200 shadow-card;
+  /* Reusable Card Primitive */
+  .crm-card {
+    @apply bg-white rounded-[12px] border border-[#D9E2EC] shadow-card transition-shadow duration-150;
   }
 
-  .input {
-    @apply w-full px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 rounded-lg shadow-xs transition-all duration-150 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:shadow-ring-input disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed;
+  /* Input Primitives */
+  .crm-input {
+    @apply w-full px-3.5 py-2 text-sm text-[#172B4D] placeholder-[#829AB1] bg-white border border-[#D9E2EC] rounded-[8px] shadow-xs transition-all duration-150 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 disabled:bg-[#E9EFF5] disabled:text-[#829AB1] disabled:cursor-not-allowed;
   }
 
-  .input-label {
-    @apply block text-sm font-medium text-slate-700 mb-1.5;
+  .crm-input-label {
+    @apply block text-xs font-bold uppercase tracking-wider text-[#52606D] mb-1.5;
   }
 
-  .table-th {
-    @apply px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 bg-slate-50 border-b border-slate-200 whitespace-nowrap;
+  /* Table Primitives */
+  .crm-table-th {
+    @apply px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#52606D] bg-[#F5F7FA] border-b border-[#D9E2EC] whitespace-nowrap select-none;
   }
 
-  .table-td {
-    @apply px-5 py-3.5 text-sm text-slate-700 align-middle whitespace-nowrap;
+  .crm-table-td {
+    @apply px-4 py-3 text-sm text-[#172B4D] align-middle whitespace-nowrap border-b border-[#E9EFF5];
+  }
+
+  /* Custom Operations Checkbox Primitive */
+  .crm-checkbox {
+    @apply w-5 h-5 rounded-[4px] border-2 border-[#D9E2EC] bg-white flex items-center justify-center transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-teal-500/20 hover:border-teal-500 cursor-pointer disabled:cursor-not-allowed disabled:bg-[#E9EFF5] disabled:border-[#D9E2EC];
+  }
+
+  .crm-checkbox-checked {
+    @apply bg-teal-500 border-teal-500 text-white shadow-xs;
+  }
+
+  .crm-checkbox-error {
+    @apply border-red-500 bg-red-50 text-red-600;
   }
 }
 
-/* Custom scrollbars for clean operational UI */
+/* Operational Scrollbar Styling */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
 }
 
 ::-webkit-scrollbar-track {
@@ -47,13 +58,10 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 6px;
-  border: 2px solid transparent;
-  background-clip: content-box;
+  background: #BCCCDC;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-  background-clip: content-box;
+  background: #829AB1;
 }

@@ -373,17 +373,17 @@ export const Orders: React.FC = () => {
                 <button
                   key={rt}
                   onClick={() => setSelectedRoute(rt)}
-                  className={`p-3 rounded-xl border-2 text-left transition-all ${
+                  className={`p-3 rounded-[12px] border text-left transition-all ${
                     isSelected
-                      ? 'border-brand-600 bg-brand-50/50 shadow-sm'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
+                      ? 'border-teal-500 bg-teal-50/70 text-teal-900 font-extrabold shadow-xs ring-1 ring-teal-500/20'
+                      : 'border-[#D9E2EC] bg-white hover:border-[#BCCCDC] text-[#172B4D]'
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-900">{rt}</span>
-                    <MapPin className={`w-3.5 h-3.5 ${isSelected ? 'text-brand-600' : 'text-slate-400'}`} />
+                    <span className="text-xs font-extrabold">{rt}</span>
+                    <MapPin className={`w-3.5 h-3.5 ${isSelected ? 'text-teal-600' : 'text-[#829AB1]'}`} />
                   </div>
-                  <span className="text-[10px] text-slate-500 block mt-1 uppercase font-semibold">Scheduled Today</span>
+                  <span className="text-[10px] text-[#52606D] block mt-1 uppercase font-bold tracking-wider">Scheduled Today</span>
                 </button>
               );
             })}
@@ -400,47 +400,47 @@ export const Orders: React.FC = () => {
       {/* Selected Route Summary & Progress Metrics */}
       {selectedRoute && (
         <div className="space-y-4">
-          <Card className="p-5 bg-slate-900 text-white space-y-4 shadow-card">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <Card className="p-5 bg-[#102A43] text-white space-y-4 shadow-card border border-[#243B53]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#243B53] pb-4">
               <div>
-                <span className="text-[10px] text-sky-400 font-bold uppercase tracking-widest block">Active Operations Route</span>
-                <h3 className="text-xl font-black tracking-tight text-white mt-0.5">{selectedRoute.toUpperCase()} ROUTE</h3>
+                <span className="text-[10px] text-teal-400 font-extrabold uppercase tracking-widest block">Active Operations Route</span>
+                <h3 className="text-xl font-extrabold tracking-tight text-white mt-0.5">{selectedRoute.toUpperCase()} ROUTE</h3>
               </div>
 
               {/* Progress Summary */}
               <div className="flex items-center gap-4 text-xs">
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Route Progress</span>
-                  <span className="text-lg font-black text-white">{metrics.completed} / {metrics.total} Completed</span>
+                  <span className="text-[#9FB3C8] block text-[10px] uppercase font-bold tracking-wider">Route Progress</span>
+                  <span className="text-base font-extrabold text-white">{metrics.completed} / {metrics.total} Completed</span>
                 </div>
-                <div className="w-24 bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700">
-                  <div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${metrics.percentage}%` }} />
+                <div className="w-28 bg-[#243B53] rounded-full h-3 overflow-hidden border border-[#334E68]">
+                  <div className="bg-teal-500 h-full transition-all duration-500" style={{ width: `${metrics.percentage}%` }} />
                 </div>
-                <span className="font-mono font-bold text-emerald-400">{metrics.percentage}%</span>
+                <span className="font-mono font-extrabold text-teal-400 text-sm">{metrics.percentage}%</span>
               </div>
             </div>
 
             {/* Stage Bottleneck Summary Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
-              <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50">
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">Order Received</span>
-                <span className="text-lg font-black text-sky-400 block mt-0.5">{metrics.orderReceivedCount} / {metrics.total}</span>
+              <div className="bg-[#243B53]/80 p-3 rounded-[8px] border border-[#334E68]">
+                <span className="text-[10px] text-[#9FB3C8] uppercase font-bold block">Order Received</span>
+                <span className="text-base font-extrabold text-teal-400 block mt-0.5">{metrics.orderReceivedCount} / {metrics.total}</span>
               </div>
-              <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50">
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">SO Generated</span>
-                <span className="text-lg font-black text-indigo-400 block mt-0.5">{metrics.salesOrderCount} / {metrics.total}</span>
+              <div className="bg-[#243B53]/80 p-3 rounded-[8px] border border-[#334E68]">
+                <span className="text-[10px] text-[#9FB3C8] uppercase font-bold block">SO Generated</span>
+                <span className="text-base font-extrabold text-indigo-300 block mt-0.5">{metrics.salesOrderCount} / {metrics.total}</span>
               </div>
-              <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50">
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">Invoiced</span>
-                <span className="text-lg font-black text-purple-400 block mt-0.5">{metrics.invoicedCount} / {metrics.total}</span>
+              <div className="bg-[#243B53]/80 p-3 rounded-[8px] border border-[#334E68]">
+                <span className="text-[10px] text-[#9FB3C8] uppercase font-bold block">Invoiced</span>
+                <span className="text-base font-extrabold text-purple-300 block mt-0.5">{metrics.invoicedCount} / {metrics.total}</span>
               </div>
-              <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50">
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">Dispatched</span>
-                <span className="text-lg font-black text-emerald-400 block mt-0.5">{metrics.dispatchedCount} / {metrics.total}</span>
+              <div className="bg-[#243B53]/80 p-3 rounded-[8px] border border-[#334E68]">
+                <span className="text-[10px] text-[#9FB3C8] uppercase font-bold block">Dispatched</span>
+                <span className="text-base font-extrabold text-green-400 block mt-0.5">{metrics.dispatchedCount} / {metrics.total}</span>
               </div>
-              <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/50">
-                <span className="text-[10px] text-rose-400 uppercase font-bold block">Errors / Tickets</span>
-                <span className="text-lg font-black text-rose-400 block mt-0.5">{metrics.errors}</span>
+              <div className="bg-[#243B53]/80 p-3 rounded-[8px] border border-[#334E68]">
+                <span className="text-[10px] text-red-400 uppercase font-bold block">Errors / Tickets</span>
+                <span className="text-base font-extrabold text-red-400 block mt-0.5">{metrics.errors}</span>
               </div>
             </div>
           </Card>

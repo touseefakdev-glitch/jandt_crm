@@ -5,6 +5,36 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.12.0] - 2026-08-10
+
+### Added
+- **UI/UX Upgrade: Professional Design System**: Complete visual overhaul of J&T Supplies CRM into a premium internal operations platform without altering underlying business logic, permissions, schemas, or workflows.
+- **Design Tokens & Palette (`tailwind.config.js` & `src/index.css`)**:
+  - **Deep Navy (`#102A43`)**: Application shell, sidebar, and primary operational headers.
+  - **Electric Teal (`#00A6A6`)**: Primary action buttons, active navigation indicators (`▌ Daily Operations`), and highlights.
+  - **Warm Amber (`#F2B84B`)**: Pending statuses, warnings, and attention banners.
+  - **Success Green (`#2E8B57`)**: Completed states, positive operational milestones, and availability indicators.
+  - **Error Red (`#D64545`)**: Critical warnings, customer operational error badges, and destructive actions.
+  - **Surface & Border Tokens**: `#F5F7FA` main background, `#FFFFFF` cards, `#E9EFF5` subtle backgrounds, `#D9E2EC` borders, `#172B4D` primary text, `#52606D` secondary text.
+  - **Standardized Border Radii**: Cards `12px`, Buttons `8px`, Inputs `8px`, Badges `9999px`.
+- **Component Primitives Overhauled (`src/components/ui/`)**:
+  - `Button.tsx`: Teal primary, Navy secondary, Red destructive, Outline, and Ghost variants with 8px radius.
+  - `Card.tsx`: 12px radius, `#D9E2EC` crisp borders, and clean typography headers.
+  - `Input.tsx`, `Select.tsx`, `Textarea.tsx`: Custom focus rings, 8px radius, and `#829AB1` placeholders.
+  - `Table.tsx`: Compact 12px padding, `#F5F7FA` headers, hover states, and clear row borders.
+  - `Modal.tsx`: Crisp backdrop blur, 12px radius, and Deep Navy headers.
+  - `StatCard.tsx`: Top indicator bars in subtle semantic colors.
+  - `Sidebar.tsx`: Deep Navy background, grouped Operations & Administration sections, and Electric Teal active bar indicator (`▌`).
+  - `Header.tsx`: Clean breadcrumbs, notification bell, profile menu, and live Supabase status pill.
+- **Page Layout Refinement**:
+  - `Login.tsx`: Deep Navy background with Electric Teal brand identity.
+  - `Dashboard.tsx`: Operational control center with subtle KPI cards and active shift status.
+  - `Orders.tsx`: Route-Based Daily Operations centerpiece with high-contrast milestone checkboxes, monospace reference badges (`SO-XXXXXX`, `INV-XXXXXX`), and sticky customer column.
+  - `CustomerDetail.tsx`: Refined contact cards highlighting WhatsApp, Phone, City, and Route.
+  - `AdminImport.tsx`: Crisp 4-step CSV import wizard stepper.
+
+---
+
 ## [1.11.0] - 2026-08-10
 
 ### Added

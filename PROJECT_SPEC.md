@@ -336,7 +336,23 @@ Strict server-side and permission engine RBAC check (`PermissionsService.canPerf
 
 ---
 
+## Professional Design System & Visual Hierarchy
+
+The application follows a curated, operational visual identity designed for high data density, clarity, and speed on desktop displays.
+
+### Design Tokens & Palette
+- **Deep Navy (`#102A43`)**: Primary structural color for app shell, navigation sidebar, and primary operations cards.
+- **Electric Teal (`#00A6A6`)**: Primary action accent, focus rings, and active navigation indicator (`▌ Daily Operations`).
+- **Warm Amber (`#F2B84B`)**: Pending statuses, warnings, and attention banners.
+- **Success Green (`#2E8B57`)**: Completed states, positive operational milestones, and available product badges.
+- **Error Red (`#D64545`)**: Critical warnings, customer operational error badges, and destructive actions.
+- **Surfaces & Layout**: `#F5F7FA` main background, `#FFFFFF` cards, `#E9EFF5` subtle containers, `#D9E2EC` crisp borders, `#172B4D` primary text, `#52606D` secondary text.
+- **Border Radii**: Cards `12px`, Buttons `8px`, Inputs `8px`, Badges `9999px`.
+
+---
+
 ## Change Log
 All technical changes are logged in [CHANGELOG.md](file:///c:/Users/TIW%20COMPUTER/Desktop/CRM/CHANGELOG.md).
+
 
 

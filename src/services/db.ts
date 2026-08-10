@@ -237,6 +237,10 @@ export const SEED_PRODUCT_BRANDS: ProductBrand[] = [
 // Initial Product & Operational Seed Datasets (Clean Reset State)
 export const SEED_PRODUCTS: Product[] = [];
 export const SEED_PRODUCT_HISTORY: ProductAvailabilityHistory[] = [];
+
+// Bump this version string whenever the HTML source data changes.
+// Any client with an older version in localStorage will be force re-seeded.
+export const SEED_DATA_VERSION = 'v3-html-1022-products';
 export const SEED_SHIFTS: Shift[] = [];
 export const SEED_HANDOVERS: ShiftHandover[] = [];
 export const SEED_HANDOVER_ITEMS: ShiftHandoverItem[] = [];
@@ -283,6 +287,9 @@ class LocalDatabaseService {
 
   // Step 12 HTML Business Data Integration Key
   private customerProductHistoryKey = 'jt_crm_customer_product_history';
+
+  // Seed version key — used to force re-seed when SEED_DATA_VERSION changes
+  private seedVersionKey = 'jt_crm_seed_version';
 
   constructor() {
     this.init();
@@ -346,6 +353,14 @@ class LocalDatabaseService {
   }
 
   private ensureHtmlBusinessDataSeeded() {
+    // Check if the stored seed version matches the current version.
+    // If not, force a full re-seed regardless of existing row counts.
+    const storedVersion = storageGet(this.seedVersionKey);
+    if (storedVersion === SEED_DATA_VERSION) {
+      // Version matches — no re-seed needed
+      return;
+    }
+
     const existingProducts = storageGet(this.productsKey);
     const parsedProds: Product[] = existingProducts ? JSON.parse(existingProducts) : [];
 
@@ -355,7 +370,13 @@ class LocalDatabaseService {
     const existingHist = storageGet(this.customerProductHistoryKey);
     const parsedHist: CustomerProductHistory[] = existingHist ? JSON.parse(existingHist) : [];
 
-    if (parsedProds.length < 500 || parsedCusts.length < 100 || parsedHist.length < 1000) {
+    if (
+      storedVersion !== SEED_DATA_VERSION ||
+      parsedProds.length < 500 ||
+      parsedCusts.length < 100 ||
+      parsedHist.length < 1000
+    ) {
+      console.log(`[Seed] Version mismatch or insufficient data. Re-seeding HTML business data (version: ${SEED_DATA_VERSION})...`);
       this.seedHtmlBusinessData();
     }
   }
@@ -450,6 +471,10 @@ class LocalDatabaseService {
 
     storageSet(this.customersKey, JSON.stringify(newCustomers));
     storageSet(this.customerProductHistoryKey, JSON.stringify(newHistory));
+
+    // Persist the current seed version so subsequent loads skip re-seeding
+    storageSet(this.seedVersionKey, SEED_DATA_VERSION);
+    console.log(`[Seed] HTML business data seeded successfully: ${newProducts.length} products, ${newCustomers.length} customers, ${newHistory.length} history records (version: ${SEED_DATA_VERSION}).`);
   }
 
   public clearAllBusinessData(): void {

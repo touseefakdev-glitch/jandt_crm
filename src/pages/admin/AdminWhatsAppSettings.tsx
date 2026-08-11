@@ -51,6 +51,8 @@ export const AdminWhatsAppSettings: React.FC = () => {
   const [testJid, setTestJid] = useState('');
   const [testMessage, setTestMessage] = useState('Test automated outbound message from JT CRM Cloud Connector.');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+  const [detectedGroups, setDetectedGroups] = useState<{ jid: string; lastMessage?: string }[]>([]);
+  const [copiedJid, setCopiedJid] = useState<string | null>(null);
 
   const canManage = permissions.canManageWhatsAppOrderProcessing(user || null).allowed;
 
@@ -60,6 +62,31 @@ export const AdminWhatsAppSettings: React.FC = () => {
     const outboxSummary = await whatsappConnectorService.getOutboxSummary();
     setStatus(connectorStatus);
     setOutbox(outboxSummary);
+
+    // Fetch detected WhatsApp groups from Supabase
+    try {
+      const { supabase } = await import('../../services/supabaseSync');
+      if (supabase) {
+        const { data: groupMsgs } = await supabase
+          .from('messages')
+          .select('remote_jid, text')
+          .like('remote_jid', '%@g.us')
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (groupMsgs) {
+          const map = new Map<string, string>();
+          groupMsgs.forEach((m: { remote_jid: string; text: string }) => {
+            if (!map.has(m.remote_jid)) {
+              map.set(m.remote_jid, m.text);
+            }
+          });
+          const list = Array.from(map.entries()).map(([jid, lastMessage]) => ({ jid, lastMessage }));
+          setDetectedGroups(list);
+        }
+      }
+    } catch (e) {}
+
     setLoading(false);
   };
 
@@ -371,6 +398,54 @@ export const AdminWhatsAppSettings: React.FC = () => {
           </CardBody>
         </Card>
       </div>
+
+      {/* WhatsApp Group JID Directory & Inspector */}
+      <Card>
+        <CardHeader
+          title="Detected WhatsApp Groups & JID Directory"
+          icon={<MessageSquare className="w-4 h-4 text-purple-600" />}
+          actions={
+            <Button size="sm" variant="outline" onClick={loadData} icon={<RefreshCw className="w-3.5 h-3.5" />}>
+              Refresh Directory
+            </Button>
+          }
+        />
+        <CardBody className="p-5 space-y-4">
+          <p className="text-xs text-slate-500 leading-relaxed">
+            WhatsApp Group JIDs end with <code className="px-1.5 py-0.5 bg-purple-50 text-purple-700 font-mono rounded">@g.us</code>. 
+            Send any message in your WhatsApp group on your phone, then click <strong>Refresh Directory</strong> to view and copy the JID string below.
+          </p>
+
+          {detectedGroups.length > 0 ? (
+            <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
+              {detectedGroups.map((group, idx) => (
+                <div key={idx} className="p-3 bg-white flex items-center justify-between gap-3 text-xs">
+                  <div className="space-y-0.5 min-w-0 flex-1">
+                    <span className="font-bold text-slate-900 font-mono block truncate">{group.jid}</span>
+                    <span className="text-[11px] text-slate-500 truncate block">Last Message: "{group.lastMessage}"</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant={copiedJid === group.jid ? "success" : "outline"}
+                    onClick={() => {
+                      navigator.clipboard.writeText(group.jid);
+                      setCopiedJid(group.jid);
+                      setTimeout(() => setCopiedJid(null), 2000);
+                    }}
+                  >
+                    {copiedJid === group.jid ? "Copied!" : "Copy JID"}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-6 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center space-y-2">
+              <span className="text-xs font-medium text-slate-600 block">No WhatsApp groups detected yet.</span>
+              <span className="text-[11px] text-slate-400 block">Send a test message in any WhatsApp Group on your phone to display its JID string here automatically!</span>
+            </div>
+          )}
+        </CardBody>
+      </Card>
 
       {/* Cloud Deployment Architecture Guide */}
       <Card>

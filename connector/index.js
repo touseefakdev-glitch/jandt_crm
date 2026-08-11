@@ -19,6 +19,7 @@ const {
   fetchLatestBaileysVersion,
   useMultiFileAuthState,
 } = require('@whiskeysockets/baileys');
+const qrcode = require('qrcode-terminal');
 const pino = require('pino');
 const { supabase } = require('./supabase');
 const { useSupabaseAuthState } = require('./supabaseAuthAdapter');
@@ -28,12 +29,15 @@ const { processOrderMessage } = require('./orderHandler');
 const CONNECTOR_NAME = process.env.CONNECTOR_NAME || 'default_connector';
 const HEARTBEAT_INTERVAL_MS = 15000;
 const OUTBOX_POLL_INTERVAL_MS = 4000;
+const COMMAND_POLL_INTERVAL_MS = 5000;
 
 let socket = null;
 let heartbeatTimer = null;
 let outboxTimer = null;
+let commandTimer = null;
 let reconnectAttempts = 0;
 let isConnecting = false;
+let currentAuthState = null;
 
 /**
  * Updates connector status and heartbeat in Supabase database
@@ -75,7 +79,6 @@ async function startWorker() {
     const { version } = await fetchLatestBaileysVersion();
     let authState = null;
 
-    // Use Supabase DB auth state if database URL is valid, fallback to local AUTH_FOLDER if specified
     if (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) {
       console.log('[Worker] Using persistent cloud Supabase database auth store...');
       authState = await useSupabaseAuthState(supabase, 'baileys_auth');
@@ -85,7 +88,15 @@ async function startWorker() {
       authState = await useMultiFileAuthState(authFolder);
     }
 
+    currentAuthState = authState;
     const { state, saveCreds } = authState;
+
+    if (socket) {
+      try {
+        socket.ev.removeAllListeners();
+        socket.end(new Error('Re-initializing worker'));
+      } catch (e) {}
+    }
 
     socket = makeWASocket({
       version,
@@ -103,7 +114,14 @@ async function startWorker() {
       const { connection, lastDisconnect, qr } = update;
 
       if (qr) {
-        console.log('[Worker] QR Code pairing payload generated. Publishing to Admin Dashboard UI...');
+        console.log('\n======================================================');
+        console.log('📲 QR Code Generated! Scan via WhatsApp > Linked Devices:');
+        console.log('======================================================\n');
+        try {
+          qrcode.generate(qr, { small: true });
+        } catch (e) {}
+
+        console.log('[Worker] Publishing QR pairing string to Supabase Admin Dashboard...');
         await updateStatus('AUTH_REQUIRED', {
           qr_code_data: qr,
           error_message: 'Scan QR code in CRM Admin Settings to pair WhatsApp.',
@@ -123,6 +141,7 @@ async function startWorker() {
 
         startHeartbeatLoop();
         startOutboxLoop();
+        startCommandLoop();
       }
 
       if (connection === 'close') {
@@ -193,7 +212,6 @@ async function startWorker() {
 
         console.log(`[Worker] Inbound message received from ${remoteJid}: "${text.substring(0, 40)}..."`);
 
-        // Persist message to Supabase
         try {
           const { error: insertErr } = await supabase.from('messages').insert({
             remote_jid: remoteJid,
@@ -265,9 +283,32 @@ function startOutboxLoop() {
   }, OUTBOX_POLL_INTERVAL_MS);
 }
 
+/**
+ * Listens for Admin commands (RECONNECTING / AUTH_REQUIRED) from CRM UI
+ */
+function startCommandLoop() {
+  if (commandTimer) clearInterval(commandTimer);
+  commandTimer = setInterval(async () => {
+    try {
+      const { data } = await supabase
+        .from('whatsapp_connector_status')
+        .select('status')
+        .eq('connector_name', CONNECTOR_NAME)
+        .maybeSingle();
+
+      if (data && data.status === 'RECONNECTING') {
+        console.log('[Worker] Admin UI requested reconnection. Restarting worker socket...');
+        isConnecting = false;
+        startWorker();
+      }
+    } catch (e) {}
+  }, COMMAND_POLL_INTERVAL_MS);
+}
+
 function stopLoops() {
   if (heartbeatTimer) clearInterval(heartbeatTimer);
   if (outboxTimer) clearInterval(outboxTimer);
+  if (commandTimer) clearInterval(commandTimer);
 }
 
 async function incrementInboundMetric() {

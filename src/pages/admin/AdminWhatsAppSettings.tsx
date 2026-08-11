@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import QRCode from 'qrcode';
 import { useAuth } from '../../context/AuthContext';
 import { permissions } from '../../services/permissions';
 import { whatsappConnectorService, WhatsAppConnectorStatus, OutboxSummary } from '../../services/whatsappConnectorService';
@@ -20,6 +21,24 @@ import {
   Unlink,
   ExternalLink
 } from 'lucide-react';
+
+const QRCanvas: React.FC<{ data: string }> = ({ data }) => {
+  const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
+
+  React.useEffect(() => {
+    if (canvasRef.current && data) {
+      QRCode.toCanvas(canvasRef.current, data, {
+        width: 230,
+        margin: 2,
+        color: { dark: '#0f172a', light: '#ffffff' }
+      }, (err) => {
+        if (err) console.error('QR rendering error:', err);
+      });
+    }
+  }, [data]);
+
+  return <canvas ref={canvasRef} className="w-[230px] h-[230px] rounded-lg border border-slate-100" />;
+};
 
 export const AdminWhatsAppSettings: React.FC = () => {
   const { user } = useAuth();
@@ -251,11 +270,7 @@ export const AdminWhatsAppSettings: React.FC = () => {
             <div className="flex flex-col md:flex-row items-center gap-8">
               <div className="p-4 bg-white rounded-2xl shadow-md border border-slate-200 flex flex-col items-center">
                 {status.qr_code_data ? (
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(status.qr_code_data)}`}
-                    alt="WhatsApp Pairing QR Code"
-                    className="w-56 h-56 rounded-lg"
-                  />
+                  <QRCanvas data={status.qr_code_data} />
                 ) : (
                   <div className="w-56 h-56 flex flex-col items-center justify-center text-slate-400 space-y-2 bg-slate-50 rounded-lg">
                     <RefreshCw className="w-8 h-8 animate-spin text-violet-600" />

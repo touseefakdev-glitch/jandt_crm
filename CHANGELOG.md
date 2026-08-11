@@ -5,6 +5,20 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.20.0] - 2026-08-11
+
+### Added
+- **WhatsApp Order Intelligence — Phase 4 (WhatsApp Order Draft & Customer Confirmation)**:
+  - Verified and documented complete customer confirmation workflow: Parse ➔ Match ➔ Order Draft ➔ Clarification ➔ Confirmation Message ➔ Customer YES ➔ Confirmed Order (`CRM-ORD-XXXXXX`).
+  - Audited full draft state taxonomy (`NEW`, `ANALYZING`, `DRAFT_CREATED`, `NEEDS_CLARIFICATION`, `AWAITING_CONFIRMATION`, `CUSTOMER_CORRECTING`, `CONFIRMED`, `FORWARDED`, `CANCELLED`, `HUMAN_REVIEW`).
+  - Standardized confirmation summary text template and post-confirmation order received message.
+  - Verified customer correction handling (`"make gloves 10"`, `"remove masks"`, `"add 2 tapes"`) updating active draft line items and re-issuing confirmation requests.
+  - Enforced strict affirmative intent for transition to `CONFIRMED` state and verified idempotency protection against duplicate confirmation replies.
+  - Maintained human agent control and `human_takeover` / `pauseBot` overrides (`BOT_PAUSED`).
+  - Updated `PROJECT_SPEC.md` with complete Phase 4 confirmation specifications and state machine documentation.
+
+---
+
 ## [1.19.0] - 2026-08-11
 
 ### Added

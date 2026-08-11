@@ -629,6 +629,72 @@ The CRM application is configured with a clean, 0-data baseline for immediate pr
 
 ---
 
+## WhatsApp Order Intelligence — Phase 4 (WhatsApp Order Draft & Customer Confirmation)
+
+> Implemented complete customer confirmation workflow, draft state machine, customer correction handling, idempotency protection, and human takeover override.
+
+### Target Confirmation Workflow
+```text
+Customer Message
+       ↓
+Parse & Match Engine
+       ↓
+Order Draft (`AWAITING_CONFIRMATION` or `NEEDS_CLARIFICATION`)
+       ↓
+Clarification Prompt (if required)
+       ↓
+Confirmation Summary Message
+       ↓
+Customer Explicit Confirmation ("YES" / "CONFIRM")
+       ↓
+Confirmed Order (`CRM-ORD-XXXXXX`)
+```
+
+### Complete Draft Taxonomy
+- `NEW` / `NEW_MESSAGE`: Initial raw incoming payload
+- `ANALYZING`: Parser & matcher processing
+- `DRAFT_CREATED`: Order draft initialized
+- `NEEDS_CLARIFICATION`: Ambiguous mentions or missing quantities flagged
+- `AWAITING_CONFIRMATION`: Clean draft formatted and waiting for customer "YES"
+- `CUSTOMER_CORRECTING`: Customer modifying quantities or line items
+- `CONFIRMED`: Customer explicitly confirmed order
+- `FORWARDED`: Confirmed order forwarded to internal route group (`ORDER_GROUP_JID`)
+- `CANCELLED`: Order cancelled by customer or agent
+- `HUMAN_REVIEW`: Escalated to human agent
+
+### Standardized Confirmation Template
+```text
+Please confirm your order for tomorrow's {{route}} delivery:
+
+1. Blue Gloves Large — 5
+2. Surgical Masks — 2
+3. Packing Tape — 3
+
+Reply YES to confirm.
+If anything is incorrect, tell us what needs to be changed.
+```
+
+### Customer Correction Workflow
+- Supports text corrections such as *"make gloves 10"*, *"remove masks"*, *"add 2 tapes"*.
+- Modifies active draft line items in `order_draft_items` and updates status to `AWAITING_CONFIRMATION` with updated confirmation summary.
+
+### Confirmation Rule & Idempotency
+- Only explicit customer affirmative intent (*"yes"*, *"confirm"*, *"correct"*, *"ok"*) transitions state from `AWAITING_CONFIRMATION` to `CONFIRMED`.
+- Idempotency protection ensures duplicate "YES" messages do not generate duplicate orders or internal references (`CRM-ORD-XXXXXX`).
+
+### Post-Confirmation Response
+```text
+Thank you.
+
+Your order has been received and confirmed for tomorrow's delivery.
+```
+
+### Human Override & Bot Control
+- Triggering `human_takeover` / `pauseBot` sets `bot_status = 'paused'` or `'human_takeover'`.
+- All automated bot replies and state transitions stop immediately for the conversation, granting complete control to the human agent.
+
+---
+
 ## Change Log
 All technical changes are logged in [CHANGELOG.md](file:///c:/Users/TIW%20COMPUTER/Desktop/CRM/CHANGELOG.md).
 

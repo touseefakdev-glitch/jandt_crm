@@ -19,7 +19,8 @@ import {
   Settings,
   ShieldCheck,
   MessageSquare,
-  Activity
+  Activity,
+  Wifi
 } from 'lucide-react';
 import { UserRole } from '../../types';
 
@@ -51,6 +52,7 @@ const NAV_ITEMS: SidebarNavItem[] = [
   { id: 'teams', label: 'Teams', path: '/admin/teams', icon: UsersRound, allowedRoles: ['admin'], section: 'administration' },
   { id: 'imports', label: 'Data Imports', path: '/admin/import', icon: Upload, allowedRoles: ['admin'], section: 'administration' },
   { id: 'audit-logs', label: 'Audit Logs', path: '/admin/audit-logs', icon: FileText, allowedRoles: ['admin'], section: 'administration' },
+  { id: 'whatsapp-settings', label: 'WhatsApp Settings', path: '/admin/whatsapp-settings', icon: Wifi, allowedRoles: ['admin'], section: 'administration' },
   { id: 'settings', label: 'Settings', path: '/admin/settings', icon: Settings, allowedRoles: ['admin'], section: 'administration' },
 ];
 

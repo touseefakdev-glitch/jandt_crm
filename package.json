@@ -10,7 +10,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "whatsapp": "cd connector && npm start"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.1",

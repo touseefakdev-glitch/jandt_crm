@@ -523,14 +523,68 @@ The CRM application is configured with a clean, 0-data baseline for immediate pr
 - **Draft Management**: Edit items, change quantities, manual draft approval & confirmation.
 - **Query Conversion**: Single-click conversion of non-order attention alerts into formal CRM Support Queries (`QRY-XXXXXX`).
 
----
+## Production WhatsApp Infrastructure
 
-## WhatsApp Connector Integration
+### Vercel Role
+- Hosts the React Single Page Application (CRM Frontend) and serverless backend API routes (`/api/daily-order-request`).
+- Ephemeral execution environment; does NOT host persistent WebSocket processes or long-running bot background workers.
 
-### Existing Connector
-- Node.js microservice (`whatsapp-connector` at `C:\Users\TIW COMPUTER\Desktop\whatsapp-connector`).
+### Supabase Role
+- Central PostgreSQL database, Auth, Realtime sync layer, and shared data pipeline.
+- Houses shared operational tables (`messages`, `orders`, `products`, `whatsapp_conversations`, `order_drafts`) as well as cloud infrastructure tables (`whatsapp_connector_status`, `whatsapp_outbox`, `whatsapp_baileys_auth`).
+
+### WhatsApp Connector Role
+- 24/7 persistent Node.js 22 worker microservice powered by `@whiskeysockets/baileys`.
+- Located in `./connector` inside the CRM codebase for unified version control.
+- Listens to incoming WhatsApp messages, persists them to Supabase `messages` with deduplication protection, and processes queued outbound messages from `whatsapp_outbox`.
+
+### Persistent Node.js Worker
+- Runs on cloud container hosting platforms (Railway, Render, Fly.io, or Docker VPS).
+- Uses `Dockerfile` or `railway.json` for 1-click cloud deployment.
+- Independent of local personal computers, local IP addresses, browser state, or local terminal windows.
+
+### Authentication Storage
+- Uses `useSupabaseAuthState` to persist Baileys session keys directly into Supabase table `whatsapp_baileys_auth`.
+- Ensures WhatsApp device pairing survives container redeployments, restarts, and server moves without losing credentials.
+- Fallbacks gracefully to `./auth` persistent disk storage when environment variable `AUTH_FOLDER` is provided.
+
+### Connector Health
+- Admin CRM page at `Settings → WhatsApp` (`/admin/whatsapp-settings`).
+- Provides real-time connection status monitoring: `CONNECTED`, `CONNECTING`, `RECONNECTING`, `AUTH_REQUIRED`, `OFFLINE`, `ERROR`.
+- Restricted to Admin role (`permissions.canManageWhatsAppOrderProcessing`).
+
+### Heartbeat
+- Connector worker updates `whatsapp_connector_status` every 15 seconds.
+- CRM automatically derives `OFFLINE` status if last heartbeat is > 45 seconds old, displaying a prominent alert banner in the CRM UI.
+
+### Reconnection
+- Automatic reconnect with exponential backoff (3s → 6s → 12s → 24s → max 60s) on WebSocket drops or network interruptions.
+- Admin UI includes `Request Reconnect` manual override button.
+
+### Message Queue
+- Inbound messages pass from WhatsApp ➔ Baileys Worker ➔ Supabase `messages` table.
+- Messages process asynchronously regardless of whether the CRM UI is open or closed.
+
+### Outgoing Queue
+- Outbound messages from CRM agents or automated services enter `whatsapp_outbox` table with status tracking (`PENDING`, `SENDING`, `SENT`, `FAILED`, `RETRYING`).
+- Worker polls outbox every 4 seconds and dispatches via Baileys WebSocket.
+
+### Security
+- Secret credentials (`SUPABASE_SERVICE_ROLE_KEY`, `CONNECTOR_SECRET`, Baileys auth keys) remain strictly server-side.
+- Front-end React bundle never receives or exposes authentication session keys or secrets.
+
+### Development Environment
+- Local Node.js execution via `npm run whatsapp`.
+- Development logs printed to console.
+
+### Production Environment
+- Cloud-hosted container process on Railway/Render/Docker VPS.
+- 15s heartbeats, outbox processing, persistent database auth, Admin UI device pairing, and zero local computer dependencies.
+
+### WhatsApp Connector Integration
+- Embedded Node.js microservice inside the CRM repository (`./connector` at `C:\Users\TIW COMPUTER\Desktop\CRM\connector`).
 - Dependencies: `@whiskeysockets/baileys` (v6.7.9), `@supabase/supabase-js`, `pino`, `qrcode-terminal`, `dotenv`.
-- Authenticates directly with WhatsApp Web using Baileys multi-file auth state stored in `./auth` (or `/data/auth` on cloud volume).
+- Authenticates directly with WhatsApp Web using Baileys multi-file auth state stored in `./connector/auth` (or `/data/auth` on cloud volume).
 
 ### Baileys Architecture
 - Listens to WhatsApp messages via `sock.ev.on('messages.upsert')`.

@@ -5,6 +5,22 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.25.0] - 2026-08-11
+
+### Added
+- **WhatsApp Cloud Infrastructure**:
+  - **Removed production local dependencies**: Removed production dependency on local personal PC, local Windows paths, local IP addresses, browser state, local terminal windows, and local filesystem auth.
+  - **Cloud worker module** (`./connector`): Isolated 24/7 persistent Baileys Node.js 22 worker microservice with `Dockerfile` and `railway.json` for 1-click deployment on Railway, Render, Fly.io, or VPS.
+  - **Persistent Supabase auth store**: Implemented `useSupabaseAuthState` storing Baileys session keys directly into Supabase `whatsapp_baileys_auth` database table. Authentication state survives container redeployments and server restarts without local disk dependencies.
+  - **Connector health & heartbeat**: Implemented 15-second heartbeat loop updating `whatsapp_connector_status` in Supabase; derived `OFFLINE` status if heartbeat exceeds 45 seconds.
+  - **Outbound message queue (`whatsapp_outbox`)**: Added database outbox queue (`PENDING`, `SENDING`, `SENT`, `FAILED`, `RETRYING`) allowing CRM agents and automated services to queue messages for asynchronous cloud dispatching.
+  - **Inbound message deduplication**: Enforced idempotency check using WhatsApp `message.key.id` to prevent duplicate message ingestion.
+  - **Admin WhatsApp Dashboard** (`/admin/whatsapp-settings`): Created live Admin UI showing connection status, heartbeat freshness, daily message traffic, outbox queue metrics, live QR code pairing display, request reconnect button, and unlink session controls.
+  - **Resilient auto-reconnect**: Exponential backoff reconnection algorithm (3s → 6s → 12s → 24s → max 60s) on WebSocket drops.
+  - **Documentation**: Updated `PROJECT_SPEC.md` with complete "Production WhatsApp Infrastructure" specification section.
+
+---
+
 ## [1.24.0] - 2026-08-11
 
 ### Added

@@ -36,3 +36,9 @@ lerna-debug.log*
 # Local scratch/backup
 backup/
 
+# Connector local files
+connector/node_modules/
+connector/auth/
+connector/.env
+
+

@@ -30,6 +30,7 @@ import { AdminProductBrands } from './pages/admin/AdminProductBrands';
 import { AdminShifts } from './pages/admin/AdminShifts';
 import { AdminSettings } from './pages/admin/AdminSettings';
 import { AdminAuditLogs } from './pages/admin/AdminAuditLogs';
+import { AdminWhatsAppSettings } from './pages/admin/AdminWhatsAppSettings';
 import { AdminImport } from './pages/admin/AdminImport';
 import { AdminImportHistory } from './pages/admin/AdminImportHistory';
 import { AdminRouteSchedules } from './pages/admin/AdminRouteSchedules';
@@ -86,6 +87,7 @@ export const App: React.FC = () => {
               <Route path="product-brands" element={<AdminProductBrands />} />
               <Route path="shifts" element={<AdminShifts />} />
               <Route path="settings" element={<AdminSettings />} />
+              <Route path="whatsapp-settings" element={<AdminWhatsAppSettings />} />
               <Route path="audit-logs" element={<AdminAuditLogs />} />
             </Route>
 

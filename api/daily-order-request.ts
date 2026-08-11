@@ -1,9 +1,13 @@
 /**
  * Phase 7 — Automated Daily Order Request (Vercel Cron Serverless Function)
  *
- * Triggered by Vercel Cron (every 30 minutes). Because Vercel cron runs in UTC,
- * this function computes the current time in the configured business timezone and
- * only dispatches when it matches the configured send time (default 09:00).
+ * Triggered by Vercel Cron (once per day at 16:00 UTC — the Hobby plan limits
+ * crons to one run per day with ±59 minute precision). Because Vercel cron runs
+ * in UTC and the business timezone is configurable, this function computes the
+ * current time in the configured business timezone and dispatches when it falls
+ * within a window around the configured send time (default 09:00). The window
+ * absorbs the Hobby ±59 min firing jitter and the DST shift (16:00 UTC lands at
+ * 09:00 PDT in summer and 08:00 PST in winter, both inside the window).
  *
  * Flow:
  *   1. Load automation config from Supabase (order_request_config).
@@ -23,9 +27,9 @@ import {
   buildJidFromPhone,
   filterEligibleCustomers,
   formatDeliveryDateLabel,
+  getNowInTimezone,
   getRoutesForDay,
   getTomorrowInTimezone,
-  isSendTimeNow,
   renderOrderRequestTemplate,
 } from '../src/services/dailyOrderRequestCore';
 
@@ -111,8 +115,8 @@ export async function runDailyOrderRequest(supabase: SupabaseClient, force = fal
     return emptySummary(timezone, undefined, 'disabled');
   }
 
-  if (!force && !isSendTimeNow(sendTime, timezone)) {
-    return emptySummary(timezone, undefined, 'not_send_time');
+  if (!force && !withinSendWindow(sendTime, timezone)) {
+    return emptySummary(timezone, undefined, 'outside_send_window');
   }
 
   // 2. Tomorrow in business timezone
@@ -269,6 +273,19 @@ function emptySummary(timezone: string, deliveryDate?: string, reason?: string):
     reason,
     reminders: [],
   };
+}
+
+/**
+ * Returns true when the current business-timezone clock is near the configured
+ * send time. Hobby cron fires once per day with ±59 min precision and the fixed
+ * UTC hour drifts by one hour across DST, so we accept [send-60min, send+180min].
+ */
+function withinSendWindow(sendTime: string, timezone: string): boolean {
+  const now = getNowInTimezone(timezone);
+  const [h, m] = (sendTime || '09:00').split(':').map(Number);
+  const sendTotal = (isNaN(h) ? 9 : h) * 60 + (isNaN(m) ? 0 : m);
+  const nowTotal = now.hour * 60 + now.minute;
+  return nowTotal >= sendTotal - 60 && nowTotal <= sendTotal + 180;
 }
 
 /** Constant-time string comparison to avoid leaking CRON_SECRET via timing. */

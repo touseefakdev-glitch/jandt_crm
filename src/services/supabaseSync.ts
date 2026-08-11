@@ -272,6 +272,13 @@ function sanitizeRow(table: string, row: Record<string, unknown>): Record<string
     delete clean['whatsapp_number'];
   }
 
+  // Convert empty string UUID foreign keys to null so PostgreSQL UUID fields do not fail
+  ['assigned_to', 'assigned_team_id', 'created_by', 'resolved_by', 'closed_by', 'reopened_by', 'customer_id', 'order_id', 'product_id', 'category_id', 'performed_by', 'author_id', 'uploaded_by', 'team_id', 'user_id', 'brand_id'].forEach((field) => {
+    if (clean[field] === '') {
+      clean[field] = null;
+    }
+  });
+
   Object.keys(clean).forEach((k) => {
     const v = clean[k];
     if (v !== null && typeof v === 'object') {

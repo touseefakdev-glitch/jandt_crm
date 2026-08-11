@@ -34,7 +34,7 @@ import {
 } from '../src/services/dailyOrderRequestCore';
 
 export const config = {
-  runtime: 'nodejs22.x',
+  runtime: 'nodejs',
 };
 
 const supabaseUrl =

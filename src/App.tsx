@@ -16,8 +16,6 @@ import { ProductDetail } from './pages/ProductDetail';
 import { OutOfStock } from './pages/OutOfStock';
 import { Notifications } from './pages/Notifications';
 import { ShiftHandover } from './pages/ShiftHandover';
-import { WhatsAppConversations } from './pages/WhatsAppConversations';
-import { WhatsAppMonitor } from './pages/WhatsAppMonitor';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminUsers } from './pages/admin/AdminUsers';
@@ -30,11 +28,9 @@ import { AdminProductBrands } from './pages/admin/AdminProductBrands';
 import { AdminShifts } from './pages/admin/AdminShifts';
 import { AdminSettings } from './pages/admin/AdminSettings';
 import { AdminAuditLogs } from './pages/admin/AdminAuditLogs';
-import { AdminWhatsAppSettings } from './pages/admin/AdminWhatsAppSettings';
 import { AdminImport } from './pages/admin/AdminImport';
 import { AdminImportHistory } from './pages/admin/AdminImportHistory';
 import { AdminRouteSchedules } from './pages/admin/AdminRouteSchedules';
-import { AdminOrderRequests } from './pages/admin/AdminOrderRequests';
 
 export const App: React.FC = () => {
   return (
@@ -68,9 +64,7 @@ export const App: React.FC = () => {
             <Route path="inventory" element={<Navigate to="/products" replace />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="shift-handover" element={<ShiftHandover />} />
-            <Route path="whatsapp-conversations" element={<WhatsAppConversations />} />
-            <Route path="whatsapp-monitor" element={<WhatsAppMonitor />} />
-            
+
             {/* Step 9: Admin Panel Sub-Routes */}
             <Route path="admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
@@ -79,7 +73,6 @@ export const App: React.FC = () => {
               <Route path="teams" element={<AdminTeams />} />
               <Route path="roles" element={<AdminRoles />} />
               <Route path="routes" element={<AdminRouteSchedules />} />
-              <Route path="order-requests" element={<AdminOrderRequests />} />
               <Route path="import" element={<AdminImport />} />
               <Route path="import/history" element={<AdminImportHistory />} />
               <Route path="query-categories" element={<AdminQueryCategories />} />
@@ -87,7 +80,6 @@ export const App: React.FC = () => {
               <Route path="product-brands" element={<AdminProductBrands />} />
               <Route path="shifts" element={<AdminShifts />} />
               <Route path="settings" element={<AdminSettings />} />
-              <Route path="whatsapp-settings" element={<AdminWhatsAppSettings />} />
               <Route path="audit-logs" element={<AdminAuditLogs />} />
             </Route>
 

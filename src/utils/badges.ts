@@ -137,34 +137,3 @@ export const shiftStatusBadges: Record<'upcoming' | 'active' | 'completed', Badg
 export const getShiftStatusBadge = (status: 'upcoming' | 'active' | 'completed'): BadgeStyle =>
   shiftStatusBadges[status];
 
-/* ---------------- WhatsApp & Attention Priority Badges ---------------- */
-
-export const getMessageClassificationBadge = (classification: string): BadgeStyle => {
-  switch (classification) {
-    case 'ORDER':
-      return { subtle: 'bg-emerald-50 text-emerald-800 ring-emerald-200', solid: 'bg-emerald-600 text-white', dot: 'bg-emerald-500', label: 'Order Request' };
-    case 'ORDER_CONFIRMATION':
-      return { subtle: 'bg-teal-50 text-teal-800 ring-teal-200', solid: 'bg-teal-600 text-white', dot: 'bg-teal-500', label: 'Order Confirmed' };
-    case 'ORDER_CORRECTION':
-      return { subtle: 'bg-amber-50 text-amber-800 ring-amber-200', solid: 'bg-amber-500 text-white', dot: 'bg-amber-500', label: 'Order Correction' };
-    case 'QUESTION':
-      return { subtle: 'bg-sky-50 text-sky-800 ring-sky-200', solid: 'bg-sky-600 text-white', dot: 'bg-sky-500', label: 'Customer Question' };
-    case 'COMPLAINT':
-      return { subtle: 'bg-rose-50 text-rose-800 ring-rose-200', solid: 'bg-rose-600 text-white', dot: 'bg-rose-500', label: 'Customer Complaint' };
-    case 'GREETING':
-      return { subtle: 'bg-slate-50 text-slate-700 ring-slate-200', solid: 'bg-slate-500 text-white', dot: 'bg-slate-400', label: 'Greeting' };
-    default:
-      return { subtle: 'bg-purple-50 text-purple-800 ring-purple-200', solid: 'bg-purple-600 text-white', dot: 'bg-purple-500', label: classification || 'General' };
-  }
-};
-
-export const getAttentionPriorityBadge = (priority: string): BadgeStyle => {
-  switch (priority) {
-    case 'urgent':
-      return { subtle: 'bg-rose-50 text-rose-800 ring-rose-200', solid: 'bg-rose-600 text-white', dot: 'bg-rose-500', label: 'Urgent' };
-    case 'high':
-      return { subtle: 'bg-amber-50 text-amber-800 ring-amber-200', solid: 'bg-amber-500 text-white', dot: 'bg-amber-500', label: 'High Priority' };
-    default:
-      return { subtle: 'bg-sky-50 text-sky-800 ring-sky-200', solid: 'bg-sky-600 text-white', dot: 'bg-sky-500', label: 'Normal' };
-  }
-};

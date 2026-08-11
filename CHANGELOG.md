@@ -5,6 +5,23 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.27.0] - 2026-08-12
+
+### Removed
+- **WhatsApp Module completely removed** from the CRM. This is a breaking removal — no WhatsApp code, runtime, or UI remains.
+  - **Deleted pages/routes**: WhatsApp Inbox (`/whatsapp-conversations`), WhatsApp Monitor (`/whatsapp-monitor`), Admin WhatsApp Settings (`/admin/whatsapp-settings`), Admin Order Requests (`/admin/order-requests`), and the WhatsApp Simulator.
+  - **Deleted components**: `AttentionAlertPopups` (removed from `AppShell`) and the global in-app popup center.
+  - **Deleted services**: `whatsappConnectorService`, `whatsappIngestionService`, `whatsappMonitoringService`, `messageClassifier`, `orderParser`, `productMatcher`, `resilientProcessing`, `textNormalizer`, `messagingService`, `orderDraftService`, `aiService`, `attentionAlertService`, `dailyOrderRequestCore`, `dailyOrderRequestService`, `routeRoutingService`.
+  - **Deleted infrastructure**: Baileys Node.js worker microservice (`./connector`), `api/` serverless cron function (`/api/daily-order-request`), and `vercel.json` cron schedule.
+  - **Removed dependencies**: `@whiskeysockets/baileys`, `qrcode`, `qrcode-terminal`, `@types/qrcode`, `pino`, `dotenv`; removed `whatsapp` and `start` npm scripts (lockfile pruned).
+  - **Removed data access**: WhatsApp-specific types, storage keys, seed entries, reset paths, and the "WhatsApp Order Intelligence — Phase A" data-access layer in `db.ts`; WhatsApp `TABLE_MAP` entries in `supabaseSync`; WhatsApp permission methods; `whatsapp.attention_required` notification type and `notifyWhatsAppAttentionRequired`.
+  - **Removed database objects** (see `database/migrations/02_remove_whatsapp.sql`, destructive): tables `whatsapp_contacts`, `whatsapp_conversations`, `whatsapp_messages`, `order_drafts`, `order_draft_items`, `product_aliases`, `customer_product_aliases`, `route_destinations`, `agent_attention_alerts`, `order_intake_events`, `order_request_config`, `order_reminders`, `order_processing_errors`, `whatsapp_connector_status`, `whatsapp_outbox`, `whatsapp_baileys_auth`; enums `message_classification`, `order_draft_status`, `match_method`, `attention_priority`, `alert_status`, `bot_status`. `database/schema.sql` updated accordingly.
+  - **Kept by design**: customer `whatsapp_number` field (contact data, still displayed/editable in Customers, Customer Detail, CSV import, and customer search), the CRM Query module, and all CRM business data.
+- **Documentation**: Removed all WhatsApp architecture/spec sections from `PROJECT_SPEC.md`; removed `database/migrations/01_whatsapp_cloud_infrastructure.sql`; deleted `tests/` (WhatsApp pipeline tests), `scripts/matchContactsAndUpdateSupabase.ts` (hardcoded local paths + leaked key).
+- Verified with `npx tsc --noEmit` (exit 0) and `npm run build` (exit 0).
+
+---
+
 ## [1.26.0] - 2026-08-11
 
 ### Added

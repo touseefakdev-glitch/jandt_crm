@@ -18,9 +18,6 @@ import {
   FileText,
   Settings,
   ShieldCheck,
-  MessageSquare,
-  Activity,
-  Wifi
 } from 'lucide-react';
 import { UserRole } from '../../types';
 
@@ -36,8 +33,6 @@ interface SidebarNavItem {
 
 const NAV_ITEMS: SidebarNavItem[] = [
   { id: 'dashboard', label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
-  { id: 'whatsapp-conversations', label: 'WhatsApp Inbox', path: '/whatsapp-conversations', icon: MessageSquare, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
-  { id: 'whatsapp-monitor', label: 'WhatsApp Monitor', path: '/whatsapp-monitor', icon: Activity, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
   { id: 'orders', label: 'Daily Operations', path: '/orders', icon: ShoppingBag, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
   { id: 'customers', label: 'Customers', path: '/customers', icon: Users, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
   { id: 'products', label: 'Products Catalog', path: '/products', icon: Package, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
@@ -52,7 +47,6 @@ const NAV_ITEMS: SidebarNavItem[] = [
   { id: 'teams', label: 'Teams', path: '/admin/teams', icon: UsersRound, allowedRoles: ['admin'], section: 'administration' },
   { id: 'imports', label: 'Data Imports', path: '/admin/import', icon: Upload, allowedRoles: ['admin'], section: 'administration' },
   { id: 'audit-logs', label: 'Audit Logs', path: '/admin/audit-logs', icon: FileText, allowedRoles: ['admin'], section: 'administration' },
-  { id: 'whatsapp-settings', label: 'WhatsApp Settings', path: '/admin/whatsapp-settings', icon: Wifi, allowedRoles: ['admin'], section: 'administration' },
   { id: 'settings', label: 'Settings', path: '/admin/settings', icon: Settings, allowedRoles: ['admin'], section: 'administration' },
 ];
 

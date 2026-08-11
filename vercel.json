@@ -1,9 +1,3 @@
 {
-  "crons": [
-    {
-      "path": "/api/daily-order-request",
-      "schedule": "0 16 * * *"
-    }
-  ],
   "rewrites": [{ "source": "/:path*", "destination": "/index.html" }]
 }

@@ -42,7 +42,6 @@ const widthClasses: Record<NonNullable<DrawerProps['placement']>, Record<NonNull
 /**
  * Reusable Drawer panel. On mobile, side drawers take the full width;
  * bottom drawers rise from the bottom of the viewport.
- * Ready for the WhatsApp module (conversation / customer / order panels).
  */
 export const Drawer: React.FC<DrawerProps> = ({
   isOpen,

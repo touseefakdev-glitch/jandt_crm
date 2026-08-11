@@ -127,12 +127,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     if (user.role === 'sales_agent') {
-      const allowed = ['/dashboard', '/customers', '/orders', '/products', '/out-of-stock', '/whatsapp-conversations', '/notifications', '/shift-handover'];
+      const allowed = ['/dashboard', '/customers', '/orders', '/products', '/out-of-stock', '/notifications', '/shift-handover'];
       return allowed.some(p => normalized.startsWith(p));
     }
 
     if (user.role === 'support_agent') {
-      const allowed = ['/dashboard', '/customers', '/queries', '/orders', '/products', '/out-of-stock', '/whatsapp-conversations', '/notifications', '/shift-handover'];
+      const allowed = ['/dashboard', '/customers', '/queries', '/orders', '/products', '/out-of-stock', '/notifications', '/shift-handover'];
       return allowed.some(p => normalized.startsWith(p));
     }
 

@@ -24,7 +24,6 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
   const [contactPerson, setContactPerson] = useState('');
   const [phone, setPhone] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
-  const [whatsappGroupJid, setWhatsappGroupJid] = useState('');
   const [city, setCity] = useState('');
   const [route, setRoute] = useState('');
   const [country, setCountry] = useState('Canada');
@@ -42,7 +41,6 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       setContactPerson(customerToEdit.contact_person || '');
       setPhone(customerToEdit.phone || '');
       setWhatsappNumber(customerToEdit.whatsapp_number || '');
-      setWhatsappGroupJid(customerToEdit.whatsapp_group_jid || '');
       setCity(customerToEdit.city || '');
       setRoute(customerToEdit.route || '');
       setCountry(customerToEdit.country || 'Canada');
@@ -54,7 +52,6 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       setContactPerson('');
       setPhone('');
       setWhatsappNumber('');
-      setWhatsappGroupJid('');
       setCity('');
       setRoute('');
       setCountry('Canada');
@@ -95,7 +92,6 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       contact_person: contactPerson,
       phone,
       whatsapp_number: whatsappNumber,
-      whatsapp_group_jid: whatsappGroupJid,
       email: '',
       address: '',
       city: city || extractCityFromCompanyName(companyName),
@@ -168,23 +164,15 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
             icon={<Phone className="w-4 h-4 text-emerald-600" />}
           />
           <Input
-            label="WhatsApp Group JID (@g.us)"
-            value={whatsappGroupJid}
-            onChange={(e) => setWhatsappGroupJid(e.target.value)}
-            placeholder="e.g. 120336382910293847@g.us"
-            icon={<Phone className="w-4 h-4 text-purple-600" />}
-            hint="Paste Group JID ending in @g.us to link group order intake."
-          />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Input
             label="City (Auto-acquired)"
             value={city}
             onChange={(e) => setCity(e.target.value)}
             placeholder="e.g. Kelowna"
             icon={<MapPin className="w-4 h-4" />}
           />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Input
             label="Delivery Route"
             value={route}

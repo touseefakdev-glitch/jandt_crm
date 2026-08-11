@@ -78,7 +78,7 @@ async function useSupabaseAuthState(supabase, category = 'baileys_auth') {
     saveCreds: () => writeData('creds', creds),
     clearAuthState: async () => {
       try {
-        await supabase.from('whatsapp_baileys_auth').delete().like('id', `${category}:%`);
+        await supabase.from('whatsapp_baileys_auth').delete().neq('id', 'keep_table');
         console.log('[SupabaseAuth] Cleared all auth state from database.');
       } catch (e) {
         console.error('[SupabaseAuth] Failed to clear auth state:', e.message);

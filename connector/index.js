@@ -18,6 +18,7 @@ const {
   DisconnectReason,
   fetchLatestBaileysVersion,
   useMultiFileAuthState,
+  Browsers,
 } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode-terminal');
 const pino = require('pino');
@@ -76,14 +77,14 @@ async function startWorker(forceFresh = false) {
   await updateStatus('CONNECTING', { error_message: null });
 
   try {
-    if (forceFresh && process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      console.log('[Worker] Force fresh requested. Clearing stale auth keys in database...');
+    if (forceFresh && (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)) {
+      console.log('[Worker] Force fresh requested. Wiping stale auth keys from database...');
       try {
-        await supabase.from('whatsapp_baileys_auth').delete().like('id', 'baileys_auth:%');
+        await supabase.from('whatsapp_baileys_auth').delete().neq('id', 'keep_table');
       } catch (e) {}
     }
 
-    const { version } = await fetchLatestBaileysVersion();
+    const { version } = await fetchLatestBaileysVersion().catch(() => ({ version: undefined }));
     let authState = null;
 
     if (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) {
@@ -109,11 +110,14 @@ async function startWorker(forceFresh = false) {
     socket = makeWASocket({
       version,
       auth: state,
+      browser: Browsers.macOS('Desktop'),
       logger: pino({ level: 'silent' }),
       printQRInTerminal: false,
       connectTimeoutMs: 60000,
       defaultQueryTimeoutMs: 60000,
       keepAliveIntervalMs: 25000,
+      markOnlineOnConnect: true,
+      syncFullHistory: false,
     });
 
     socket.ev.on('creds.update', saveCreds);
@@ -171,13 +175,13 @@ async function startWorker(forceFresh = false) {
 
           setTimeout(() => startWorker(false), delayMs);
         } else {
-          console.error('[Worker] Device logged out. Clearing auth state and forcing fresh QR generation...');
+          console.error('[Worker] Device logged out or rejected. Wiping auth state and generating fresh QR...');
           if (authState.clearAuthState) {
             await authState.clearAuthState();
           }
           await updateStatus('AUTH_REQUIRED', {
             qr_code_data: null,
-            error_message: 'Logged out. Generating new QR pairing code...',
+            error_message: 'Logged out. Generating fresh QR code...',
           });
           setTimeout(() => startWorker(true), 2000);
         }

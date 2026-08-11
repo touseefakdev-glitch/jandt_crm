@@ -76,7 +76,7 @@ async function startWorker() {
     let authState = null;
 
     // Use Supabase DB auth state if database URL is valid, fallback to local AUTH_FOLDER if specified
-    if (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL) {
+    if (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) {
       console.log('[Worker] Using persistent cloud Supabase database auth store...');
       authState = await useSupabaseAuthState(supabase, 'baileys_auth');
     } else {

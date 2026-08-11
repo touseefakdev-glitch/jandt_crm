@@ -68,7 +68,7 @@ async function updateStatus(status, extra = {}) {
 /**
  * Main Worker Initialization
  */
-async function startWorker() {
+async function startWorker(forceFresh = false) {
   if (isConnecting) return;
   isConnecting = true;
 
@@ -76,6 +76,13 @@ async function startWorker() {
   await updateStatus('CONNECTING', { error_message: null });
 
   try {
+    if (forceFresh && process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      console.log('[Worker] Force fresh requested. Clearing stale auth keys in database...');
+      try {
+        await supabase.from('whatsapp_baileys_auth').delete().like('id', 'baileys_auth:%');
+      } catch (e) {}
+    }
+
     const { version } = await fetchLatestBaileysVersion();
     let authState = null;
 
@@ -96,6 +103,7 @@ async function startWorker() {
         socket.ev.removeAllListeners();
         socket.end(new Error('Re-initializing worker'));
       } catch (e) {}
+      socket = null;
     }
 
     socket = makeWASocket({
@@ -141,7 +149,6 @@ async function startWorker() {
 
         startHeartbeatLoop();
         startOutboxLoop();
-        startCommandLoop();
       }
 
       if (connection === 'close') {
@@ -162,16 +169,17 @@ async function startWorker() {
             error_message: `Connection lost. Auto-reconnecting attempt #${reconnectAttempts}...`,
           });
 
-          setTimeout(startWorker, delayMs);
+          setTimeout(() => startWorker(false), delayMs);
         } else {
-          console.error('[Worker] Device logged out. Clearing auth state...');
+          console.error('[Worker] Device logged out. Clearing auth state and forcing fresh QR generation...');
           if (authState.clearAuthState) {
             await authState.clearAuthState();
           }
           await updateStatus('AUTH_REQUIRED', {
             qr_code_data: null,
-            error_message: 'Logged out. Pair again from CRM Admin Settings.',
+            error_message: 'Logged out. Generating new QR pairing code...',
           });
+          setTimeout(() => startWorker(true), 2000);
         }
       }
     });
@@ -255,7 +263,7 @@ async function startWorker() {
     isConnecting = false;
     console.error('[Worker] Fatal error initializing worker:', err.message);
     await updateStatus('ERROR', { error_message: err.message });
-    setTimeout(startWorker, 10000);
+    setTimeout(() => startWorker(false), 10000);
   }
 }
 
@@ -284,7 +292,7 @@ function startOutboxLoop() {
 }
 
 /**
- * Listens for Admin commands (RECONNECTING / AUTH_REQUIRED) from CRM UI
+ * Listens for Admin commands (RECONNECTING / AUTH_REQUIRED) from CRM UI continuously
  */
 function startCommandLoop() {
   if (commandTimer) clearInterval(commandTimer);
@@ -292,14 +300,20 @@ function startCommandLoop() {
     try {
       const { data } = await supabase
         .from('whatsapp_connector_status')
-        .select('status')
+        .select('status, qr_code_data')
         .eq('connector_name', CONNECTOR_NAME)
         .maybeSingle();
 
-      if (data && data.status === 'RECONNECTING') {
-        console.log('[Worker] Admin UI requested reconnection. Restarting worker socket...');
-        isConnecting = false;
-        startWorker();
+      if (data) {
+        if (data.status === 'RECONNECTING') {
+          console.log('[Worker] Admin UI requested reconnection. Restarting worker socket...');
+          isConnecting = false;
+          await startWorker(false);
+        } else if (data.status === 'AUTH_REQUIRED' && !data.qr_code_data && !isConnecting) {
+          console.log('[Worker] AUTH_REQUIRED with missing QR detected. Generating fresh QR code...');
+          isConnecting = false;
+          await startWorker(true);
+        }
       }
     } catch (e) {}
   }, COMMAND_POLL_INTERVAL_MS);
@@ -308,7 +322,6 @@ function startCommandLoop() {
 function stopLoops() {
   if (heartbeatTimer) clearInterval(heartbeatTimer);
   if (outboxTimer) clearInterval(outboxTimer);
-  if (commandTimer) clearInterval(commandTimer);
 }
 
 async function incrementInboundMetric() {
@@ -338,6 +351,7 @@ async function incrementInboundMetric() {
 process.on('SIGINT', async () => {
   console.log('[Worker] Graceful shutdown requested (SIGINT)...');
   stopLoops();
+  if (commandTimer) clearInterval(commandTimer);
   await updateStatus('DISCONNECTED', { error_message: 'Worker stopped manually.' });
   process.exit(0);
 });
@@ -345,8 +359,11 @@ process.on('SIGINT', async () => {
 process.on('SIGTERM', async () => {
   console.log('[Worker] Container terminating (SIGTERM)...');
   stopLoops();
+  if (commandTimer) clearInterval(commandTimer);
   await updateStatus('DISCONNECTED', { error_message: 'Container shut down.' });
   process.exit(0);
 });
 
-startWorker();
+// Always run command listener loop
+startCommandLoop();
+startWorker(false);

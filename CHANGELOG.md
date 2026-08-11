@@ -5,6 +5,19 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.21.0] - 2026-08-11
+
+### Added
+- **WhatsApp Order Intelligence — Phase 5 (Confirmed Order Routing)**:
+  - Added `routeRoutingService.ts` for confirmed order routing, weekly route schedule delivery date calculation, internal route message payload formatting, and Baileys destination resolution.
+  - Implemented weekly route schedule matrix (Mon–Sun covering Kelowna, West Kelowna, Summerland, Penticton, Osoyoos, Oliver, Princeton, Keremeos, Merritt, Vernon, Salmon Arm, Lake Country, Armstrong, Kamloops, Falkland, Chase).
+  - Standardized internal route operational message payload (`📦 NEW ORDER CONFIRMED` with Customer, Route, Delivery Date, Items list, and CRM Reference `CRM-ORD-XXXXXX`).
+  - Configured dynamic destination resolution (`resolveDestinationJidForRoute`) using `ORDER_GROUP_JID` and `route_destinations` table without hardcoding JIDs in business logic.
+  - Linked confirmed intake orders directly into the CRM 6-stage operational pipeline (`Order Received ✓` ➔ `Sales Order Generated` ➔ `Invoiced` ➔ `Dispatched` ➔ `Error`).
+  - Updated `PROJECT_SPEC.md` with complete Phase 5 routing architecture and delivery schedule matrix.
+
+---
+
 ## [1.20.0] - 2026-08-11
 
 ### Added

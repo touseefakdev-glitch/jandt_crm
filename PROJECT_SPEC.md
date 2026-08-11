@@ -695,6 +695,70 @@ Your order has been received and confirmed for tomorrow's delivery.
 
 ---
 
+## WhatsApp Order Intelligence — Phase 5 (Confirmed Order Routing)
+
+> Implemented operational order routing, weekly route schedule delivery date calculation, standardized internal route payload formatting, and Baileys group JID dispatch.
+
+### Weekly Delivery Route Schedule Matrix
+- **Monday**: Kelowna
+- **Tuesday**: Kelowna, West Kelowna, Summerland
+- **Wednesday**: Kelowna, Penticton, West Kelowna, Osoyoos, Oliver
+- **Thursday**: Kelowna, Penticton, Princeton, Keremeos, Osoyoos, Oliver, Merritt
+- **Friday**: Vernon, Salmon Arm, Lake Country, Armstrong
+- **Saturday**: Vernon, Kamloops, Falkland, Chase, Salmon Arm, Lake Country
+- **Sunday**: Kelowna, Penticton, Osoyoos, Oliver, West Kelowna
+
+*(Configurable via `routeRoutingService.ts` and CRM settings)*
+
+### Standardized Internal Operational Route Message Format
+```text
+📦 NEW ORDER CONFIRMED
+
+Customer:
+ABC Pharmacy
+
+Route:
+Kamloops
+
+Delivery:
+Tuesday, August 11
+
+Items:
+• Blue Gloves Large — 5
+• Surgical Masks — 2
+• Packing Tape — 3
+
+CRM Reference:
+CRM-ORD-XXXXXX
+```
+
+### Destination Routing & Baileys Gateway Architecture
+```text
+CRM Order Confirmation Engine
+              ↓
+   Internal Route Payload (`buildInternalRouteMessage`)
+              ↓
+   Destination Resolution (`resolveDestinationJidForRoute` / `route_destinations` / `ORDER_GROUP_JID`)
+              ↓
+   Supabase Messages Outbox Queue (`processing_status = 'PROCESSED'`)
+              ↓
+   Baileys Connector (`sock.sendMessage`)
+              ↓
+   WhatsApp Route Group JID (`120363409575608646@g.us`)
+```
+
+### 6-Stage Operational Workflow Integration
+Upon forwarding, confirmed orders seamlessly integrate into the CRM 6-stage operational pipeline:
+1. **Order Received ✓** (Auto-checked upon WhatsApp intake)
+2. **Sales Order Generated ☐** (Single-click generation)
+3. **Invoiced ☐** (Single-click invoicing)
+4. **Dispatched ☐** (Route dispatch logging)
+5. **Error ☐** (Error tracking & reporting)
+
+*(No inventory management, billing calculations, or traditional shopping carts added)*
+
+---
+
 ## Change Log
 All technical changes are logged in [CHANGELOG.md](file:///c:/Users/TIW%20COMPUTER/Desktop/CRM/CHANGELOG.md).
 

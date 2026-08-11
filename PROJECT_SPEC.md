@@ -585,6 +585,50 @@ The CRM application is configured with a clean, 0-data baseline for immediate pr
 
 ---
 
+## WhatsApp Order Intelligence — Phase 3 (Customer History & Product Matching Engine)
+
+> Implemented Order Intelligence Layer utilizing Product Catalog (1,022 items), Customer Accounts (393 accounts), Customer Historical Purchasing Records (6,479 relationships), Product Aliases, Customer-Specific Aliases, and WhatsApp message text parsing.
+
+### Core Processing Flow
+1. **Input Payload**: `Customer Account` + `Raw Message Text` + `Product Catalog` + `Customer Historical Products`.
+2. **Extraction Engine**: Splits text into distinct segments and extracts product mention strings, numeric quantities, and packaging units.
+3. **Deterministic Priority Chain**:
+   - `SKU` (Score `1.0`)
+   - `Exact Product Name` (Score `0.97`)
+   - `Customer-Specific Alias` (Score `0.95`)
+   - `Global Product Alias` (Score `0.90`)
+   - `Customer Historical Purchase` (Score `0.80–0.90`)
+   - `Normalized Token / Fuzzy Match` (Score `0.60–0.90`)
+4. **Low-Confidence & Ambiguity Protection**:
+   - Mentions with multiple contenders (top-2 within `AMBIGUITY_DELTA = 0.15`) or confidence below `0.60` trigger status `NEEDS_CLARIFICATION` and generate a clarification question listing option choices.
+   - Low-confidence products are **never guessed automatically**.
+5. **Customer Purchasing History as Context**:
+   - Historical entries provide context for vague phrases like *"send my usual gloves"*.
+   - **Explicit Intent Priority**: Current explicit customer text (e.g. *"send black gloves medium"*) always takes precedence over historical preferences.
+6. **Quantity & Unit Integrity**:
+   - Quantities are never invented. Missing quantities set status `NEEDS_CLARIFICATION` and prompt: *"How many would you like?"*.
+7. **Order Draft Lifecycle**:
+   - Draft records created in `order_drafts` and `order_draft_items` capturing Customer ID, Route, Delivery Date, Customer Text, Matched Product ID, Matched Product Name, Quantity, Unit, Match Method, Match Confidence, and Status.
+8. **Human Review Operations**:
+   - Agents review drafts in `/whatsapp-conversations` and `/whatsapp-simulator` with controls to `Approve`, `Edit`, `Reject`, or `Request Clarification`.
+   - **No Automated WhatsApp Sending**: In Phase 3, no automated messages are sent to real WhatsApp customers during testing.
+
+### Verified Test Cases (12 Test Scenarios)
+- ✅ Exact product match (SKU & exact catalog name)
+- ✅ Misspelling (diacritic removal & fuzzy token matching)
+- ✅ Abbreviation (alias & short code matching)
+- ✅ Multiple products in single message (multi-segment splitting)
+- ✅ Missing quantity (`quantityMissing` & clarification prompt)
+- ✅ Ambiguous product (multiple contenders trigger choice prompt)
+- ✅ Customer historical product (*"send my usual gloves"*)
+- ✅ Unknown product (`unmatched` candidates trigger prompt)
+- ✅ Customer correction (updating active draft line items)
+- ✅ Duplicate message (idempotency key check on `message_id`)
+- ✅ Non-order message (`GREETING`, `QUESTION`, `COMPLAINT` handling)
+- ✅ Mixed order + question (order draft created + attention alert raised for secondary question)
+
+---
+
 ## Change Log
 All technical changes are logged in [CHANGELOG.md](file:///c:/Users/TIW%20COMPUTER/Desktop/CRM/CHANGELOG.md).
 

@@ -5,6 +5,21 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.19.0] - 2026-08-11
+
+### Added
+- **WhatsApp Order Intelligence — Phase 3 (Customer History & Product Matching Engine)**:
+  - Verified and documented complete Customer History + Catalog Order Intelligence Layer.
+  - Enforced deterministic priority chain: SKU (1.0) ➔ Exact Name (0.97) ➔ Customer Alias (0.95) ➔ Global Alias (0.90) ➔ Customer History (0.80–0.90) ➔ Normalized Name (0.60–0.90).
+  - Enforced low-confidence and ambiguity protection: ambiguous mentions or confidence < 0.60 trigger `NEEDS_CLARIFICATION` and prompt for customer input instead of guessing.
+  - Enforced customer history context (*"send my usual gloves"*) while ensuring explicit customer intent (e.g. *"send black gloves medium"*) always overrides history.
+  - Enforced quantity and unit integrity: missing quantities trigger `NEEDS_CLARIFICATION` prompt (*"How many would you like?"*).
+  - Maintained human review interface in `/whatsapp-conversations` and `/whatsapp-simulator` with controls to `Approve`, `Edit`, `Reject`, or `Request Clarification`.
+  - Added test coverage verification across 12 test scenarios (exact match, misspelling, abbreviation, multi-product, missing quantity, ambiguity, customer history, unknown product, correction, duplicate message, non-order message, mixed order + question).
+  - Updated `PROJECT_SPEC.md` with complete Phase 3 specifications and test scenario compliance matrix.
+
+---
+
 ## [1.18.0] - 2026-08-11
 
 ### Added

@@ -81,15 +81,15 @@ export const AdminProductCategories: React.FC = () => {
         }
       />
 
-      <Card>
-        <Table>
+      <Card flush>
+        <Table minWidth={1020}>
           <THead>
             <Tr hover={false}>
-              <Th>Category Name</Th>
-              <Th>Description</Th>
-              <Th>Catalog Products</Th>
-              <Th>Status</Th>
-              <Th className="text-right">Actions</Th>
+              <Th width={240}>Category Name</Th>
+              <Th width={300}>Description</Th>
+              <Th width={150}>Catalog Products</Th>
+              <Th width={130}>Status</Th>
+              <Th width={150} align="right">Actions</Th>
             </Tr>
           </THead>
           <TBody>
@@ -98,17 +98,17 @@ export const AdminProductCategories: React.FC = () => {
                 const productCount = products.filter(p => p.category_id === cat.id).length;
                 return (
                   <Tr key={cat.id}>
-                    <Td>
+                    <Td width={240} truncate maxWidth={240}>
                       <span className="inline-flex items-center gap-2 font-bold text-slate-900">
                         <Package className="w-4 h-4 text-purple-600 shrink-0" />
-                        {cat.name}
+                        <span className="truncate">{cat.name}</span>
                       </span>
                     </Td>
-                    <Td className="text-slate-600 max-w-xs whitespace-normal">
+                    <Td width={300} truncate maxWidth={300} className="text-slate-600">
                       {cat.description || <span className="italic text-slate-400">No description</span>}
                     </Td>
-                    <Td className="font-bold text-slate-900 font-mono">{productCount} product(s)</Td>
-                    <Td>
+                    <Td width={150} className="font-bold text-slate-900 font-mono">{productCount} product(s)</Td>
+                    <Td width={130}>
                       {cat.is_active ? (
                         <Badge
                           badge={{
@@ -129,7 +129,7 @@ export const AdminProductCategories: React.FC = () => {
                         />
                       )}
                     </Td>
-                    <Td className="text-right whitespace-nowrap">
+                    <Td width={150} align="right" className="whitespace-nowrap">
                       <div className="inline-flex items-center gap-2">
                         <Button variant="outline" size="sm" onClick={() => handleOpenModal(cat)}>
                           Edit

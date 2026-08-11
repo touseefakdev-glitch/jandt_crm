@@ -6,7 +6,7 @@ import { notificationService } from '../services/notificationService';
 import { CustomerQuery, QueryFormInput } from '../types';
 import { QueryFormModal } from '../components/queries/QueryFormModal';
 import { QueryAssignModal } from '../components/queries/QueryAssignModal';
-import { Avatar, Badge, Button, Card, EmptyState, Input, PageHeader, Pagination, Select, Table, Tabs, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
+import { Avatar, Badge, Button, Card, EmptyState, Input, PageHeader, Pagination, Select, Table, TableToolbar, Tabs, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
 import { getQueryPriorityBadge, getQueryStatusBadge } from '../utils/badges';
 import { formatDateTime } from '../utils/format';
 import { HelpCircle, Plus, Search, Inbox, User, Users, X, ShoppingBag, Package, ArrowRight } from 'lucide-react';
@@ -181,8 +181,8 @@ export const Queries: React.FC = () => {
         }
       />
 
-      <Card className="p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
+      <TableToolbar>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 mb-3">
           <div className="flex items-center gap-2 flex-wrap">
             <Tabs
               size="md"
@@ -215,14 +215,14 @@ export const Queries: React.FC = () => {
         </div>
 
         {workloadCards.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 p-3 bg-[#F5F7FA] rounded-[12px] border border-slate-200 mb-3">
             {workloadCards.map((card) => (
-              <div key={card.label} className="p-3 bg-white rounded-lg border border-slate-200 text-center">
+              <div key={card.label} className="p-3 bg-white rounded-lg border border-slate-200 text-center shadow-xs">
                 <span className={`text-[10px] font-bold uppercase flex items-center justify-center gap-1.5 ${card.className}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${card.dot}`} />
                   {card.label}
                 </span>
-                <span className="text-xl font-extrabold text-slate-900 block mt-1">{card.value}</span>
+                <span className="text-xl font-extrabold text-slate-900 block mt-1 tabular-nums">{card.value}</span>
               </div>
             ))}
           </div>
@@ -279,76 +279,76 @@ export const Queries: React.FC = () => {
             ))}
           </Select>
         </div>
-      </Card>
+      </TableToolbar>
 
-      <Card>
+      <Card flush>
         {paginatedQueries.length > 0 ? (
-          <Table>
+          <Table minWidth={1300}>
             <THead>
               <Tr hover={false}>
-                <Th>Query Number</Th>
-                <Th>Customer Account</Th>
-                <Th>Subject & Related Entity</Th>
-                <Th>Priority</Th>
-                <Th>Status</Th>
-                <Th>Assigned Agent</Th>
-                <Th className="font-mono">Last Updated</Th>
-                <Th className="text-right">Action</Th>
+                <Th width={130}>Query Number</Th>
+                <Th width={220}>Customer Account</Th>
+                <Th width={320}>Subject & Related Entity</Th>
+                <Th width={110}>Priority</Th>
+                <Th width={130}>Status</Th>
+                <Th width={160}>Assigned Agent</Th>
+                <Th width={140}>Last Updated</Th>
+                <Th width={90} align="right">Action</Th>
               </Tr>
             </THead>
             <TBody>
               {paginatedQueries.map((query) => (
                 <Tr key={query.id}>
-                  <Td className="font-mono font-bold text-brand-700">
+                  <Td width={130} className="font-mono font-bold text-brand-700">
                     <Link to={`/queries/${query.id}`} className="hover:underline">{query.query_number}</Link>
                   </Td>
-                  <Td>
+                  <Td width={220} truncate>
                     {query.customer ? (
                       <div>
-                        <Link to={`/customers/${query.customer.id}`} className="font-bold text-slate-900 hover:text-brand-600 block">{query.customer.company_name}</Link>
+                        <Link to={`/customers/${query.customer.id}`} className="font-bold text-slate-900 hover:text-brand-600 block truncate">{query.customer.company_name}</Link>
                         <span className="font-mono text-[10px] text-slate-500">{query.customer.customer_code}</span>
                       </div>
                     ) : (
                       <span className="text-slate-400 italic">Unknown Customer</span>
                     )}
                   </Td>
-                  <Td className="max-w-xs">
+                  <Td width={320} truncate maxWidth={320}>
                     <div className="font-semibold text-slate-900 truncate" title={query.subject}>{query.subject}</div>
                     <div className="flex items-center gap-2 mt-1">
                       {query.category && (
-                        <span className="text-[10px] bg-slate-100 text-slate-600 font-medium px-1.5 py-0.5 rounded border border-slate-200">{query.category.name}</span>
+                        <span className="text-[10px] bg-slate-100 text-slate-600 font-medium px-1.5 py-0.5 rounded border border-slate-200 whitespace-nowrap">{query.category.name}</span>
                       )}
                       {query.order && (
-                        <Link to={`/orders/${query.order.id}`} className="text-[10px] bg-emerald-50 text-emerald-800 font-mono font-semibold px-1.5 py-0.5 rounded border border-emerald-200 hover:underline inline-flex items-center gap-0.5">
+                        <Link to={`/orders/${query.order.id}`} className="text-[10px] bg-emerald-50 text-emerald-800 font-mono font-semibold px-1.5 py-0.5 rounded border border-emerald-200 hover:underline inline-flex items-center gap-0.5 whitespace-nowrap">
                           <ShoppingBag className="w-2.5 h-2.5" /> {query.order.order_number}
                         </Link>
                       )}
                       {query.product && (
-                        <Link to={`/products/${query.product.id}`} className="text-[10px] bg-purple-50 text-purple-800 font-mono font-semibold px-1.5 py-0.5 rounded border border-purple-200 hover:underline inline-flex items-center gap-0.5">
+                        <Link to={`/products/${query.product.id}`} className="text-[10px] bg-purple-50 text-purple-800 font-mono font-semibold px-1.5 py-0.5 rounded border border-purple-200 hover:underline inline-flex items-center gap-0.5 whitespace-nowrap">
                           <Package className="w-2.5 h-2.5" /> {query.product.sku}
                         </Link>
                       )}
                     </div>
                   </Td>
-                  <Td><Badge badge={getQueryPriorityBadge(query.priority)} /></Td>
-                  <Td><Badge badge={getQueryStatusBadge(query.status)} /></Td>
-                  <Td>
+                  <Td width={110}><Badge badge={getQueryPriorityBadge(query.priority)} /></Td>
+                  <Td width={130}><Badge badge={getQueryStatusBadge(query.status)} /></Td>
+                  <Td width={160} truncate maxWidth={160}>
                     {query.assigned_to_profile ? (
                       <span className="inline-flex items-center gap-1.5 font-medium text-slate-800">
                         <Avatar name={query.assigned_to_profile.full_name} size="xs" />
-                        {query.assigned_to_profile.full_name}
+                        <span className="truncate">{query.assigned_to_profile.full_name}</span>
                       </span>
                     ) : (
                       <button
                         onClick={() => setAssigningQuery(query)}
-                        className="text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded-md border border-amber-200 transition-colors"
+                        className="text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded-md border border-amber-200 transition-colors whitespace-nowrap"
                       >
                         + Assign Agent
                       </button>
                     )}
                   </Td>
-                  <Td className="font-mono text-slate-500">{formatDateTime(query.updated_at)}</Td>
-                  <Td className="text-right">
+                  <Td width={140} className="font-mono text-slate-500">{formatDateTime(query.updated_at)}</Td>
+                  <Td width={90} align="right">
                     <Link
                       to={`/queries/${query.id}`}
                       className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-[11px] rounded-lg transition-colors"

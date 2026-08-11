@@ -8,6 +8,8 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   iconRight?: React.ReactNode;
   loading?: boolean;
   fullWidth?: boolean;
+  /** Compact square button for icon-only actions. */
+  iconOnly?: boolean;
 }
 
 const variantStyles: Record<NonNullable<ButtonProps['variant']>, string> = {
@@ -20,9 +22,15 @@ const variantStyles: Record<NonNullable<ButtonProps['variant']>, string> = {
 };
 
 const sizeStyles: Record<NonNullable<ButtonProps['size']>, string> = {
-  sm: 'px-3 py-1.5 text-xs font-bold gap-1.5 rounded-[8px]',
-  md: 'px-4 py-2 text-sm font-semibold gap-2 rounded-[8px]',
-  lg: 'px-5 py-2.5 text-sm font-bold gap-2 rounded-[8px]',
+  sm: cn('px-3 text-xs font-bold gap-1.5 rounded-btn', 'h-8'),
+  md: cn('px-4 text-sm font-semibold gap-2 rounded-btn', 'h-9'),
+  lg: cn('px-5 text-sm font-bold gap-2 rounded-btn', 'h-10'),
+};
+
+const iconOnlyStyles: Record<NonNullable<ButtonProps['size']>, string> = {
+  sm: 'w-8 px-0',
+  md: 'w-9 px-0',
+  lg: 'w-10 px-0',
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -34,6 +42,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       iconRight,
       loading,
       fullWidth,
+      iconOnly,
       className,
       children,
       disabled,
@@ -47,9 +56,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       type={type}
       disabled={disabled || loading}
       className={cn(
-        'inline-flex items-center justify-center font-medium transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed select-none',
+        'inline-flex items-center justify-center font-medium transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed select-none whitespace-nowrap',
         variantStyles[variant],
         sizeStyles[size],
+        iconOnly && iconOnlyStyles[size],
         fullWidth && 'w-full',
         className
       )}

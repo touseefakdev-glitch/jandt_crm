@@ -344,28 +344,28 @@ export const ProductDetail: React.FC = () => {
             </div>
 
             {relatedOrders.length > 0 ? (
-              <Table>
+              <Table minWidth={1070}>
                 <THead>
                   <Tr hover={false}>
-                    <Th>Order Number</Th>
-                    <Th>Customer</Th>
-                    <Th>Sales Agent</Th>
-                    <Th>Current Status</Th>
-                    <Th className="font-mono">Grand Total</Th>
-                    <Th className="text-right">Action</Th>
+                    <Th width={150}>Order Number</Th>
+                    <Th width={260}>Customer</Th>
+                    <Th width={200}>Sales Agent</Th>
+                    <Th width={140}>Current Status</Th>
+                    <Th width={120} align="right" className="font-mono">Grand Total</Th>
+                    <Th width={150} align="right">Action</Th>
                   </Tr>
                 </THead>
                 <TBody>
                   {relatedOrders.map((o) => (
                     <Tr key={o.id}>
-                      <Td className="font-mono font-bold text-brand-700">
+                      <Td width={150} className="font-mono font-bold text-brand-700">
                         <Link to={`/orders/${o.id}`} className="hover:underline">{o.order_number}</Link>
                       </Td>
-                      <Td className="font-semibold text-slate-900">{o.customer ? o.customer.company_name : 'Unknown'}</Td>
-                      <Td className="font-medium text-slate-800">{o.sales_agent_profile?.full_name || 'Unassigned'}</Td>
-                      <Td><Badge badge={getOrderStatusBadge(o.current_status)} /></Td>
-                      <Td className="font-mono font-bold text-slate-900">{formatCurrency(o.grand_total)}</Td>
-                      <Td className="text-right">
+                      <Td width={260} truncate className="font-semibold text-slate-900">{o.customer ? o.customer.company_name : 'Unknown'}</Td>
+                      <Td width={200} truncate className="font-medium text-slate-800">{o.sales_agent_profile?.full_name || 'Unassigned'}</Td>
+                      <Td width={140}><Badge badge={getOrderStatusBadge(o.current_status)} /></Td>
+                      <Td width={120} align="right" className="font-mono font-bold text-slate-900">{formatCurrency(o.grand_total)}</Td>
+                      <Td width={150} align="right">
                         <Link
                           to={`/orders/${o.id}`}
                           className="p-1.5 text-slate-600 hover:text-brand-600 hover:bg-brand-50 rounded-lg inline-block"

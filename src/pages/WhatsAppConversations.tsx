@@ -551,7 +551,7 @@ export const WhatsAppConversations: React.FC = () => {
                           ? 'bg-slate-900 text-white rounded-tr-none shadow-xs'
                           : 'bg-brand-600 text-white rounded-tr-none shadow-xs'
                       }`}>
-                        <p className="whitespace-pre-line">{msg.message_text}</p>
+                        <p className="whitespace-pre-line break-words">{msg.message_text}</p>
                       </div>
                     </div>
                   );

@@ -12,7 +12,7 @@ import {
   Calendar as CalendarIcon,
   Layers
 } from 'lucide-react';
-import { Badge, Button, Card, Input, Modal, Select, Table, TBody, Td, Th, THead, Tr, useToast } from '../../components/ui';
+import { Badge, Button, Card, Input, Modal, Select, Table, TableToolbar, TBody, Td, Th, THead, Tr, useToast } from '../../components/ui';
 
 export const AdminRouteSchedules: React.FC = () => {
   const { user } = useAuth();
@@ -115,7 +115,7 @@ export const AdminRouteSchedules: React.FC = () => {
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <TableToolbar>
         <div className="flex items-center gap-3">
           <Select
             value={selectedDay}
@@ -146,41 +146,41 @@ export const AdminRouteSchedules: React.FC = () => {
         <span className="text-xs text-slate-500 font-medium">
           Showing <span className="font-bold text-slate-900">{schedules.length}</span> route schedule entries
         </span>
-      </div>
+      </TableToolbar>
 
       {/* Route Schedule Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-card overflow-hidden">
+      <Card flush>
         {schedules.length > 0 ? (
-          <Table>
+          <Table minWidth={880}>
             <THead>
               <Tr hover={false}>
-                <Th>Day of Week</Th>
-                <Th>City / Route Name</Th>
-                <Th>Portal Assignment</Th>
-                <Th>Status</Th>
-                <Th className="text-right">Action</Th>
+                <Th width={130}>Day of Week</Th>
+                <Th width={240}>City / Route Name</Th>
+                <Th width={160}>Portal Assignment</Th>
+                <Th width={120}>Status</Th>
+                <Th width={130} align="right">Action</Th>
               </Tr>
             </THead>
             <TBody>
               {schedules.map((s) => (
                 <Tr key={s.id}>
-                  <Td className="font-bold text-xs text-slate-900 capitalize font-mono">
+                  <Td width={130} className="font-bold text-xs text-slate-900 capitalize font-mono">
                     {formatDayTitle(s.day_of_week)}
                   </Td>
-                  <Td>
+                  <Td width={240} truncate maxWidth={240}>
                     <span className="font-semibold text-slate-900 text-xs flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-brand-600" />
-                      {s.city_or_route}
+                      <MapPin className="w-3.5 h-3.5 text-brand-600 shrink-0" />
+                      <span className="truncate">{s.city_or_route}</span>
                     </span>
                   </Td>
-                  <Td>
+                  <Td width={160}>
                     <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${
                       s.portal === 'kelowna' ? 'bg-sky-100 text-sky-800' : 'bg-purple-100 text-purple-800'
                     }`}>
                       {s.portal === 'kelowna' ? 'Kelowna Portal' : 'Outside Kelowna'}
                     </span>
                   </Td>
-                  <Td>
+                  <Td width={120}>
                     <Badge badge={s.active ? {
                       subtle: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
                       solid: 'bg-emerald-600 text-white',
@@ -193,7 +193,7 @@ export const AdminRouteSchedules: React.FC = () => {
                       label: 'Inactive',
                     }} />
                   </Td>
-                  <Td className="text-right">
+                  <Td width={130} align="right">
                     <Button
                       size="sm"
                       variant={s.active ? 'outline' : 'secondary'}
@@ -212,7 +212,7 @@ export const AdminRouteSchedules: React.FC = () => {
             <p className="font-semibold text-slate-700">No route schedule records found.</p>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Modal: Add Route Schedule */}
       {isAddModalOpen && (

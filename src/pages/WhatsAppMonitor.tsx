@@ -6,7 +6,7 @@ import { whatsappIngestionService } from '../services/whatsappIngestionService';
 import { permissions } from '../services/permissions';
 import { useAuth } from '../context/AuthContext';
 import { WhatsAppMonitoringStats, ProcessingErrorRecord } from '../types';
-import { Card, CardHeader, CardBody, StatCard, Badge, Button, Pill } from '../components/ui';
+import { Card, CardHeader, CardBody, StatCard, Badge, Button, Pill, Table, TBody, Td, Th, THead, Tr } from '../components/ui';
 import {
   MessageSquare,
   ArrowDownToLine,
@@ -118,36 +118,35 @@ export const WhatsAppMonitor: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Open processing errors */}
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2" flush>
           <CardHeader
             title="Open Processing Errors"
             subtitle="Failures never silently disappear — review or retry them here."
             icon={<AlertTriangle className="w-4 h-4 text-red-600" />}
           />
-          <CardBody className="p-0">
             {stats.openErrors.length === 0 ? (
               <div className="flex items-center gap-2 p-6 text-sm text-emerald-700">
                 <CheckCircle2 className="w-4 h-4" /> No open processing errors. The pipeline is healthy.
               </div>
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs uppercase tracking-wider text-slate-500 border-b border-[#D9E2EC]">
-                    <th className="px-4 py-2.5">Stage</th>
-                    <th className="px-4 py-2.5">Message</th>
-                    <th className="px-4 py-2.5">Error</th>
-                    <th className="px-4 py-2.5">Attempts</th>
-                    <th className="px-4 py-2.5">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table minWidth={870}>
+                <THead>
+                  <Tr hover={false}>
+                    <Th width={100}>Stage</Th>
+                    <Th width={260}>Message</Th>
+                    <Th width={300}>Error</Th>
+                    <Th width={90}>Attempts</Th>
+                    <Th width={120} align="right">Actions</Th>
+                  </Tr>
+                </THead>
+                <TBody>
                   {stats.openErrors.map((e) => (
-                    <tr key={e.id} className="border-b border-[#F0F4F8]">
-                      <td className="px-4 py-3"><span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider ring-1 ring-inset bg-red-50 text-red-700 ring-red-200">{e.stage}</span></td>
-                      <td className="px-4 py-3 text-slate-700 max-w-[220px] truncate">{e.raw_message_text || '—'}</td>
-                      <td className="px-4 py-3 text-slate-500 max-w-[260px] truncate" title={e.error_message}>{e.error_message}</td>
-                      <td className="px-4 py-3">{e.attempt_count}</td>
-                      <td className="px-4 py-3">
+                    <Tr key={e.id}>
+                      <Td width={100}><span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider ring-1 ring-inset bg-red-50 text-red-700 ring-red-200">{e.stage}</span></Td>
+                      <Td width={260} truncate maxWidth={260} className="text-slate-700">{e.raw_message_text || '—'}</Td>
+                      <Td width={300} truncate maxWidth={300} className="text-slate-500">{e.error_message}</Td>
+                      <Td width={90}>{e.attempt_count}</Td>
+                      <Td width={120} align="right">
                         {canRetry && (e.message_id || e.external_message_id) ? (
                           <Button variant="secondary" size="sm" onClick={() => handleRetry(e)}>
                             <RefreshCw className="w-3.5 h-3.5 mr-1" /> Retry
@@ -155,13 +154,12 @@ export const WhatsAppMonitor: React.FC = () => {
                         ) : (
                           <Link to="/whatsapp-conversations" className="text-teal-600 text-xs font-semibold hover:underline">Review</Link>
                         )}
-                      </td>
-                    </tr>
+                      </Td>
+                    </Tr>
                   ))}
-                </tbody>
-              </table>
+                </TBody>
+              </Table>
             )}
-          </CardBody>
         </Card>
 
         {/* Classification breakdown */}
@@ -192,46 +190,43 @@ export const WhatsAppMonitor: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Failed reminders */}
-        <Card>
+        <Card flush>
           <CardHeader
             title="Failed Reminders"
             subtitle="Automated daily order-request reminders that failed to send"
             icon={<BellOff className="w-4 h-4 text-amber-600" />}
           />
-          <CardBody className="p-0">
             {stats.failedRemindersList.length === 0 ? (
               <div className="p-6 text-sm text-slate-500">No failed reminders.</div>
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs uppercase tracking-wider text-slate-500 border-b border-[#D9E2EC]">
-                    <th className="px-4 py-2.5">Customer</th>
-                    <th className="px-4 py-2.5">Delivery Date</th>
-                    <th className="px-4 py-2.5">Reason</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table minWidth={660}>
+                <THead>
+                  <Tr hover={false}>
+                    <Th width={200}>Customer</Th>
+                    <Th width={140}>Delivery Date</Th>
+                    <Th width={320}>Reason</Th>
+                  </Tr>
+                </THead>
+                <TBody>
                   {stats.failedRemindersList.slice(0, 10).map((r) => (
-                    <tr key={r.id} className="border-b border-[#F0F4F8]">
-                      <td className="px-4 py-3">{r.customer?.company_name || 'Unknown'}</td>
-                      <td className="px-4 py-3">{r.delivery_date}</td>
-                      <td className="px-4 py-3 text-slate-500">{r.error_reason || '—'}</td>
-                    </tr>
+                    <Tr key={r.id}>
+                      <Td width={200} truncate maxWidth={200}>{r.customer?.company_name || 'Unknown'}</Td>
+                      <Td width={140} className="font-mono text-xs text-slate-600">{r.delivery_date}</Td>
+                      <Td width={320} truncate maxWidth={320} className="text-slate-500">{r.error_reason || '—'}</Td>
+                    </Tr>
                   ))}
-                </tbody>
-              </table>
+                </TBody>
+              </Table>
             )}
-          </CardBody>
         </Card>
 
         {/* Recent intake activity */}
-        <Card>
+        <Card flush>
           <CardHeader
             title="Recent Order Intake Activity"
             subtitle="Latest pipeline events (audit trail)"
             icon={<Activity className="w-4 h-4 text-teal-600" />}
           />
-          <CardBody className="p-0">
             {stats.recentActivity.length === 0 ? (
               <div className="p-6 text-sm text-slate-500">No intake activity yet.</div>
             ) : (
@@ -254,7 +249,6 @@ export const WhatsAppMonitor: React.FC = () => {
                 ))}
               </ul>
             )}
-          </CardBody>
         </Card>
       </div>
     </div>

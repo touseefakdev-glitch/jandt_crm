@@ -45,7 +45,7 @@ const NAV_ITEMS: SidebarNavItem[] = [
   { id: 'out-of-stock', label: 'Out of Stock', path: '/out-of-stock', icon: AlertTriangle, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
   { id: 'notifications', label: 'Notifications', path: '/notifications', icon: Bell, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
   { id: 'shift-handover', label: 'Shift Handover', path: '/shift-handover', icon: ArrowLeftRight, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
-  
+
   // Administration Section
   { id: 'routes', label: 'Route Schedule', path: '/admin/routes', icon: MapPin, allowedRoles: ['admin'], section: 'administration' },
   { id: 'users', label: 'Users', path: '/admin/users', icon: Users, allowedRoles: ['admin'], section: 'administration' },
@@ -82,7 +82,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, mobileOpen, onMobil
         className={({ isActive }) =>
           cn(
             'flex items-center text-xs font-semibold transition-all relative group select-none',
-            collapsed ? 'justify-center px-0 py-2.5 mx-auto w-10 rounded-[8px]' : 'px-3 py-2 rounded-[8px] mx-2',
+            collapsed ? 'justify-center px-0 py-2.5 mx-auto w-10 rounded-btn' : 'px-3 py-2 rounded-btn mx-2',
             isActive
               ? 'bg-teal-500/15 text-white font-bold'
               : 'text-[#9FB3C8] hover:bg-white/5 hover:text-white'
@@ -100,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, mobileOpen, onMobil
               <>
                 <span className="ml-3 flex-1 truncate">{item.label}</span>
                 {item.badge && (
-                  <span className={cn('text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase', isActive ? 'bg-teal-500 text-white' : 'bg-[#243B53] text-[#9FB3C8]')}>
+                  <span className={cn('text-2xs px-1.5 py-0.5 rounded-full font-bold uppercase', isActive ? 'bg-teal-500 text-white' : 'bg-[#243B53] text-[#9FB3C8]')}>
                     {item.badge}
                   </span>
                 )}
@@ -112,17 +112,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, mobileOpen, onMobil
     );
   };
 
+  const renderSectionLabel = (label: string) => (
+    <div className="px-5 mb-2 text-2xs font-extrabold uppercase tracking-widest text-[#627D98]">
+      {label}
+    </div>
+  );
+
   const renderContent = () => (
     <div className={cn('flex flex-col h-full bg-[#102A43] text-white', collapsed ? 'w-[72px]' : 'w-64')}>
       {/* Sidebar Brand Header */}
       <div className={cn('h-16 flex items-center border-b border-[#243B53] px-4', collapsed ? 'justify-center' : 'justify-start space-x-3')}>
-        <div className="w-8 h-8 rounded-[8px] bg-teal-500 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+        <div className="w-8 h-8 rounded-btn bg-teal-500 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
           <ShieldCheck className="w-5 h-5 text-white" />
         </div>
         {!collapsed && (
           <div>
             <span className="font-extrabold text-sm tracking-tight text-white block leading-tight">J&T SUPPLIES</span>
-            <span className="text-[10px] font-bold text-[#829AB1] uppercase tracking-wider block">CRM Portal</span>
+            <span className="text-2xs font-bold text-[#829AB1] uppercase tracking-wider block">CRM Portal</span>
           </div>
         )}
       </div>
@@ -130,22 +136,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, mobileOpen, onMobil
       <div className="flex-1 py-4 overflow-y-auto space-y-6">
         {/* Operations Section */}
         <div>
-          {!collapsed && (
-            <div className="px-5 mb-2 text-[10px] font-extrabold uppercase tracking-widest text-[#627D98]">
-              Operations
-            </div>
-          )}
+          {!collapsed && renderSectionLabel('Operations')}
           <div className="space-y-1">{opsItems.map(renderNavItem)}</div>
         </div>
 
         {/* Administration Section (Admin only) */}
         {adminItems.length > 0 && (
           <div>
-            {!collapsed && (
-              <div className="px-5 mb-2 text-[10px] font-extrabold uppercase tracking-widest text-[#627D98]">
-                Administration
-              </div>
-            )}
+            {!collapsed && renderSectionLabel('Administration')}
             <div className="space-y-1">{adminItems.map(renderNavItem)}</div>
           </div>
         )}
@@ -161,7 +159,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, mobileOpen, onMobil
           (user.team ? (
             <div>
               <p className="text-white font-semibold text-xs">{user.team.name}</p>
-              <p className="text-[10px] text-[#829AB1] font-mono mt-0.5">{user.team.shift_info}</p>
+              <p className="text-2xs text-[#829AB1] font-mono mt-0.5">{user.team.shift_info}</p>
             </div>
           ) : (
             <p className="text-[#627D98] italic text-[11px]">No team assigned</p>
@@ -183,7 +181,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, mobileOpen, onMobil
       )}
 
       {/* Desktop sidebar */}
-      <aside className={cn('hidden md:flex flex-col bg-[#102A43] text-white shrink-0 transition-[width] duration-150 ease-in-out border-r border-[#243B53]', collapsed ? 'w-[72px]' : 'w-64')}>
+      <aside className={cn('hidden md:flex flex-col bg-[#102A43] text-white shrink-0 transition-[width] duration-150 ease-in-out border-r border-[#243B53] shadow-card z-30', collapsed ? 'w-[72px]' : 'w-64')}>
         {renderContent()}
       </aside>
     </>

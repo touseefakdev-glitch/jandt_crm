@@ -121,31 +121,31 @@ export const AdminRoles: React.FC = () => {
         </div>
       </div>
 
-      <Card>
+      <Card flush>
         <CardHeader
           title="Module Access Control Matrix"
           subtitle={<span className="font-mono">11 System Modules</span>}
           icon={<ShieldCheck className="w-4 h-4" />}
         />
         <CardBody className="p-0">
-          <Table wrapperClassName="rounded-b-xl">
+          <Table minWidth={1210} wrapperClassName="rounded-b-xl">
             <THead>
               <Tr hover={false}>
-                <Th>Module / Feature Area</Th>
-                <Th className="bg-purple-50/50 text-purple-900 font-bold">Admin Role</Th>
-                <Th className="bg-emerald-50/50 text-emerald-900 font-bold">Sales Agent Role</Th>
-                <Th className="bg-amber-50/50 text-amber-900 font-bold">Support Agent Role</Th>
+                <Th width={260}>Module / Feature Area</Th>
+                <Th width={300} className="bg-purple-50/50 text-purple-900 font-bold">Admin Role</Th>
+                <Th width={300} className="bg-emerald-50/50 text-emerald-900 font-bold">Sales Agent Role</Th>
+                <Th width={300} className="bg-amber-50/50 text-amber-900 font-bold">Support Agent Role</Th>
               </Tr>
             </THead>
             <TBody>
               {permissionsMatrix.map((row, idx) => (
                 <Tr key={idx}>
-                  <Td className="font-bold text-slate-900">{row.module}</Td>
-                  <Td className="bg-purple-50/20 text-purple-950 font-semibold">{row.admin}</Td>
-                  <Td className="bg-emerald-50/20 text-emerald-950 font-medium">
+                  <Td width={260} truncate maxWidth={260} className="font-bold text-slate-900">{row.module}</Td>
+                  <Td width={300} truncate maxWidth={300} className="bg-purple-50/20 text-purple-950 font-semibold">{row.admin}</Td>
+                  <Td width={300} truncate maxWidth={300} className="bg-emerald-50/20 text-emerald-950 font-medium">
                     {row.sales.includes('Restricted') ? <span className="text-red-700 font-bold">{row.sales}</span> : row.sales}
                   </Td>
-                  <Td className="bg-amber-50/20 text-amber-950 font-medium">
+                  <Td width={300} truncate maxWidth={300} className="bg-amber-50/20 text-amber-950 font-medium">
                     {row.support.includes('Restricted') ? <span className="text-red-700 font-bold">{row.support}</span> : row.support}
                   </Td>
                 </Tr>

@@ -7,6 +7,7 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Card } from '../../components/ui/Card';
 import { Table, THead, TBody, Tr, Th, Td } from '../../components/ui/Table';
+import { TableToolbar } from '../../components/ui/TableToolbar';
 import { Pagination } from '../../components/ui/Pagination';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Avatar } from '../../components/ui/Avatar';
@@ -60,7 +61,8 @@ export const AdminAuditLogs: React.FC = () => {
         }
       />
 
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <TableToolbar>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Input
           value={searchTerm}
           onChange={(e) => handleSearchChange(e.target.value)}
@@ -102,53 +104,54 @@ export const AdminAuditLogs: React.FC = () => {
           <option value="shift_handover">Shift Handover</option>
           <option value="system_settings">System Settings</option>
         </Select>
-      </div>
+        </div>
+      </TableToolbar>
 
-      <Card>
-        <Table>
+      <Card flush>
+        <Table minWidth={1030}>
           <THead>
             <Tr hover={false}>
-              <Th className="font-mono">Timestamp</Th>
-              <Th>Performing User</Th>
-              <Th>Action Event</Th>
-              <Th>Target Entity</Th>
-              <Th>Audit Summary & Value Delta</Th>
+              <Th width={160} className="font-mono">Timestamp</Th>
+              <Th width={200}>Performing User</Th>
+              <Th width={160}>Action Event</Th>
+              <Th width={160}>Target Entity</Th>
+              <Th width={300}>Audit Summary & Value Delta</Th>
             </Tr>
           </THead>
           <TBody>
             {paginatedLogs.length > 0 ? (
               paginatedLogs.map((log) => (
                 <Tr key={log.id}>
-                  <Td className="font-mono text-slate-500 whitespace-nowrap">
+                  <Td width={160} className="font-mono text-slate-500 whitespace-nowrap">
                     {new Date(log.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </Td>
 
-                  <Td>
+                  <Td width={200} truncate maxWidth={200}>
                     {log.user_profile ? (
                       <span className="inline-flex items-center gap-1.5">
                         <Avatar name={log.user_profile.full_name} size="xs" />
-                        <span className="font-bold text-slate-900">{log.user_profile.full_name}</span>
+                        <span className="font-bold text-slate-900 truncate">{log.user_profile.full_name}</span>
                       </span>
                     ) : (
                       <span className="text-slate-400 italic">System Auto</span>
                     )}
                   </Td>
 
-                  <Td>
+                  <Td width={160}>
                     <span className="font-mono text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200">
                       {log.action}
                     </span>
                   </Td>
 
-                  <Td>
+                  <Td width={160} truncate maxWidth={160}>
                     <div className="font-bold text-slate-900 capitalize">{log.entity_type}</div>
                     {log.entity_number && (
-                      <div className="font-mono text-[10px] text-sky-700 font-semibold">{log.entity_number}</div>
+                      <div className="font-mono text-[10px] text-sky-700 font-semibold truncate">{log.entity_number}</div>
                     )}
                   </Td>
 
-                  <Td className="max-w-md whitespace-normal">
-                    <div className="font-semibold text-slate-900">{log.summary}</div>
+                  <Td width={300} truncate maxWidth={300}>
+                    <div className="font-semibold text-slate-900 truncate">{log.summary}</div>
                     {(log.previous_value || log.new_value) && (
                       <div className="text-[11px] text-slate-500 font-mono mt-0.5 flex items-center gap-2">
                         {log.previous_value && (

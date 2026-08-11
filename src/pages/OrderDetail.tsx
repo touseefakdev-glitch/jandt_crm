@@ -6,7 +6,7 @@ import { localDb } from '../services/db';
 import { OrderFormModal } from '../components/orders/OrderFormModal';
 import { OrderStatusModal } from '../components/orders/OrderStatusModal';
 import { OrderDocumentModal } from '../components/orders/OrderDocumentModal';
-import { Badge, Button, Card, CardBody, CardHeader, EmptyState, PageHeader, Tabs, useToast } from '../components/ui';
+import { Badge, Button, Card, CardBody, CardHeader, EmptyState, PageHeader, Table, Tabs, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
 import { getOrderStatusBadge, getQueryStatusBadge } from '../utils/badges';
 import { formatCurrency, formatDateTime } from '../utils/format';
 import {
@@ -448,37 +448,35 @@ export const OrderDetail: React.FC = () => {
             )}
           </div>
 
-          <div className="overflow-x-auto border border-slate-200 rounded-xl">
-            <table className="w-full text-left text-xs text-slate-700">
-              <thead className="bg-slate-50 uppercase font-semibold text-slate-500 border-b border-slate-200">
-                <tr>
-                  <th className="px-4 py-3">Product Snapshot</th>
-                  <th className="px-4 py-3">SKU</th>
-                  <th className="px-4 py-3">Quantity</th>
-                  <th className="px-4 py-3">Unit Price</th>
-                  <th className="px-4 py-3">Discount</th>
-                  <th className="px-4 py-3">Tax</th>
-                  <th className="px-4 py-3 text-right">Line Total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {order.items?.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/80">
-                    <td className="px-4 py-3.5 font-bold text-slate-900">
-                      {item.product_name_snapshot}
-                      {item.notes && <div className="text-[11px] font-normal text-slate-500">{item.notes}</div>}
-                    </td>
-                    <td className="px-4 py-3.5 font-mono text-slate-600 uppercase">{item.sku_snapshot}</td>
-                    <td className="px-4 py-3.5 font-mono font-semibold">{item.quantity}</td>
-                    <td className="px-4 py-3.5 font-mono">{formatCurrency(item.unit_price)}</td>
-                    <td className="px-4 py-3.5 font-mono text-red-600">-{formatCurrency(item.discount)}</td>
-                    <td className="px-4 py-3.5 font-mono">+{formatCurrency(item.tax)}</td>
-                    <td className="px-4 py-3.5 font-mono font-bold text-slate-900 text-right">{formatCurrency(item.line_total)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table minWidth={1060}>
+            <THead>
+              <Tr hover={false}>
+                <Th width={300}>Product Snapshot</Th>
+                <Th width={150}>SKU</Th>
+                <Th width={90}>Quantity</Th>
+                <Th width={120} align="right">Unit Price</Th>
+                <Th width={120} align="right">Discount</Th>
+                <Th width={110} align="right">Tax</Th>
+                <Th width={120} align="right">Line Total</Th>
+              </Tr>
+            </THead>
+            <TBody>
+              {order.items?.map((item) => (
+                <Tr key={item.id} className="hover:bg-slate-50/80">
+                  <Td width={300} className="font-bold text-slate-900">
+                    <div className="truncate" title={item.product_name_snapshot}>{item.product_name_snapshot}</div>
+                    {item.notes && <div className="text-[11px] font-normal text-slate-500 truncate" title={item.notes}>{item.notes}</div>}
+                  </Td>
+                  <Td width={150} truncate className="font-mono text-slate-600 uppercase">{item.sku_snapshot}</Td>
+                  <Td width={90} className="font-mono font-semibold">{item.quantity}</Td>
+                  <Td width={120} align="right" className="font-mono">{formatCurrency(item.unit_price)}</Td>
+                  <Td width={120} align="right" className="font-mono text-red-600">-{formatCurrency(item.discount)}</Td>
+                  <Td width={110} align="right" className="font-mono">+{formatCurrency(item.tax)}</Td>
+                  <Td width={120} align="right" className="font-mono font-bold text-slate-900">{formatCurrency(item.line_total)}</Td>
+                </Tr>
+              ))}
+            </TBody>
+          </Table>
 
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-end">
             <div className="w-64 space-y-1.5 text-xs font-mono">
@@ -525,28 +523,26 @@ export const OrderDetail: React.FC = () => {
           <div className="pt-2">
             <h4 className="text-xs font-bold text-slate-800 mb-3">Attached Document Metadata List</h4>
             {order.documents && order.documents.length > 0 ? (
-              <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                <table className="w-full text-left text-xs text-slate-700">
-                  <thead className="bg-slate-50 uppercase font-semibold text-slate-500 border-b border-slate-200">
-                    <tr>
-                      <th className="px-4 py-3">Document Type</th>
-                      <th className="px-4 py-3">File Name</th>
-                      <th className="px-4 py-3">Uploaded By</th>
-                      <th className="px-4 py-3">Uploaded Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {order.documents.map((doc) => (
-                      <tr key={doc.id} className="hover:bg-slate-50/80">
-                        <td className="px-4 py-3 font-semibold capitalize text-brand-700">{doc.document_type.replace('_', ' ')}</td>
-                        <td className="px-4 py-3 font-mono font-bold text-slate-900">{doc.file_name}</td>
-                        <td className="px-4 py-3">{doc.uploaded_by_profile?.full_name || 'Agent'}</td>
-                        <td className="px-4 py-3 text-slate-500">{formatDateTime(doc.uploaded_at)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Table minWidth={850}>
+                <THead>
+                  <Tr hover={false}>
+                    <Th width={170}>Document Type</Th>
+                    <Th width={280}>File Name</Th>
+                    <Th width={180}>Uploaded By</Th>
+                    <Th width={170}>Uploaded Date</Th>
+                  </Tr>
+                </THead>
+                <TBody>
+                  {order.documents.map((doc) => (
+                    <Tr key={doc.id} className="hover:bg-slate-50/80">
+                      <Td width={170} className="font-semibold capitalize text-brand-700">{doc.document_type.replace('_', ' ')}</Td>
+                      <Td width={280} truncate className="font-mono font-bold text-slate-900">{doc.file_name}</Td>
+                      <Td width={180} truncate>{doc.uploaded_by_profile?.full_name || 'Agent'}</Td>
+                      <Td width={170} className="text-slate-500">{formatDateTime(doc.uploaded_at)}</Td>
+                    </Tr>
+                  ))}
+                </TBody>
+              </Table>
             ) : (
               <p className="text-xs text-slate-500 italic text-center py-6 border border-slate-200 rounded-xl bg-slate-50/50">
                 No documents uploaded for this order yet.

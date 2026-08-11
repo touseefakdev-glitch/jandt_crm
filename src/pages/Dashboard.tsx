@@ -300,43 +300,43 @@ export const Dashboard: React.FC = () => {
           }
         />
         {queriesRequiringAttention.length > 0 ? (
-          <Table>
+          <Table minWidth={1160}>
             <THead>
               <Tr hover={false}>
-                <Th>Ticket #</Th>
-                <Th>Customer</Th>
-                <Th>Subject Line</Th>
-                <Th>Priority</Th>
-                <Th>Status</Th>
-                <Th>Assigned Agent</Th>
-                <Th className="text-right">Action</Th>
+                <Th width={110}>Ticket #</Th>
+                <Th width={220}>Customer</Th>
+                <Th width={320}>Subject Line</Th>
+                <Th width={110}>Priority</Th>
+                <Th width={130}>Status</Th>
+                <Th width={170}>Assigned Agent</Th>
+                <Th width={100} align="right">Action</Th>
               </Tr>
             </THead>
             <TBody>
               {queriesRequiringAttention.map((q) => (
                 <Tr key={q.id}>
-                  <Td className="font-mono font-bold text-brand-700">
+                  <Td width={110} className="font-mono font-bold text-brand-700">
                     <Link to={`/queries/${q.id}`} className="hover:underline">{q.query_number}</Link>
                   </Td>
-                  <Td className="font-semibold text-slate-900">{q.customer?.company_name || 'Unknown Customer'}</Td>
-                  <Td className="max-w-xs truncate font-medium text-slate-800" title={q.subject}>{q.subject}</Td>
-                  <Td>
+                  <Td width={220} truncate className="font-semibold text-slate-900">{q.customer?.company_name || 'Unknown Customer'}</Td>
+                  <Td width={320} truncate maxWidth={320} className="font-medium text-slate-800">{q.subject}</Td>
+                  <Td width={110}>
                     <Badge badge={getQueryPriorityBadge(q.priority)} />
                   </Td>
-                  <Td>
+                  <Td width={130}>
                     <Badge badge={getQueryStatusBadge(q.status)} />
                   </Td>
-                  <Td>
+                  <Td width={170} truncate maxWidth={170}>
                     {q.assigned_to_profile ? (
                       <span className="inline-flex items-center gap-2 font-medium text-slate-800">
                         <Avatar name={q.assigned_to_profile.full_name} size="xs" />
-                        {q.assigned_to_profile.full_name}
+                        <span className="truncate">{q.assigned_to_profile.full_name}</span>
                       </span>
                     ) : (
-                      <span className="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-[11px]">Unassigned</span>
+                      <span className="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-[11px] whitespace-nowrap">Unassigned</span>
                     )}
                   </Td>
-                  <Td className="text-right">
+                  <Td width={100} align="right">
                     <Link
                       to={`/queries/${q.id}`}
                       className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg transition-colors"

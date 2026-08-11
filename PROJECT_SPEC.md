@@ -349,6 +349,14 @@ The application follows a curated, operational visual identity designed for high
 - **Surfaces & Layout**: `#F5F7FA` main background, `#FFFFFF` cards, `#E9EFF5` subtle containers, `#D9E2EC` crisp borders, `#172B4D` primary text, `#52606D` secondary text.
 - **Border Radii**: Cards `12px`, Buttons `8px`, Inputs `8px`, Badges `9999px`.
 
+### Enterprise Component Library
+- **Data Table System**: The `Table` primitive renders its own horizontal-scroll wrapper (`crm-table-scroll`) and supports `minWidth`, `stickyHeader`, and per-column `width` (px), `align`, `truncate` (ellipsis + native `title` tooltip), and `maxWidth`. Explicit column widths + truncation are applied on every data table in the app (all pages), eliminating text collisions and horizontal overflow.
+- **Card System**: `Card` with `flush` (edge-to-edge tables), `elevated`, and `hoverable` variants; `CardHeader` (title/subtitle/actions/icon) and `CardBody`.
+- **Toolbar System**: `TableToolbar` standardizes search inputs, filter tabs, select grids, and clear-filters actions across all list pages.
+- **Supporting Primitives**: `Tooltip`, `Checkbox`, `Drawer`, `ErrorState`, `DataTable`, `Skeleton` loading placeholders, upgraded `Button` (iconOnly/sizes), `PageHeader`, `Modal`, `EmptyState` (with actions), `StatCard`.
+- **App Shell**: `AppShell` + `Sidebar` (brand header, active-route indicator, section groups, shift footer, mobile drawer, collapsed rail) and `Header` (global search, notifications, profile).
+- **Page Coverage**: All pages render on the design system — Customers, Products, Orders, OutOfStock, Queries, Notifications, Dashboard, WhatsApp Conversations, WhatsApp Monitor, all tabular admin pages, and detail pages (Customer, Product, Order, Query, ShiftHandover).
+
 ---
 
 ## Full Application Data Reset

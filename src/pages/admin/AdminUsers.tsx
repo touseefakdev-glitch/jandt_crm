@@ -11,6 +11,8 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Table, THead, TBody, Tr, Th, Td } from '../../components/ui/Table';
+import { Card } from '../../components/ui/Card';
+import { TableToolbar } from '../../components/ui/TableToolbar';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Avatar } from '../../components/ui/Avatar';
@@ -124,7 +126,8 @@ export const AdminUsers: React.FC = () => {
         }
       />
 
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <TableToolbar>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Input
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -152,29 +155,30 @@ export const AdminUsers: React.FC = () => {
           <option value="active">Active Only</option>
           <option value="inactive">Inactive Only</option>
         </Select>
-      </div>
+        </div>
+      </TableToolbar>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <Table>
+      <Card flush>
+        <Table minWidth={1030}>
           <THead>
             <Tr hover={false}>
-              <Th>Full Name & Email</Th>
-              <Th>Role</Th>
-              <Th>Operational Team</Th>
-              <Th>Status</Th>
-              <Th>Created Date</Th>
-              <Th className="text-right">Actions</Th>
+              <Th width={260}>Full Name & Email</Th>
+              <Th width={130}>Role</Th>
+              <Th width={220}>Operational Team</Th>
+              <Th width={130}>Status</Th>
+              <Th width={150}>Created Date</Th>
+              <Th width={140} align="right">Actions</Th>
             </Tr>
           </THead>
           <TBody>
             {filteredUsers.length > 0 ? (
               filteredUsers.map((u) => (
                 <Tr key={u.id}>
-                  <Td>
+                  <Td width={260} truncate maxWidth={260}>
                     <div className="flex items-center gap-3">
                       <Avatar name={u.full_name} size="sm" />
                       <div className="min-w-0">
-                        <Link to={`/admin/users/${u.id}`} className="font-bold text-slate-900 hover:text-brand-600 block">
+                        <Link to={`/admin/users/${u.id}`} className="font-bold text-slate-900 hover:text-brand-600 block truncate">
                           {u.full_name}
                         </Link>
                         <span className="font-mono text-[11px] text-slate-500">{u.email}</span>
@@ -182,11 +186,11 @@ export const AdminUsers: React.FC = () => {
                     </div>
                   </Td>
 
-                  <Td>
+                  <Td width={130}>
                     <Badge badge={getRoleBadge(u.role)} />
                   </Td>
 
-                  <Td>
+                  <Td width={220} truncate maxWidth={220}>
                     {u.team ? (
                       <span className="inline-flex items-center gap-1.5 text-slate-800 font-semibold">
                         <Building2 className="w-3.5 h-3.5 text-slate-400" />
@@ -197,7 +201,7 @@ export const AdminUsers: React.FC = () => {
                     )}
                   </Td>
 
-                  <Td>
+                  <Td width={130}>
                     {u.is_active ? (
                       <Badge
                         badge={{
@@ -219,9 +223,9 @@ export const AdminUsers: React.FC = () => {
                     )}
                   </Td>
 
-                  <Td className="font-mono text-xs text-slate-500">{formatDate(u.created_at)}</Td>
+                  <Td width={150} className="font-mono text-xs text-slate-500">{formatDate(u.created_at)}</Td>
 
-                  <Td className="text-right whitespace-nowrap">
+                  <Td width={140} align="right" className="whitespace-nowrap">
                     <div className="inline-flex items-center gap-1">
                       <Link
                         to={`/admin/users/${u.id}`}
@@ -284,7 +288,7 @@ export const AdminUsers: React.FC = () => {
             )}
           </TBody>
         </Table>
-      </div>
+      </Card>
 
       <UserFormModal
         isOpen={isFormModalOpen}

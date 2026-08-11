@@ -260,7 +260,7 @@ export const CustomerDetail: React.FC = () => {
       )}
 
       {activeTab === 'queries' && (
-        <Card>
+        <Card flush>
           <CardHeader
             title={`Customer Support Tickets (${customerQueries.length})`}
             actions={
@@ -270,32 +270,32 @@ export const CustomerDetail: React.FC = () => {
             }
           />
           {customerQueries.length > 0 ? (
-            <Table>
+            <Table minWidth={1200}>
               <THead>
                 <Tr hover={false}>
-                  <Th>Number</Th>
-                  <Th>Subject</Th>
-                  <Th>Category</Th>
-                  <Th>Priority</Th>
-                  <Th>Status</Th>
-                  <Th>Assigned Agent</Th>
-                  <Th className="text-right">Action</Th>
+                  <Th width={140}>Number</Th>
+                  <Th width={280}>Subject</Th>
+                  <Th width={140}>Category</Th>
+                  <Th width={130}>Priority</Th>
+                  <Th width={130}>Status</Th>
+                  <Th width={180}>Assigned Agent</Th>
+                  <Th width={150} align="right">Action</Th>
                 </Tr>
               </THead>
               <TBody>
                 {customerQueries.map((q) => (
                   <Tr key={q.id}>
-                    <Td className="font-mono text-xs font-bold text-brand-700">
+                    <Td width={140} className="font-mono text-xs font-bold text-brand-700">
                       <Link to={`/queries/${q.id}`} className="hover:underline">{q.query_number}</Link>
                     </Td>
-                    <Td className="font-medium text-slate-900 max-w-xs truncate">
+                    <Td width={280} truncate className="font-medium text-slate-900">
                       <Link to={`/queries/${q.id}`} className="hover:text-brand-600">{q.subject}</Link>
                     </Td>
-                    <Td className="text-xs text-slate-600">{q.category?.name || 'General'}</Td>
-                    <Td><Badge badge={getQueryPriorityBadge(q.priority)} /></Td>
-                    <Td><Badge badge={getQueryStatusBadge(q.status)} /></Td>
-                    <Td className="text-xs">{q.assigned_to_profile?.full_name || <span className="text-slate-400 italic">Unassigned</span>}</Td>
-                    <Td className="text-right">
+                    <Td width={140} truncate className="text-xs text-slate-600">{q.category?.name || 'General'}</Td>
+                    <Td width={130}><Badge badge={getQueryPriorityBadge(q.priority)} /></Td>
+                    <Td width={130}><Badge badge={getQueryStatusBadge(q.status)} /></Td>
+                    <Td width={180} truncate className="text-xs">{q.assigned_to_profile?.full_name || <span className="text-slate-400 italic">Unassigned</span>}</Td>
+                    <Td width={150} align="right">
                       <Link to={`/queries/${q.id}`} className="p-1.5 text-slate-500 hover:text-brand-600 hover:bg-brand-50 rounded-lg inline-block transition-colors">
                         <Eye className="w-4 h-4" />
                       </Link>
@@ -320,47 +320,47 @@ export const CustomerDetail: React.FC = () => {
       )}
 
       {activeTab === 'orders' && (
-        <Card>
+        <Card flush>
           <CardHeader
             title={`Customer Daily Route Operations History (${customerDailyOps.length})`}
           />
           {customerDailyOps.length > 0 ? (
-            <Table>
+            <Table minWidth={1010}>
               <THead>
                 <Tr hover={false}>
-                  <Th>Operation Date</Th>
-                  <Th>Route</Th>
-                  <Th className="text-center">Order Received</Th>
-                  <Th>SO #</Th>
-                  <Th>Invoice #</Th>
-                  <Th className="text-center">Dispatched</Th>
-                  <Th>Operational Status</Th>
+                  <Th width={140}>Operation Date</Th>
+                  <Th width={170}>Route</Th>
+                  <Th width={120} align="center">Order Received</Th>
+                  <Th width={130}>SO #</Th>
+                  <Th width={130}>Invoice #</Th>
+                  <Th width={120} align="center">Dispatched</Th>
+                  <Th width={150}>Operational Status</Th>
                 </Tr>
               </THead>
               <TBody>
                 {customerDailyOps.map((op) => (
                   <Tr key={op.id}>
-                    <Td className="font-mono font-bold text-slate-900 text-xs">
+                    <Td width={140} className="font-mono font-bold text-slate-900 text-xs">
                       {formatDate(op.operation_date)}
                     </Td>
-                    <Td className="font-bold text-brand-700 text-xs">{op.route}</Td>
-                    <Td className="text-center">
+                    <Td width={170} truncate className="font-bold text-brand-700 text-xs">{op.route}</Td>
+                    <Td width={120} align="center">
                       <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${op.order_received ? 'bg-sky-100 text-sky-800' : 'bg-slate-100 text-slate-400'}`}>
                         {op.order_received ? '✓ Yes' : 'No'}
                       </span>
                     </Td>
-                    <Td className="font-mono text-xs font-bold text-indigo-700">
+                    <Td width={130} className="font-mono text-xs font-bold text-indigo-700">
                       {op.sales_order_number || '—'}
                     </Td>
-                    <Td className="font-mono text-xs font-bold text-purple-700">
+                    <Td width={130} className="font-mono text-xs font-bold text-purple-700">
                       {op.invoice_number || '—'}
                     </Td>
-                    <Td className="text-center">
+                    <Td width={120} align="center">
                       <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${op.dispatched ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-400'}`}>
                         {op.dispatched ? '✓ Yes' : 'No'}
                       </span>
                     </Td>
-                    <Td>
+                    <Td width={150}>
                       <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${
                         op.status === 'completed' ? 'bg-emerald-100 text-emerald-800' :
                         op.status === 'error' ? 'bg-rose-100 text-rose-800' :
@@ -384,56 +384,54 @@ export const CustomerDetail: React.FC = () => {
       )}
 
       {activeTab === 'history' && (
-        <Card className="overflow-hidden">
+        <Card flush>
           <CardHeader
             title="Historical Purchasing Catalog"
             subtitle="Extracted business ordering history — Pricing & packaging agreed for this customer. Separated from live inventory availability."
           />
           {productHistory.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <THead className="bg-slate-50">
-                  <Tr>
-                    <Th>Item Code</Th>
-                    <Th>Product Description</Th>
-                    <Th>Packaging Unit</Th>
-                    <Th>Customer Price</Th>
-                    <Th>Inner Pack Details</Th>
-                    <Th>Unit Price</Th>
-                    <Th>Catalog Stock Status</Th>
+            <Table minWidth={1180}>
+              <THead className="bg-slate-50">
+                <Tr>
+                  <Th width={150}>Item Code</Th>
+                  <Th width={300}>Product Description</Th>
+                  <Th width={140}>Packaging Unit</Th>
+                  <Th width={120} align="right">Customer Price</Th>
+                  <Th width={140}>Inner Pack Details</Th>
+                  <Th width={130} align="right">Unit Price</Th>
+                  <Th width={150}>Catalog Stock Status</Th>
+                </Tr>
+              </THead>
+              <TBody>
+                {productHistory.map((item, idx) => (
+                  <Tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                    <Td width={150} className="font-mono text-xs font-bold text-brand-700">{item.source_item_code}</Td>
+                    <Td width={300} truncate className="font-semibold text-slate-900">{item.source_item_name}</Td>
+                    <Td width={140}>
+                      <Pill className="text-xs font-mono font-semibold">
+                        {item.packaging_unit}
+                      </Pill>
+                    </Td>
+                    <Td width={120} align="right" className="font-mono font-bold text-slate-900 text-sm">
+                      ${item.customer_price.toFixed(2)}
+                    </Td>
+                    <Td width={140} truncate className="text-slate-600 text-xs font-mono">
+                      {item.inner_qty ? `${item.inner_qty.toLocaleString()} ${item.inner_unit || ''}` : 'N/A'}
+                    </Td>
+                    <Td width={130} align="right" truncate className="font-mono text-xs text-slate-700">
+                      {item.unit_price ? `$${item.unit_price.toFixed(4)} / ${item.inner_unit || 'pc'}` : 'N/A'}
+                    </Td>
+                    <Td width={150}>
+                      {item.product ? (
+                        <Badge badge={getProductAvailabilityBadge(item.product.availability_status)} />
+                      ) : (
+                        <Pill className="text-[10px]">Catalog Reference</Pill>
+                      )}
+                    </Td>
                   </Tr>
-                </THead>
-                <TBody>
-                  {productHistory.map((item, idx) => (
-                    <Tr key={idx} className="hover:bg-slate-50/70 transition-colors">
-                      <Td className="font-mono text-xs font-bold text-brand-700">{item.source_item_code}</Td>
-                      <Td className="font-semibold text-slate-900">{item.source_item_name}</Td>
-                      <Td>
-                        <Pill className="text-xs font-mono font-semibold">
-                          {item.packaging_unit}
-                        </Pill>
-                      </Td>
-                      <Td className="font-mono font-bold text-slate-900 text-sm">
-                        ${item.customer_price.toFixed(2)}
-                      </Td>
-                      <Td className="text-slate-600 text-xs font-mono">
-                        {item.inner_qty ? `${item.inner_qty.toLocaleString()} ${item.inner_unit || ''}` : 'N/A'}
-                      </Td>
-                      <Td className="font-mono text-xs text-slate-700">
-                        {item.unit_price ? `$${item.unit_price.toFixed(4)} / ${item.inner_unit || 'pc'}` : 'N/A'}
-                      </Td>
-                      <Td>
-                        {item.product ? (
-                          <Badge badge={getProductAvailabilityBadge(item.product.availability_status)} />
-                        ) : (
-                          <Pill className="text-[10px]">Catalog Reference</Pill>
-                        )}
-                      </Td>
-                    </Tr>
-                  ))}
-                </TBody>
-              </Table>
-            </div>
+                ))}
+              </TBody>
+            </Table>
           ) : (
             <EmptyState
               icon={<Package className="w-8 h-8" />}

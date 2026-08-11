@@ -19,9 +19,11 @@ export const AppShell: React.FC = () => {
         />
         <div className="flex flex-1 min-h-0">
           <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileNavOpen} onMobileClose={() => setMobileNavOpen(false)} />
-          <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-6 lg:py-8 overflow-y-auto">
-            <div className="mx-auto w-full max-w-7xl">
-              <Outlet />
+          <main className="flex-1 min-w-0 overflow-y-auto">
+            <div className="content-width py-5 lg:py-8">
+              <div className="page-stack">
+                <Outlet />
+              </div>
             </div>
           </main>
         </div>

@@ -184,7 +184,7 @@ export const ShiftHandover: React.FC = () => {
         </div>
       )}
 
-      <Card className="overflow-hidden">
+      <Card flush>
         <CardBody className="space-y-4">
           <div>
             <h2 className="text-lg font-bold text-slate-900">Shift Handover History & Logs</h2>
@@ -234,38 +234,38 @@ export const ShiftHandover: React.FC = () => {
         </CardBody>
 
         {paginatedHandovers.length > 0 ? (
-          <Table>
+          <Table minWidth={1400}>
             <THead>
               <Tr hover={false}>
-                <Th>Shift Date & Time</Th>
-                <Th>Outgoing Team</Th>
-                <Th>Incoming Team</Th>
-                <Th>Handover Status</Th>
-                <Th>Submitted By</Th>
-                <Th>Acknowledged By</Th>
-                <Th className="text-center">Items</Th>
-                <Th className="text-right">Action</Th>
+                <Th width={170}>Shift Date & Time</Th>
+                <Th width={200}>Outgoing Team</Th>
+                <Th width={200}>Incoming Team</Th>
+                <Th width={150}>Handover Status</Th>
+                <Th width={200}>Submitted By</Th>
+                <Th width={200}>Acknowledged By</Th>
+                <Th width={80} align="center">Items</Th>
+                <Th width={150} align="right">Action</Th>
               </Tr>
             </THead>
             <TBody>
               {paginatedHandovers.map((h) => (
                 <Tr key={h.id}>
-                  <Td className="font-mono text-slate-600">{formatDateTime(h.created_at)}</Td>
-                  <Td className="font-bold text-slate-900">{h.outgoing_team ? h.outgoing_team.name : 'Team 1'}</Td>
-                  <Td className="font-bold text-slate-900">{h.incoming_team ? h.incoming_team.name : 'Team 2'}</Td>
-                  <Td><Badge badge={getHandoverStatusBadge(h.status)} /></Td>
-                  <Td className="font-semibold text-slate-800">
+                  <Td width={170} className="font-mono text-slate-600">{formatDateTime(h.created_at)}</Td>
+                  <Td width={200} truncate className="font-bold text-slate-900">{h.outgoing_team ? h.outgoing_team.name : 'Team 1'}</Td>
+                  <Td width={200} truncate className="font-bold text-slate-900">{h.incoming_team ? h.incoming_team.name : 'Team 2'}</Td>
+                  <Td width={150}><Badge badge={getHandoverStatusBadge(h.status)} /></Td>
+                  <Td width={200} truncate className="font-semibold text-slate-800">
                     {h.submitted_by_profile ? h.submitted_by_profile.full_name : 'Agent'}
                   </Td>
-                  <Td className="text-slate-600">
+                  <Td width={200} truncate className="text-slate-600">
                     {h.acknowledged_by_profile ? (
                       <span className="font-semibold text-emerald-700">{h.acknowledged_by_profile.full_name}</span>
                     ) : (
                       <span className="italic text-slate-400">Pending</span>
                     )}
                   </Td>
-                  <Td className="text-center font-bold text-slate-900 font-mono">{h.items ? h.items.length : 0}</Td>
-                  <Td className="text-right">
+                  <Td width={80} align="center" className="font-bold text-slate-900 font-mono">{h.items ? h.items.length : 0}</Td>
+                  <Td width={150} align="right">
                     <Button size="sm" variant="outline" icon={<FileText className="w-3.5 h-3.5" />} onClick={() => handleOpenDetail(h)}>
                       View Details
                     </Button>

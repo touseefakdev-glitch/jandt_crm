@@ -5,7 +5,7 @@ import { Product, ProductAvailabilityStatus, ProductFormInput } from '../types';
 import { localDb } from '../services/db';
 import { ProductFormModal } from '../components/products/ProductFormModal';
 import { ProductAvailabilityModal } from '../components/products/ProductAvailabilityModal';
-import { Badge, Button, Card, EmptyState, Input, PageHeader, Pagination, Select, Table, Tabs, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
+import { Badge, Button, Card, EmptyState, Input, PageHeader, Pagination, Select, Table, TableToolbar, Tabs, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
 import { getProductAvailabilityBadge } from '../utils/badges';
 import { formatCurrency, formatDate } from '../utils/format';
 import { Package, Search, Plus, Edit, RotateCcw, X, AlertTriangle, ArrowRight, Upload } from 'lucide-react';
@@ -151,8 +151,8 @@ export const Products: React.FC = () => {
         }
       />
 
-      <Card className="p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
+      <TableToolbar>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 mb-3">
           <Tabs
             size="md"
             tabs={[
@@ -175,8 +175,8 @@ export const Products: React.FC = () => {
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <div className="sm:col-span-2 lg:col-span-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="sm:col-span-2 lg:col-span-4">
             <Input
               type="text"
               value={searchTerm}
@@ -237,44 +237,44 @@ export const Products: React.FC = () => {
             <option value="all">All Catalog Statuses</option>
           </Select>
         </div>
-      </Card>
+      </TableToolbar>
 
-      <Card className="overflow-hidden">
+      <Card flush>
         {paginatedProducts.length > 0 ? (
-          <Table>
+          <Table minWidth={1260}>
             <THead>
               <Tr hover={false}>
-                <Th>SKU</Th>
-                <Th>Product Name</Th>
-                <Th>Category</Th>
-                <Th>Brand</Th>
-                <Th className="font-mono">Unit Price</Th>
-                <Th>Availability Status</Th>
-                <Th>Expected Date</Th>
-                <Th className="text-right">Actions</Th>
+                <Th width={140}>SKU</Th>
+                <Th width={280}>Product Name</Th>
+                <Th width={160}>Category</Th>
+                <Th width={160}>Brand</Th>
+                <Th width={110}>Unit Price</Th>
+                <Th width={150}>Availability Status</Th>
+                <Th width={130}>Expected Date</Th>
+                <Th width={130} align="right">Actions</Th>
               </Tr>
             </THead>
             <TBody>
               {paginatedProducts.map((product) => (
                 <Tr key={product.id}>
-                  <Td className="font-mono font-bold text-brand-700">
+                  <Td width={140} className="font-mono font-bold text-brand-700">
                     <Link to={`/products/${product.id}`} className="hover:underline">{product.sku}</Link>
                   </Td>
-                  <Td className="font-bold text-slate-900 max-w-xs">
+                  <Td width={280} truncate className="font-bold text-slate-900">
                     <Link to={`/products/${product.id}`} className="hover:text-brand-600">{product.product_name}</Link>
                   </Td>
-                  <Td className="text-slate-600">{product.category?.name || 'Unassigned'}</Td>
-                  <Td className="text-slate-600">{product.brand?.name || 'Unassigned'}</Td>
-                  <Td className="font-mono font-extrabold text-slate-900">{formatCurrency(product.unit_price)}</Td>
-                  <Td><Badge badge={getProductAvailabilityBadge(product.availability_status)} /></Td>
-                  <Td className="font-mono text-slate-500">
+                  <Td width={160} truncate className="text-slate-600">{product.category?.name || 'Unassigned'}</Td>
+                  <Td width={160} truncate className="text-slate-600">{product.brand?.name || 'Unassigned'}</Td>
+                  <Td width={110} className="font-mono font-extrabold text-slate-900">{formatCurrency(product.unit_price)}</Td>
+                  <Td width={150}><Badge badge={getProductAvailabilityBadge(product.availability_status)} /></Td>
+                  <Td width={130} className="font-mono text-slate-500">
                     {product.expected_available_date ? (
                       formatDate(product.expected_available_date)
                     ) : (
                       <span className="text-slate-400 italic">—</span>
                     )}
                   </Td>
-                  <Td className="text-right">
+                  <Td width={130} align="right">
                     <div className="flex items-center justify-end gap-1">
                       <Link
                         to={`/products/${product.id}`}

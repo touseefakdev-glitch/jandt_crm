@@ -518,7 +518,7 @@ export const AdminImport: React.FC = () => {
           </Card>
 
           {/* HTML Preview Tabs */}
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-card">
+          <Card flush>
             <div className="flex items-center border-b border-slate-200 px-4 pt-3 bg-slate-50/50">
               <button
                 onClick={() => setActivePreviewTab('html_products')}
@@ -540,74 +540,72 @@ export const AdminImport: React.FC = () => {
               </button>
             </div>
 
-            <CardBody className="p-0">
-              {activePreviewTab === 'html_products' && (
-                <div className="overflow-x-auto max-h-[450px]">
-                  <Table>
-                    <THead className="sticky top-0 bg-slate-100 z-10">
-                      <Tr>
-                        <Th>Item Code</Th>
-                        <Th>Product Name</Th>
-                        <Th>SKU</Th>
-                        <Th>Category</Th>
-                        <Th>Base Price</Th>
-                        <Th>Unit</Th>
+            {activePreviewTab === 'html_products' && (
+              <div className="max-h-[450px] overflow-y-auto">
+                <Table minWidth={950}>
+                  <THead>
+                    <Tr hover={false}>
+                      <Th width={120}>Item Code</Th>
+                      <Th width={320}>Product Name</Th>
+                      <Th width={140}>SKU</Th>
+                      <Th width={160}>Category</Th>
+                      <Th width={110} align="right">Base Price</Th>
+                      <Th width={100}>Unit</Th>
+                    </Tr>
+                  </THead>
+                  <TBody>
+                    {htmlPreview.productDetails.slice(0, 100).map((p, i) => (
+                      <Tr key={i}>
+                        <Td width={120} className="font-mono text-xs font-bold text-brand-700">{p.itemCode}</Td>
+                        <Td width={320} truncate maxWidth={320} className="font-semibold text-slate-900">{p.name}</Td>
+                        <Td width={140} className="font-mono text-xs text-slate-600">{p.sku}</Td>
+                        <Td width={160}><Pill className="text-[10px] bg-slate-100 text-slate-700">{p.category}</Pill></Td>
+                        <Td width={110} align="right" className="font-mono font-bold text-slate-900">${p.desiredSPBase.toFixed(2)}</Td>
+                        <Td width={100} className="text-slate-600 text-xs">{p.unitName}</Td>
                       </Tr>
-                    </THead>
-                    <TBody>
-                      {htmlPreview.productDetails.slice(0, 100).map((p, i) => (
-                        <Tr key={i}>
-                          <Td className="font-mono text-xs font-bold text-brand-700">{p.itemCode}</Td>
-                          <Td className="font-semibold text-slate-900">{p.name}</Td>
-                          <Td className="font-mono text-xs text-slate-600">{p.sku}</Td>
-                          <Td><Pill className="text-[10px] bg-slate-100 text-slate-700">{p.category}</Pill></Td>
-                          <Td className="font-mono font-bold text-slate-900">${p.desiredSPBase.toFixed(2)}</Td>
-                          <Td className="text-slate-600 text-xs">{p.unitName}</Td>
-                        </Tr>
-                      ))}
-                    </TBody>
-                  </Table>
-                  {htmlPreview.productDetails.length > 100 && (
-                    <div className="p-3 text-center text-xs text-slate-500 bg-slate-50 border-t border-slate-200">
-                      Showing first 100 of {htmlPreview.productDetails.length} products. All records will be processed during import.
-                    </div>
-                  )}
-                </div>
-              )}
+                    ))}
+                  </TBody>
+                </Table>
+                {htmlPreview.productDetails.length > 100 && (
+                  <div className="p-3 text-center text-xs text-slate-500 bg-slate-50 border-t border-slate-200">
+                    Showing first 100 of {htmlPreview.productDetails.length} products. All records will be processed during import.
+                  </div>
+                )}
+              </div>
+            )}
 
-              {activePreviewTab === 'html_customers' && (
-                <div className="overflow-x-auto max-h-[450px] p-4 space-y-4">
-                  {htmlPreview.customerDetails.slice(0, 20).map((c, i) => (
-                    <Card key={i} className="p-4 border border-slate-200 bg-slate-50/50">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-bold text-sm text-slate-900">{c.customerName}</h4>
-                        <Pill className="text-xs font-mono bg-brand-100 text-brand-800 font-bold">{c.items.length} Historical Products</Pill>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                        {c.items.slice(0, 6).map((item, itemIdx) => (
-                          <div key={itemIdx} className="bg-white p-2.5 rounded-lg border border-slate-200 flex items-start justify-between gap-2">
-                            <div>
-                              <span className="font-semibold text-slate-800 block line-clamp-1">{item.itemName}</span>
-                              <span className="font-mono text-[10px] text-slate-500">Code: {item.itemCode} • Unit: {item.unit} ({item.innerQty} {item.innerUnit})</span>
-                            </div>
-                            <span className="font-mono font-bold text-brand-700 text-sm whitespace-nowrap">${item.price.toFixed(2)}</span>
-                          </div>
-                        ))}
-                      </div>
-                      {c.items.length > 6 && (
-                        <p className="text-[11px] text-slate-500 mt-2 font-mono text-right">+ {c.items.length - 6} more historical products</p>
-                      )}
-                    </Card>
-                  ))}
-                  {htmlPreview.customerDetails.length > 20 && (
-                    <div className="p-3 text-center text-xs text-slate-500 bg-slate-50 border-t border-slate-200 rounded-lg">
-                      Showing first 20 of {htmlPreview.customerDetails.length} customer accounts. All accounts & items will be processed during import.
+            {activePreviewTab === 'html_customers' && (
+              <div className="max-h-[450px] overflow-y-auto p-4 space-y-4">
+                {htmlPreview.customerDetails.slice(0, 20).map((c, i) => (
+                  <Card key={i} className="p-4 border border-slate-200 bg-slate-50/50">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-bold text-sm text-slate-900">{c.customerName}</h4>
+                      <Pill className="text-xs font-mono bg-brand-100 text-brand-800 font-bold">{c.items.length} Historical Products</Pill>
                     </div>
-                  )}
-                </div>
-              )}
-            </CardBody>
-          </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      {c.items.slice(0, 6).map((item, itemIdx) => (
+                        <div key={itemIdx} className="bg-white p-2.5 rounded-lg border border-slate-200 flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <span className="font-semibold text-slate-800 block truncate" title={item.itemName}>{item.itemName}</span>
+                            <span className="font-mono text-[10px] text-slate-500">Code: {item.itemCode} • Unit: {item.unit} ({item.innerQty} {item.innerUnit})</span>
+                          </div>
+                          <span className="font-mono font-bold text-brand-700 text-sm whitespace-nowrap">${item.price.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {c.items.length > 6 && (
+                      <p className="text-[11px] text-slate-500 mt-2 font-mono text-right">+ {c.items.length - 6} more historical products</p>
+                    )}
+                  </Card>
+                ))}
+                {htmlPreview.customerDetails.length > 20 && (
+                  <div className="p-3 text-center text-xs text-slate-500 bg-slate-50 border-t border-slate-200 rounded-lg">
+                    Showing first 20 of {htmlPreview.customerDetails.length} customer accounts. All accounts & items will be processed during import.
+                  </div>
+                )}
+              </div>
+            )}
+          </Card>
         </div>
       )}
 
@@ -657,7 +655,7 @@ export const AdminImport: React.FC = () => {
           </Card>
 
           {/* Preview Navigation Tabs */}
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-card">
+          <Card flush>
             <div className="flex items-center border-b border-slate-200 px-4 pt-3 bg-slate-50/50">
               <button
                 onClick={() => setActivePreviewTab('valid')}
@@ -699,24 +697,24 @@ export const AdminImport: React.FC = () => {
               <div className="p-4">
                 {parseResult.validRows.length > 0 ? (
                   <div className="max-h-96 overflow-y-auto border border-slate-200 rounded-lg">
-                    <Table>
+                    <Table minWidth={importType === 'products' ? 860 : 1020}>
                       <THead>
                         <Tr hover={false}>
-                          <Th>#</Th>
+                          <Th width={60}>#</Th>
                           {importType === 'products' ? (
                             <>
-                              <Th>Product Name</Th>
-                              <Th>Category</Th>
-                              <Th>SKU</Th>
-                              <Th>Availability Status</Th>
+                              <Th width={320}>Product Name</Th>
+                              <Th width={180}>Category</Th>
+                              <Th width={150}>SKU</Th>
+                              <Th width={150}>Availability Status</Th>
                             </>
                           ) : (
                             <>
-                              <Th>Customer Name</Th>
-                              <Th>WhatsApp</Th>
-                              <Th>Phone</Th>
-                              <Th>City</Th>
-                              <Th>Route</Th>
+                              <Th width={280}>Customer Name</Th>
+                              <Th width={180}>WhatsApp</Th>
+                              <Th width={180}>Phone</Th>
+                              <Th width={160}>City</Th>
+                              <Th width={160}>Route</Th>
                             </>
                           )}
                         </Tr>
@@ -724,13 +722,13 @@ export const AdminImport: React.FC = () => {
                       <TBody>
                         {parseResult.validRows.map((row, i) => (
                           <Tr key={i}>
-                            <Td className="text-xs font-mono text-slate-400">{i + 1}</Td>
+                            <Td width={60} className="text-xs font-mono text-slate-400">{i + 1}</Td>
                             {importType === 'products' ? (
                               <>
-                                <Td className="font-semibold text-slate-900">{row.product_name}</Td>
-                                <Td className="text-xs text-slate-600">{row.category || '—'}</Td>
-                                <Td className="font-mono text-xs font-bold text-brand-700">{row.sku}</Td>
-                                <Td>
+                                <Td width={320} truncate maxWidth={320} className="font-semibold text-slate-900">{row.product_name}</Td>
+                                <Td width={180} truncate maxWidth={180} className="text-xs text-slate-600">{row.category || '—'}</Td>
+                                <Td width={150} className="font-mono text-xs font-bold text-brand-700">{row.sku}</Td>
+                                <Td width={150}>
                                   <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold uppercase ${
                                     row.availability === 'Available' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
                                   }`}>
@@ -740,11 +738,11 @@ export const AdminImport: React.FC = () => {
                               </>
                             ) : (
                               <>
-                                <Td className="font-semibold text-slate-900">{row.customer_name}</Td>
-                                <Td className="font-mono text-xs text-slate-600">{row.whatsapp_number || '—'}</Td>
-                                <Td className="font-mono text-xs text-slate-600">{row.phone_number || '—'}</Td>
-                                <Td className="text-xs text-slate-600">{row.city || '—'}</Td>
-                                <Td className="text-xs text-slate-600">{row.route || '—'}</Td>
+                                <Td width={280} truncate maxWidth={280} className="font-semibold text-slate-900">{row.customer_name}</Td>
+                                <Td width={180} className="font-mono text-xs text-slate-600">{row.whatsapp_number || '—'}</Td>
+                                <Td width={180} className="font-mono text-xs text-slate-600">{row.phone_number || '—'}</Td>
+                                <Td width={160} truncate maxWidth={160} className="text-xs text-slate-600">{row.city || '—'}</Td>
+                                <Td width={160} truncate maxWidth={160} className="text-xs text-slate-600">{row.route || '—'}</Td>
                               </>
                             )}
                           </Tr>
@@ -773,20 +771,20 @@ export const AdminImport: React.FC = () => {
                   </Button>
                 </div>
                 <div className="max-h-96 overflow-y-auto border border-rose-200 rounded-lg">
-                  <Table>
+                  <Table minWidth={800}>
                     <THead>
                       <Tr hover={false} className="bg-rose-50">
-                        <Th className="text-rose-900">Row #</Th>
-                        <Th className="text-rose-900">Error Reason</Th>
-                        <Th className="text-rose-900">Row Data Snippet</Th>
+                        <Th width={80} className="text-rose-900">Row #</Th>
+                        <Th width={320} className="text-rose-900">Error Reason</Th>
+                        <Th width={400} className="text-rose-900">Row Data Snippet</Th>
                       </Tr>
                     </THead>
                     <TBody>
                       {parseResult.errors.map((err, i) => (
                         <Tr key={i} className="hover:bg-rose-50/50">
-                          <Td className="font-mono text-xs font-bold text-rose-700">{err.row}</Td>
-                          <Td className="text-xs font-bold text-rose-800">{err.error}</Td>
-                          <Td className="font-mono text-[11px] text-slate-600 truncate max-w-xs">{JSON.stringify(err.data)}</Td>
+                          <Td width={80} className="font-mono text-xs font-bold text-rose-700">{err.row}</Td>
+                          <Td width={320} truncate maxWidth={320} className="text-xs font-bold text-rose-800">{err.error}</Td>
+                          <Td width={400} truncate maxWidth={400} className="font-mono text-[11px] text-slate-600">{JSON.stringify(err.data)}</Td>
                         </Tr>
                       ))}
                     </TBody>
@@ -802,26 +800,26 @@ export const AdminImport: React.FC = () => {
                   Identified potential matches in existing catalog. Action depends on your selected strategy:
                 </span>
                 <div className="max-h-96 overflow-y-auto border border-amber-200 rounded-lg">
-                  <Table>
+                  <Table minWidth={960}>
                     <THead>
                       <Tr hover={false} className="bg-amber-50">
-                        <Th className="text-amber-900">Row #</Th>
-                        <Th className="text-amber-900">Imported Item</Th>
-                        <Th className="text-amber-900">Existing Match</Th>
-                        <Th className="text-amber-900">Match Reason</Th>
+                        <Th width={80} className="text-amber-900">Row #</Th>
+                        <Th width={280} className="text-amber-900">Imported Item</Th>
+                        <Th width={280} className="text-amber-900">Existing Match</Th>
+                        <Th width={320} className="text-amber-900">Match Reason</Th>
                       </Tr>
                     </THead>
                     <TBody>
                       {parseResult.duplicates.map((dup, i) => (
                         <Tr key={i} className="hover:bg-amber-50/50">
-                          <Td className="font-mono text-xs font-bold text-amber-700">{dup.row}</Td>
-                          <Td className="text-xs font-bold text-slate-900">
+                          <Td width={80} className="font-mono text-xs font-bold text-amber-700">{dup.row}</Td>
+                          <Td width={280} truncate maxWidth={280} className="text-xs font-bold text-slate-900">
                             {dup.data.product_name || dup.data.customer_name}
                           </Td>
-                          <Td className="text-xs font-semibold text-slate-900">
+                          <Td width={280} truncate maxWidth={280} className="text-xs font-semibold text-slate-900">
                             {dup.existing_name} <span className="font-mono text-slate-500">({dup.existing_identifier})</span>
                           </Td>
-                          <Td className="text-xs text-amber-800">{dup.reason}</Td>
+                          <Td width={320} truncate maxWidth={320} className="text-xs text-amber-800">{dup.reason}</Td>
                         </Tr>
                       ))}
                     </TBody>
@@ -829,7 +827,7 @@ export const AdminImport: React.FC = () => {
                 </div>
               </div>
             )}
-          </div>
+          </Card>
 
           {/* Action Footer */}
           <div className="flex items-center justify-between pt-4 border-t border-slate-200">

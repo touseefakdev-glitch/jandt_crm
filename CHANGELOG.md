@@ -5,6 +5,19 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.26.0] - 2026-08-11
+
+### Added
+- **Enterprise CRM UI/UX Design System**:
+  - **Design tokens**: Curated palette (deep navy `#102A43`, electric teal `#00A6A6`, warm amber `#F2B84B`, success green `#2E8B57`, error red `#D64545`, surface grays `#F5F7FA`/`#FFFFFF`/`#E9EFF5`/`#D9E2EC`), border radii (cards 12px, buttons/inputs 8px, badges pill), and a layered shadow system (xs → overlay Layer 1–3) defined in `tailwind.config.js`, with a design-system CSS layer in `src/index.css`.
+  - **Data Table System**: Rewritten `Table` primitive — self-contained `overflow-x-auto` scroller, `minWidth`/`stickyHeader` support, per-column `width`/`align`, `truncate` (ellipsis + native `title` tooltip) and `maxWidth`. Every data table in the app now applies explicit column widths + truncation, eliminating text collisions and horizontal overflow.
+  - **Reusable primitives**: New `TableToolbar` (search / filter tabs / clear-filters container), `Tooltip`, `Checkbox`, `Drawer`, `ErrorState`, `DataTable`, and `Skeleton` loading placeholders; upgraded `Card` (`flush`/`elevated`/`hoverable`), `Button` (iconOnly/sizes), `PageHeader`, `Modal`, `EmptyState` (with actions), `StatCard`.
+  - **App Shell**: Rewritten `AppShell` + `Sidebar` (brand header, active-route indicator, section groups, shift footer, mobile drawer, collapsed rail).
+  - **Full page migration** to the design system: Customers, Products, Orders, OutOfStock, Queries, Notifications, Dashboard, WhatsApp Conversations, WhatsApp Monitor, all tabular admin pages, and detail pages (Customer, Product, Order, Query, ShiftHandover). Toolbars converted to `TableToolbar`, overflow cards to `Card flush`, and all raw `<table>` markup replaced with the enterprise `Table`.
+- Verified with `npx tsc --noEmit` (exit 0) and `npm run build` (exit 0).
+
+---
+
 ## [1.25.0] - 2026-08-11
 
 ### Added

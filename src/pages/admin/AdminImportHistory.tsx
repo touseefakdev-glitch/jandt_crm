@@ -17,7 +17,7 @@ import {
   AlertTriangle, 
   XCircle 
 } from 'lucide-react';
-import { Badge, Button, Card, Input, Pagination, Select, Table, TBody, Td, Th, THead, Tr } from '../../components/ui';
+import { Badge, Button, Card, Input, Pagination, Select, Table, TableToolbar, TBody, Td, Th, THead, Tr } from '../../components/ui';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -85,7 +85,7 @@ export const AdminImportHistory: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Search & Filter Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <TableToolbar>
         <div className="relative flex-1 max-w-xl">
           <Input
             type="text"
@@ -128,54 +128,54 @@ export const AdminImportHistory: React.FC = () => {
             <option value="failed">Failed</option>
           </Select>
         </div>
-      </div>
+      </TableToolbar>
 
       {/* History Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-card overflow-hidden">
+      <Card flush>
         {paginatedJobs.length > 0 ? (
-          <Table>
+          <Table minWidth={1500}>
             <THead>
               <Tr hover={false}>
-                <Th>Date & Time</Th>
-                <Th>Import Type</Th>
-                <Th>File Name</Th>
-                <Th>Strategy</Th>
-                <Th>Total</Th>
-                <Th>Created</Th>
-                <Th>Updated</Th>
-                <Th>Skipped</Th>
-                <Th>Failed</Th>
-                <Th>Status</Th>
-                <Th>User</Th>
-                <Th className="text-right">Error Log</Th>
+                <Th width={150}>Date & Time</Th>
+                <Th width={120}>Import Type</Th>
+                <Th width={200}>File Name</Th>
+                <Th width={130}>Strategy</Th>
+                <Th width={70}>Total</Th>
+                <Th width={80}>Created</Th>
+                <Th width={80}>Updated</Th>
+                <Th width={80}>Skipped</Th>
+                <Th width={80}>Failed</Th>
+                <Th width={160}>Status</Th>
+                <Th width={160}>User</Th>
+                <Th width={130} align="right">Error Log</Th>
               </Tr>
             </THead>
             <TBody>
               {paginatedJobs.map((job) => (
                 <Tr key={job.id}>
-                  <Td className="text-xs text-slate-600 font-mono">
+                  <Td width={150} className="text-xs text-slate-600 font-mono">
                     {formatDate(job.started_at, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </Td>
-                  <Td>
+                  <Td width={120}>
                     <span className="inline-flex items-center gap-1 text-xs font-bold capitalize text-slate-900">
                       {job.import_type === 'products' ? <Package className="w-3.5 h-3.5 text-sky-600" /> : <Users className="w-3.5 h-3.5 text-purple-600" />}
                       {job.import_type}
                     </span>
                   </Td>
-                  <Td className="font-mono text-xs font-bold text-slate-900">{job.file_name}</Td>
-                  <Td className="text-xs text-slate-600 capitalize">{job.import_strategy.replace(/_/g, ' ')}</Td>
-                  <Td className="text-xs font-bold text-slate-900">{job.total_rows}</Td>
-                  <Td className="text-xs font-bold text-emerald-700">{job.created_count}</Td>
-                  <Td className="text-xs font-bold text-sky-700">{job.updated_count}</Td>
-                  <Td className="text-xs font-bold text-slate-500">{job.skipped_count}</Td>
-                  <Td className="text-xs font-bold text-rose-700">{job.failed_count}</Td>
-                  <Td>
+                  <Td width={200} truncate maxWidth={200} className="font-mono text-xs font-bold text-slate-900">{job.file_name}</Td>
+                  <Td width={130} truncate maxWidth={130} className="text-xs text-slate-600 capitalize">{job.import_strategy.replace(/_/g, ' ')}</Td>
+                  <Td width={70} className="text-xs font-bold text-slate-900">{job.total_rows}</Td>
+                  <Td width={80} className="text-xs font-bold text-emerald-700">{job.created_count}</Td>
+                  <Td width={80} className="text-xs font-bold text-sky-700">{job.updated_count}</Td>
+                  <Td width={80} className="text-xs font-bold text-slate-500">{job.skipped_count}</Td>
+                  <Td width={80} className="text-xs font-bold text-rose-700">{job.failed_count}</Td>
+                  <Td width={160}>
                     <Badge badge={getStatusBadge(job.status)} />
                   </Td>
-                  <Td className="text-xs text-slate-600">
+                  <Td width={160} truncate maxWidth={160} className="text-xs text-slate-600">
                     {job.created_by_profile ? job.created_by_profile.full_name : <span className="text-slate-400 italic">System</span>}
                   </Td>
-                  <Td className="text-right">
+                  <Td width={130} align="right">
                     {job.errors && job.errors.length > 0 ? (
                       <Button
                         size="sm"
@@ -200,7 +200,7 @@ export const AdminImportHistory: React.FC = () => {
             <p className="mt-1">Bulk CSV imports performed by Administrators will appear here.</p>
           </div>
         )}
-      </div>
+      </Card>
 
       {totalPages > 1 && (
         <Pagination

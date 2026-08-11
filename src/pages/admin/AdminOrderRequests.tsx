@@ -15,7 +15,7 @@ import {
   Globe,
   SendHorizonal,
 } from 'lucide-react';
-import { Badge, Button, Card, Input, Select, Table, TBody, Td, Th, THead, Tr, Textarea, useToast } from '../../components/ui';
+import { Badge, Button, Card, Input, Select, Table, TableToolbar, TBody, Td, Th, THead, Tr, Textarea, useToast } from '../../components/ui';
 
 const COMMON_TIMEZONES = [
   'America/Vancouver',
@@ -291,7 +291,8 @@ export const AdminOrderRequests: React.FC = () => {
       )}
 
       {/* Reminders Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-card overflow-hidden">
+      <Card flush>
+        <TableToolbar>
         <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
           <h3 className="text-sm font-bold text-slate-900">Order Request History</h3>
           <div className="flex items-center gap-2">
@@ -303,33 +304,34 @@ export const AdminOrderRequests: React.FC = () => {
             <Input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className="text-xs" />
           </div>
         </div>
+        </TableToolbar>
 
         {filteredReminders.length > 0 ? (
-          <Table>
+          <Table minWidth={1220}>
             <THead>
               <Tr hover={false}>
-                <Th>Customer</Th>
-                <Th>Route</Th>
-                <Th>Delivery Date</Th>
-                <Th>Status</Th>
-                <Th>Sent At</Th>
-                <Th>Reason / Message ID</Th>
-                <Th className="text-right">Action</Th>
+                <Th width={200}>Customer</Th>
+                <Th width={180}>Route</Th>
+                <Th width={130}>Delivery Date</Th>
+                <Th width={120}>Status</Th>
+                <Th width={160}>Sent At</Th>
+                <Th width={260}>Reason / Message ID</Th>
+                <Th width={120} align="right">Action</Th>
               </Tr>
             </THead>
             <TBody>
               {filteredReminders.map((r) => (
                 <Tr key={r.id}>
-                  <Td>
-                    <span className="font-semibold text-slate-900 text-xs">{r.customer_name}</span>
+                  <Td width={200} truncate maxWidth={200}>
+                    <span className="font-semibold text-slate-900 text-xs truncate">{r.customer_name}</span>
                   </Td>
-                  <Td>
-                    <span className="text-xs text-slate-600">{r.route}</span>
+                  <Td width={180} truncate maxWidth={180}>
+                    <span className="text-xs text-slate-600 truncate">{r.route}</span>
                   </Td>
-                  <Td>
+                  <Td width={130}>
                     <span className="text-xs font-mono text-slate-700">{r.delivery_date}</span>
                   </Td>
-                  <Td>
+                  <Td width={120}>
                     <Badge badge={r.status === 'sent' ? {
                       subtle: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
                       solid: 'bg-emerald-600 text-white',
@@ -342,17 +344,17 @@ export const AdminOrderRequests: React.FC = () => {
                       label: 'Failed',
                     }} />
                   </Td>
-                  <Td>
-                    <span className="text-xs text-slate-600">{r.sent_at ? new Date(r.sent_at).toLocaleString() : '—'}</span>
+                  <Td width={160} truncate maxWidth={160}>
+                    <span className="text-xs text-slate-600 truncate">{r.sent_at ? new Date(r.sent_at).toLocaleString() : '—'}</span>
                   </Td>
-                  <Td>
+                  <Td width={260} truncate maxWidth={260}>
                     {r.status === 'failed' ? (
                       <span className="text-[10px] text-rose-600 font-mono break-all">{r.error_reason || 'unknown error'}</span>
                     ) : (
                       <span className="text-[10px] text-slate-400 font-mono break-all">{r.message_id || '—'}</span>
                     )}
                   </Td>
-                  <Td className="text-right">
+                  <Td width={120} align="right">
                     {r.status === 'failed' && (
                       <Button size="sm" variant="outline" disabled={retryingId === r.id} onClick={() => handleRetry(r)} icon={<RotateCcw className="w-3.5 h-3.5" />}>
                         {retryingId === r.id ? 'Retrying...' : 'Retry'}
@@ -370,7 +372,7 @@ export const AdminOrderRequests: React.FC = () => {
             <p className="mt-1">Run the automation to generate reminders for tomorrow's delivery routes.</p>
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 };

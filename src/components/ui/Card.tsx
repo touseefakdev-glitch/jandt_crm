@@ -1,8 +1,25 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 
-export const Card: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ className, ...props }) => (
-  <div className={cn('bg-white rounded-[12px] border border-[#D9E2EC] shadow-card', className)} {...props} />
+export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Layer 2 elevation (deeper shadow) for emphasized content. */
+  elevated?: boolean;
+  /** Hover lift for interactive cards. */
+  hoverable?: boolean;
+  /** Remove padding so tables can span edge-to-edge. */
+  flush?: boolean;
+}
+
+export const Card: React.FC<CardProps> = ({ className, elevated, hoverable, flush, ...props }) => (
+  <div
+    className={cn(
+      elevated ? 'crm-card-elevated' : 'crm-card',
+      hoverable && 'crm-card-hover',
+      flush && 'overflow-hidden',
+      className
+    )}
+    {...props}
+  />
 );
 
 export const CardHeader: React.FC<
@@ -12,7 +29,7 @@ export const CardHeader: React.FC<
     <div className="flex items-center gap-2.5 min-w-0">
       {icon && <span className="text-teal-600 shrink-0">{icon}</span>}
       <div className="min-w-0">
-        {title && <h3 className="text-sm font-bold text-[#172B4D] tracking-tight">{title}</h3>}
+        {title && <h3 className="crm-card-title">{title}</h3>}
         {subtitle && <p className="mt-0.5 text-xs text-[#52606D]">{subtitle}</p>}
       </div>
     </div>

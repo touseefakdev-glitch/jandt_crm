@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Product, ProductAvailabilityStatus } from '../types';
 import { localDb } from '../services/db';
 import { ProductAvailabilityModal } from '../components/products/ProductAvailabilityModal';
-import { Badge, Button, Card, EmptyState, Input, Table, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
+import { Badge, Button, Card, EmptyState, Input, Table, TableToolbar, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
 import { getProductAvailabilityBadge } from '../utils/badges';
 import { formatDate } from '../utils/format';
 import { AlertTriangle, Search, RotateCcw, Calendar, Package, CheckCircle2, ArrowRight } from 'lucide-react';
@@ -83,64 +83,66 @@ export const OutOfStock: React.FC = () => {
         </div>
       </div>
 
-      <Card className="p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <Input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search unavailable SKU, Name, Reason..."
-          icon={<Search className="w-4 h-4 text-slate-400" />}
-          className="pl-9 w-full sm:w-80"
-        />
+      <TableToolbar>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <Input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search unavailable SKU, Name, Reason..."
+            icon={<Search className="w-4 h-4 text-slate-400" />}
+            className="pl-9 w-full sm:w-80"
+          />
 
-        <Link
-          to="/products"
-          className="text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline inline-flex items-center shrink-0"
-        >
-          <span>View Full Products Catalog</span>
-          <ArrowRight className="w-3.5 h-3.5 ml-1" />
-        </Link>
-      </Card>
+          <Link
+            to="/products"
+            className="text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline inline-flex items-center shrink-0"
+          >
+            <span>View Full Products Catalog</span>
+            <ArrowRight className="w-3.5 h-3.5 ml-1" />
+          </Link>
+        </div>
+      </TableToolbar>
 
-      <Card className="overflow-hidden">
+      <Card flush>
         {outOfStockProducts.length > 0 ? (
-          <Table>
+          <Table minWidth={1330}>
             <THead>
               <Tr hover={false}>
-                <Th>SKU</Th>
-                <Th>Product Name</Th>
-                <Th>Category</Th>
-                <Th>Availability Status</Th>
-                <Th>Unavailability Reason</Th>
-                <Th>Expected Available Date</Th>
-                <Th className="text-right">Actions</Th>
+                <Th width={140}>SKU</Th>
+                <Th width={280}>Product Name</Th>
+                <Th width={160}>Category</Th>
+                <Th width={150}>Availability Status</Th>
+                <Th width={260}>Unavailability Reason</Th>
+                <Th width={170}>Expected Available Date</Th>
+                <Th width={170} align="right">Actions</Th>
               </Tr>
             </THead>
             <TBody>
               {outOfStockProducts.map((product) => (
                 <Tr key={product.id}>
-                  <Td className="font-mono font-bold text-brand-700">
+                  <Td width={140} className="font-mono font-bold text-brand-700">
                     <Link to={`/products/${product.id}`} className="hover:underline">{product.sku}</Link>
                   </Td>
-                  <Td className="font-bold text-slate-900 max-w-xs">
+                  <Td width={280} truncate className="font-bold text-slate-900">
                     <Link to={`/products/${product.id}`} className="hover:text-brand-600">{product.product_name}</Link>
                   </Td>
-                  <Td className="text-slate-600">{product.category?.name || 'General'}</Td>
-                  <Td><Badge badge={getProductAvailabilityBadge(product.availability_status)} /></Td>
-                  <Td className="font-medium text-red-900 max-w-sm">
+                  <Td width={160} truncate className="text-slate-600">{product.category?.name || 'General'}</Td>
+                  <Td width={150}><Badge badge={getProductAvailabilityBadge(product.availability_status)} /></Td>
+                  <Td width={260} truncate maxWidth={260} className="font-medium text-red-900">
                     {product.availability_notes || <span className="text-slate-400 italic">No notes logged</span>}
                   </Td>
-                  <Td className="font-mono font-semibold text-slate-700">
+                  <Td width={170} className="font-mono font-semibold text-slate-700">
                     {product.expected_available_date ? (
                       <span className="inline-flex items-center gap-1 text-slate-800 bg-amber-50 px-2.5 py-1 rounded border border-amber-200">
-                        <Calendar className="w-3.5 h-3.5 text-amber-600" />
+                        <Calendar className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                         <span>{formatDate(product.expected_available_date)}</span>
                       </span>
                     ) : (
                       <span className="text-slate-400 italic">Unknown</span>
                     )}
                   </Td>
-                  <Td className="text-right">
+                  <Td width={170} align="right">
                     <div className="flex items-center justify-end gap-2">
                       <Link
                         to={`/products/${product.id}`}

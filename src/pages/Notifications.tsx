@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { localDb } from '../services/db';
 import { notificationService } from '../services/notificationService';
 import { CRMNotification } from '../types';
-import { Badge, Button, Card, EmptyState, Input, PageHeader, Pagination, Select, Tabs } from '../components/ui';
+import { Badge, Button, Card, EmptyState, Input, PageHeader, Pagination, Select, TableToolbar, Tabs } from '../components/ui';
 import { getNotificationPriorityBadge } from '../utils/badges';
 import { formatDateTime } from '../utils/format';
 import {
@@ -141,8 +141,8 @@ export const Notifications: React.FC = () => {
         }
       />
 
-      <Card className="p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
+      <TableToolbar>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 mb-3">
           <Tabs
             size="md"
             tabs={[
@@ -209,9 +209,9 @@ export const Notifications: React.FC = () => {
             <option value="system">System & Administration</option>
           </Select>
         </div>
-      </Card>
+      </TableToolbar>
 
-      <Card className="overflow-hidden divide-y divide-slate-200">
+      <Card flush className="divide-y divide-slate-200">
         {paginatedNotifications.length > 0 ? (
           paginatedNotifications.map((notification) => (
             <div

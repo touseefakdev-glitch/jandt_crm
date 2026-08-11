@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Customer, CustomerFormInput, CustomerStatus } from '../types';
 import { localDb } from '../services/db';
 import { CustomerFormModal } from '../components/customers/CustomerFormModal';
-import { Badge, Button, ConfirmDialog, EmptyState, Input, PageHeader, Pagination, Table, Tabs, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
+import { Badge, Button, Card, ConfirmDialog, EmptyState, Input, PageHeader, Pagination, Table, TableToolbar, Tabs, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
 import { getCustomerStatusBadge } from '../utils/badges';
 import { formatDate } from '../utils/format';
 import { Users, Plus, Eye, Edit, Power, Building2, XCircle, Upload } from 'lucide-react';
@@ -101,72 +101,70 @@ export const Customers: React.FC = () => {
         }
       />
 
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-xl">
-          <Input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
+      <TableToolbar>
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="relative flex-1 max-w-xl">
+            <Input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Search by Customer Code, Company, Contact Person, Phone, Email, City..."
+              icon={<Users className="w-4 h-4 text-slate-400" />}
+              className="pl-9"
+            />
+          </div>
+          <Tabs
+            tabs={[
+              { value: 'all' as const, label: `All (${totalCustomers})` },
+              { value: 'active' as const, label: 'Active' },
+              { value: 'inactive' as const, label: 'Inactive' },
+            ]}
+            active={statusFilter}
+            onChange={(value) => {
+              setStatusFilter(value);
               setCurrentPage(1);
             }}
-            placeholder="Search by Customer Code, Company, Contact Person, Phone, Email, City..."
-            icon={<Users className="w-4 h-4 text-slate-400" />}
-            className="pl-9"
           />
         </div>
-        <Tabs
-          tabs={[
-            { value: 'all' as const, label: `All (${totalCustomers})` },
-            { value: 'active' as const, label: 'Active' },
-            { value: 'inactive' as const, label: 'Inactive' },
-          ]}
-          active={statusFilter}
-          onChange={(value) => {
-            setStatusFilter(value);
-            setCurrentPage(1);
-          }}
-        />
-      </div>
+      </TableToolbar>
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-card overflow-hidden">
+      <Card flush>
         {paginatedCustomers.length > 0 ? (
-          <Table>
+          <Table minWidth={1320}>
             <THead>
               <Tr hover={false}>
-                <Th>Code</Th>
-                <Th>Company Name</Th>
-                <Th>Phone</Th>
-                <Th>WhatsApp</Th>
-                <Th>Group JID</Th>
-                <Th>City</Th>
-                <Th>Country</Th>
-                <Th>Status</Th>
-                <Th>Created</Th>
-                <Th className="text-right">Actions</Th>
+                <Th width={96}>Code</Th>
+                <Th width={240}>Company Name</Th>
+                <Th width={150}>Phone</Th>
+                <Th width={160}>WhatsApp</Th>
+                <Th width={160}>City</Th>
+                <Th width={120}>Country</Th>
+                <Th width={110}>Status</Th>
+                <Th width={120}>Created</Th>
+                <Th width={130} align="right">Actions</Th>
               </Tr>
             </THead>
             <TBody>
               {paginatedCustomers.map((cust) => (
                 <Tr key={cust.id}>
-                  <Td className="font-mono text-xs font-bold text-brand-700">
+                  <Td width={96} className="font-mono text-xs font-bold text-brand-700">
                     <Link to={`/customers/${cust.id}`} className="hover:underline">{cust.customer_code}</Link>
                   </Td>
-                  <Td className="font-semibold text-slate-900">
+                  <Td width={240} truncate className="font-semibold text-slate-900">
                     <Link to={`/customers/${cust.id}`} className="hover:text-brand-600 transition-colors">{cust.company_name}</Link>
                   </Td>
-                  <Td className="text-xs text-slate-600 font-mono">{cust.phone || <span className="text-slate-400 italic">—</span>}</Td>
-                  <Td className="text-xs text-emerald-600 font-mono">{cust.whatsapp_number || <span className="text-slate-400 italic">—</span>}</Td>
-                  <Td className="text-xs font-mono text-purple-700 font-bold max-w-[140px] truncate" title={cust.whatsapp_group_jid || undefined}>
-                    {cust.whatsapp_group_jid ? cust.whatsapp_group_jid : <span className="text-slate-400 italic font-normal">—</span>}
-                  </Td>
-                  <Td className="text-xs text-slate-700 font-medium">{cust.city || <span className="text-slate-400 italic">—</span>}</Td>
-                  <Td className="text-xs text-slate-600">{cust.country || 'Canada'}</Td>
-                  <Td>
+                  <Td width={150} truncate className="text-xs text-slate-600 font-mono">{cust.phone || <span className="text-slate-400 italic">—</span>}</Td>
+                  <Td width={160} truncate className="text-xs text-emerald-600 font-mono">{cust.whatsapp_number || <span className="text-slate-400 italic">—</span>}</Td>
+                  <Td width={160} truncate className="text-xs text-slate-700 font-medium">{cust.city || <span className="text-slate-400 italic">—</span>}</Td>
+                  <Td width={120} truncate className="text-xs text-slate-600">{cust.country || 'Canada'}</Td>
+                  <Td width={110}>
                     <Badge badge={getCustomerStatusBadge(cust.status)} />
                   </Td>
-                  <Td className="text-xs text-slate-500">{formatDate(cust.created_at)}</Td>
-                  <Td className="text-right">
+                  <Td width={120} className="text-xs text-slate-500">{formatDate(cust.created_at)}</Td>
+                  <Td width={130} align="right">
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => navigate(`/customers/${cust.id}`)}
@@ -230,7 +228,7 @@ export const Customers: React.FC = () => {
             itemLabel="customers"
           />
         )}
-      </div>
+      </Card>
 
       <CustomerFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleFormSubmit} customerToEdit={customerToEdit} />
 

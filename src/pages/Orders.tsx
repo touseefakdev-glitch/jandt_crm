@@ -28,7 +28,7 @@ import {
   Send,
   FileText
 } from 'lucide-react';
-import { Badge, Button, Card, Input, Modal, Select, Table, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
+import { Badge, Button, Card, EmptyState, Input, Modal, Select, Table, TableToolbar, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
 
 export const Orders: React.FC = () => {
   const { user } = useAuth();
@@ -446,86 +446,88 @@ export const Orders: React.FC = () => {
           </Card>
 
           {/* Search, Status Filters, & Sorting Bar */}
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="relative flex-1 max-w-xl">
-              <Input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search customers by name, phone, WhatsApp, SO #, or Invoice #..."
-                icon={<Search className="w-4 h-4 text-slate-400" />}
-                className="pl-9"
-              />
-            </div>
+          <TableToolbar>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="relative flex-1 max-w-xl">
+                <Input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search customers by name, phone, WhatsApp, SO #, or Invoice #..."
+                  icon={<Search className="w-4 h-4 text-slate-400" />}
+                  className="pl-9"
+                />
+              </div>
 
-            <div className="flex items-center gap-3">
-              <Select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="text-xs"
-              >
-                <option value="all">All Statuses</option>
-                <option value="not_started">Not Started</option>
-                <option value="order_received">Order Received</option>
-                <option value="sales_order_generated">SO Generated</option>
-                <option value="invoiced">Invoiced</option>
-                <option value="dispatched">Dispatched</option>
-                <option value="completed">✓ Completed</option>
-                <option value="error">⚠ Errors Only</option>
-              </Select>
+              <div className="flex items-center gap-3">
+                <Select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="text-xs"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="not_started">Not Started</option>
+                  <option value="order_received">Order Received</option>
+                  <option value="sales_order_generated">SO Generated</option>
+                  <option value="invoiced">Invoiced</option>
+                  <option value="dispatched">Dispatched</option>
+                  <option value="completed">✓ Completed</option>
+                  <option value="error">⚠ Errors Only</option>
+                </Select>
 
-              <Select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="text-xs"
-              >
-                <option value="name">Sort by Customer Name</option>
-                <option value="status">Sort by Status</option>
-                <option value="updated_at">Sort by Last Updated</option>
-              </Select>
+                <Select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="text-xs"
+                >
+                  <option value="name">Sort by Customer Name</option>
+                  <option value="status">Sort by Status</option>
+                  <option value="updated_at">Sort by Last Updated</option>
+                </Select>
+              </div>
             </div>
-          </div>
+          </TableToolbar>
 
           {/* Daily Customer Workflow Table */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-card overflow-hidden">
+          <Card flush>
             {operations.length > 0 ? (
-              <div className="overflow-x-auto max-w-full">
-                <Table className="min-w-[1100px]">
-                  <THead>
-                    <Tr hover={false}>
-                      <Th className="sticky left-0 bg-slate-100 z-10 w-72 border-r border-slate-200">Customer</Th>
-                      <Th className="text-center w-36">Order Received</Th>
-                      <Th className="text-center w-44">Sales Order Generated</Th>
-                      <Th className="w-36">SO #</Th>
-                      <Th className="text-center w-36">Invoiced</Th>
-                      <Th className="w-36">Invoice #</Th>
-                      <Th className="text-center w-32">Dispatched</Th>
-                      <Th className="text-center w-40">Error / Ticket</Th>
-                      <Th className="w-32">Status</Th>
-                      <Th className="text-right w-20">Audit</Th>
-                    </Tr>
-                  </THead>
-                  <TBody>
-                    {operations.map((op) => (
-                      <Tr key={op.id}>
-                        {/* Sticky Customer Info Cell */}
-                        <Td className="sticky left-0 bg-white z-10 border-r border-slate-200 shadow-sm">
-                          <div>
-                            <button
-                              onClick={() => navigate(`/customers/${op.customer_id}`)}
-                              className="font-bold text-slate-900 hover:text-brand-600 transition-colors text-xs text-left block flex items-center gap-1 group"
-                            >
-                              <span>{op.customer?.company_name || 'Customer'}</span>
-                              <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-brand-600 opacity-0 group-hover:opacity-100 transition-all shrink-0" />
-                            </button>
-                            <span className="text-[10px] text-slate-400 font-mono block">{op.customer?.customer_code}</span>
-                            <div className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-2">
-                              <span>📞 {op.customer?.phone || op.customer?.whatsapp_number || '—'}</span>
-                              <span className="text-slate-300">•</span>
-                              <span className="font-semibold text-slate-600">{op.customer?.city}</span>
-                            </div>
+              <Table minWidth={1100}>
+                <THead>
+                  <Tr hover={false}>
+                    <Th width={288} className="sticky left-0 bg-[#F5F7FA] z-10 border-r border-slate-200">Customer</Th>
+                    <Th width={144} align="center">Order Received</Th>
+                    <Th width={176} align="center">Sales Order Generated</Th>
+                    <Th width={144}>SO #</Th>
+                    <Th width={144} align="center">Invoiced</Th>
+                    <Th width={144}>Invoice #</Th>
+                    <Th width={128} align="center">Dispatched</Th>
+                    <Th width={160} align="center">Error / Ticket</Th>
+                    <Th width={128}>Status</Th>
+                    <Th width={80} align="right">Audit</Th>
+                  </Tr>
+                </THead>
+                <TBody>
+                  {operations.map((op) => (
+                    <Tr key={op.id}>
+                      {/* Sticky Customer Info Cell */}
+                      <Td width={288} className="sticky left-0 bg-white z-10 border-r border-slate-200">
+                        <div>
+                          <button
+                            onClick={() => navigate(`/customers/${op.customer_id}`)}
+                            className="font-bold text-slate-900 hover:text-brand-600 transition-colors text-xs text-left block w-full truncate flex items-center gap-1 group"
+                            title={op.customer?.company_name}
+                          >
+                            <span className="truncate">{op.customer?.company_name || 'Customer'}</span>
+                            <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-brand-600 opacity-0 group-hover:opacity-100 transition-all shrink-0" />
+                          </button>
+                          <span className="text-[10px] text-slate-400 font-mono block truncate">{op.customer?.customer_code}</span>
+                          <div className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-2">
+                            <span className="truncate">📞 {op.customer?.phone || op.customer?.whatsapp_number || '—'}</span>
+                            <span className="text-slate-300">•</span>
+                            <span className="font-semibold text-slate-600 truncate">{op.customer?.city}</span>
                           </div>
-                        </Td>
+                        </div>
+                      </Td>
 
                         {/* Step 1: Order Received Checkbox */}
                         <Td className="text-center">
@@ -704,15 +706,14 @@ export const Orders: React.FC = () => {
                     ))}
                   </TBody>
                 </Table>
-              </div>
             ) : (
-              <div className="p-12 text-center text-slate-500 text-xs">
-                <MapPin className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                <p className="font-semibold text-slate-700">No scheduled customers found for {selectedRoute}.</p>
-                <p className="mt-1">Assign customers to the <span className="font-semibold text-slate-900">{selectedRoute}</span> city or route in the Customers module.</p>
-              </div>
+              <EmptyState
+                icon={<MapPin className="w-7 h-7" />}
+                title={`No Scheduled Customers on ${selectedRoute}`}
+                description={`Assign customers to the ${selectedRoute} city or route in the Customers module.`}
+              />
             )}
-          </div>
+          </Card>
         </div>
       )}
 

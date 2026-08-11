@@ -2,14 +2,14 @@ import React, { useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '../../utils/cn';
-import { Button } from './Button';
 
-export interface ModalProps {
+export interface DrawerProps {
   isOpen: boolean;
   onClose: () => void;
   title?: React.ReactNode;
   subtitle?: React.ReactNode;
   icon?: React.ReactNode;
+  placement?: 'right' | 'left' | 'bottom';
   size?: 'sm' | 'md' | 'lg' | 'xl';
   children: React.ReactNode;
   footer?: React.ReactNode;
@@ -18,19 +18,39 @@ export interface ModalProps {
   className?: string;
 }
 
-const sizeClasses: Record<NonNullable<ModalProps['size']>, string> = {
-  sm: 'max-w-md',
-  md: 'max-w-lg',
-  lg: 'max-w-2xl',
-  xl: 'max-w-4xl',
+const widthClasses: Record<NonNullable<DrawerProps['placement']>, Record<NonNullable<DrawerProps['size']>, string>> = {
+  right: {
+    sm: 'w-full sm:w-[400px]',
+    md: 'w-full sm:w-[480px]',
+    lg: 'w-full sm:w-[640px]',
+    xl: 'w-full sm:w-[800px]',
+  },
+  left: {
+    sm: 'w-full sm:w-[400px]',
+    md: 'w-full sm:w-[480px]',
+    lg: 'w-full sm:w-[640px]',
+    xl: 'w-full sm:w-[800px]',
+  },
+  bottom: {
+    sm: 'max-w-2xl',
+    md: 'max-w-3xl',
+    lg: 'max-w-5xl',
+    xl: 'max-w-7xl',
+  },
 };
 
-export const Modal: React.FC<ModalProps> = ({
+/**
+ * Reusable Drawer panel. On mobile, side drawers take the full width;
+ * bottom drawers rise from the bottom of the viewport.
+ * Ready for the WhatsApp module (conversation / customer / order panels).
+ */
+export const Drawer: React.FC<DrawerProps> = ({
   isOpen,
   onClose,
   title,
   subtitle,
   icon,
+  placement = 'right',
   size = 'md',
   children,
   footer,
@@ -46,21 +66,6 @@ export const Modal: React.FC<ModalProps> = ({
       if (e.key === 'Escape' && closeOnEsc) {
         e.stopPropagation();
         onClose();
-      }
-      if (e.key === 'Tab') {
-        const focusables = panelRef.current?.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        );
-        if (!focusables || focusables.length === 0) return;
-        const first = focusables[0];
-        const last = focusables[focusables.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
       }
     },
     [closeOnEsc, onClose]
@@ -83,9 +88,9 @@ export const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[70] flex items-stretch sm:items-center justify-center sm:p-6 overflow-y-auto">
+    <div className="fixed inset-0 z-[75]" role="presentation">
       <div
-        className="fixed inset-0 bg-slate-950/50 backdrop-blur-[2px] animate-fade-in"
+        className="fixed inset-0 bg-[#091A2B]/50 backdrop-blur-[2px] animate-fade-in"
         onClick={closeOnBackdrop ? onClose : undefined}
         aria-hidden="true"
       />
@@ -95,16 +100,16 @@ export const Modal: React.FC<ModalProps> = ({
         aria-modal="true"
         aria-label={typeof title === 'string' ? title : undefined}
         className={cn(
-          'relative w-full bg-white shadow-overlay border border-[#D9E2EC] animate-scale-in sm:my-auto',
-          'rounded-none sm:rounded-[12px]',
-          'max-h-full sm:max-h-[calc(100vh-3rem)]',
-          'flex flex-col',
-          sizeClasses[size],
+          'fixed flex flex-col bg-white shadow-overlay border-[#D9E2EC]',
+          placement === 'right' && 'inset-y-0 right-0 h-full border-l animate-drawer-in-right',
+          placement === 'left' && 'inset-y-0 left-0 h-full border-r animate-drawer-in-left',
+          placement === 'bottom' && 'inset-x-0 bottom-0 max-h-[85vh] border-t rounded-t-card animate-drawer-in-bottom',
+          widthClasses[placement][size],
           className
         )}
       >
         {(title || icon) && (
-          <div className="flex items-start justify-between gap-4 px-5 sm:px-6 pt-4 pb-3.5 border-b border-[#D9E2EC] shrink-0">
+          <div className="flex items-start justify-between gap-4 px-5 py-4 border-b border-[#D9E2EC] shrink-0">
             <div className="flex items-start gap-3 min-w-0">
               {icon && <div className="w-9 h-9 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">{icon}</div>}
               <div className="min-w-0">
@@ -114,35 +119,17 @@ export const Modal: React.FC<ModalProps> = ({
             </div>
             <button
               onClick={onClose}
-              aria-label="Close dialog"
+              aria-label="Close panel"
               className="p-1.5 -mr-1.5 text-[#829AB1] hover:text-[#172B4D] hover:bg-[#E9EFF5] rounded-md transition-colors shrink-0"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         )}
-        <div className="flex-1 min-h-0 px-5 sm:px-6 py-5 overflow-y-auto">{children}</div>
-        {footer && <div className="px-5 sm:px-6 py-3.5 border-t border-[#D9E2EC] bg-[#F5F7FA] rounded-b-none sm:rounded-b-[12px] flex items-center justify-end gap-2.5 shrink-0">{footer}</div>}
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4">{children}</div>
+        {footer && <div className="px-5 py-3.5 border-t border-[#D9E2EC] bg-[#F5F7FA] flex items-center justify-end gap-2.5 shrink-0">{footer}</div>}
       </div>
     </div>,
     document.body
   );
 };
-
-export const ModalFooter: React.FC<{ onCancel: () => void; onConfirm: () => void; confirmLabel?: string; cancelLabel?: string; confirmVariant?: 'primary' | 'danger' | 'success'; loading?: boolean }> = ({
-  onCancel,
-  onConfirm,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
-  confirmVariant = 'primary',
-  loading,
-}) => (
-  <>
-    <Button variant="outline" onClick={onCancel}>
-      {cancelLabel}
-    </Button>
-    <Button variant={confirmVariant} onClick={onConfirm} loading={loading}>
-      {confirmLabel}
-    </Button>
-  </>
-);

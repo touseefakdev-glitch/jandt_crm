@@ -5,6 +5,22 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.16.0] - 2026-08-11
+
+### Changed
+- **Local Application Clean Slate Data Reset**:
+  - **Database Seeding (`src/services/db.ts`)**: Removed demo user accounts (`Muzammil`, `Abdul Rehman`, `Sohail`, `Aasil`), leaving 1 default Admin account (`tauseef@jtsupplies.com` / `Tauseef (Admin)`) for local authentication.
+  - **Clean Slate Version Control**: Updated `SEED_DATA_VERSION` to `v4-clean-slate`. Implemented automatic localStorage upgrade logic to reset local catalog data to clean slate state on application startup.
+  - **Auto-Seeding Disabled**: Disabled automatic startup execution of `ensureHtmlBusinessDataSeeded()` so the local database initializes empty (0 products, 0 customers, 0 orders).
+  - **Dynamic Import Optimization**: Made `seedHtmlData.ts` (2.1 MB) dynamically imported so it remains available for manual admin bulk import (`AdminImport.tsx`) without adding overhead to application startup.
+- **Test Suite Updates (`tests/integrationTest.ts`)**:
+  - Added self-contained test catalog setup (3 test customers and 3 test products) so the WhatsApp Order Intelligence test suite runs independently on a clean slate database.
+- **Supabase Sync Hardening (`src/services/supabaseSync.ts`)**:
+  - Implemented page-based fetching (`fetchAllRemoteRows`) to bypass row limits when pulling remote Supabase records.
+  - Chunked client upserts into batches of 100 to prevent payload limits.
+
+---
+
 ## [1.15.0] - 2026-08-10
 
 ### Added

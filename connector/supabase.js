@@ -1,6 +1,12 @@
 require('dotenv').config({ path: '../.env' });
 require('dotenv').config(); // Fallback to local .env if present
 
+if (typeof globalThis.WebSocket === 'undefined') {
+  try {
+    globalThis.WebSocket = require('ws');
+  } catch (e) {}
+}
+
 const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;

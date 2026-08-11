@@ -2,40 +2,203 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   J&T Supplies CRM — Design System
+   Tokens, primitives and layout rules shared by every page.
+   ============================================================ */
+
 @layer base {
+  :root {
+    /* Color Tokens */
+    --color-bg: #F5F7FA;
+    --color-surface: #FFFFFF;
+    --color-surface-muted: #E9EFF5;
+    --color-border: #D9E2EC;
+    --color-border-strong: #BCCCDC;
+    --color-text-primary: #172B4D;
+    --color-text-secondary: #52606D;
+    --color-text-muted: #829AB1;
+    --color-primary: #00A6A6;
+    --color-primary-strong: #008C8C;
+    --color-secondary: #102A43;
+    --color-success: #2E8B57;
+    --color-warning: #F2B84B;
+    --color-error: #D64545;
+    --color-info: #0E7490;
+
+    /* 3D Layer Shadows (subtle, functional) */
+    --shadow-layer-1: 0 1px 3px 0 rgb(16 42 67 / 0.06), 0 1px 2px -1px rgb(16 42 67 / 0.04);
+    --shadow-layer-2: 0 8px 20px -6px rgb(16 42 67 / 0.10), 0 3px 6px -4px rgb(16 42 67 / 0.05);
+    --shadow-layer-3: 0 20px 40px -15px rgb(16 42 67 / 0.25);
+
+    /* Spacing */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+
+    /* Radius */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+
+    /* Font sizes */
+    --font-size-caption: 0.75rem;
+    --font-size-body: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-h3: 1.125rem;
+    --font-size-h2: 1.5rem;
+    --font-size-h1: 1.875rem;
+  }
+
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     @apply bg-[#F5F7FA] text-[#172B4D] font-sans antialiased selection:bg-teal-500 selection:text-white;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
+
+  /* Consistent, visible focus ring across the entire app */
+  :focus-visible {
+    outline: 2px solid rgb(0 166 166 / 0.6);
+    outline-offset: 1px;
+  }
+
+  button:focus:not(:focus-visible) {
+    outline: none;
+  }
 }
 
 @layer components {
-  /* Reusable Card Primitive */
-  .crm-card {
-    @apply bg-white rounded-[12px] border border-[#D9E2EC] shadow-card transition-shadow duration-150;
+  /* ============================================================
+     Container System
+     Mobile: small padding · Tablet: medium · Desktop: large.
+     Wide screens clamp to a controlled max width.
+     ============================================================ */
+  .content-width {
+    @apply w-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
   }
 
-  /* Input Primitives */
+  .page-stack {
+    @apply space-y-5 lg:space-y-6;
+  }
+
+  /* ============================================================
+     Card System — Layer 1 / Layer 2 elevation
+     ============================================================ */
+  .crm-card {
+    @apply bg-white rounded-card border border-[#D9E2EC] shadow-card;
+  }
+
+  .crm-card-elevated {
+    @apply bg-white rounded-card border border-[#D9E2EC] shadow-elevated;
+  }
+
+  .crm-card-hover {
+    @apply transition-shadow duration-150 hover:shadow-card-hover;
+  }
+
+  .crm-card-flat {
+    @apply bg-white rounded-card border border-[#D9E2EC];
+  }
+
+  /* Dark structural panel (deep navy surfaces) */
+  .crm-card-dark {
+    @apply bg-[#102A43] rounded-card border border-[#243B53] shadow-card text-white;
+  }
+
+  /* ============================================================
+     Typography Primitives
+     ============================================================ */
+  .crm-page-title {
+    @apply text-xl lg:text-2xl font-extrabold text-[#172B4D] tracking-tight leading-tight;
+  }
+
+  .crm-section-title {
+    @apply text-sm font-bold text-[#172B4D] tracking-tight;
+  }
+
+  .crm-card-title {
+    @apply text-sm font-bold text-[#172B4D] tracking-tight;
+  }
+
+  .crm-label {
+    @apply block text-xs font-bold uppercase tracking-wider text-[#52606D] mb-1.5;
+  }
+
+  .crm-muted {
+    @apply text-xs text-[#52606D];
+  }
+
+  .crm-mono {
+    @apply font-mono;
+  }
+
+  /* ============================================================
+     Form Primitives
+     ============================================================ */
   .crm-input {
-    @apply w-full px-3.5 py-2 text-sm text-[#172B4D] placeholder-[#829AB1] bg-white border border-[#D9E2EC] rounded-[8px] shadow-xs transition-all duration-150 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 disabled:bg-[#E9EFF5] disabled:text-[#829AB1] disabled:cursor-not-allowed;
+    @apply w-full px-3.5 py-2 text-sm text-[#172B4D] placeholder-[#829AB1] bg-white border border-[#D9E2EC] rounded-input shadow-xs transition-all duration-150 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 disabled:bg-[#E9EFF5] disabled:text-[#829AB1] disabled:cursor-not-allowed;
+  }
+
+  .crm-input-error {
+    @apply border-red-500 focus:border-red-500 focus:ring-red-500/20;
   }
 
   .crm-input-label {
     @apply block text-xs font-bold uppercase tracking-wider text-[#52606D] mb-1.5;
   }
 
-  /* Table Primitives */
+  .crm-input-hint {
+    @apply mt-1.5 text-xs text-[#829AB1];
+  }
+
+  .crm-input-error-text {
+    @apply mt-1.5 text-xs font-medium text-red-600;
+  }
+
+  /* ============================================================
+     Table System — the single enterprise table base.
+     Cells: vertical-align middle, consistent padding.
+     Long text: truncate + tooltip, never visual collision.
+     ============================================================ */
+  .crm-table-scroll {
+    @apply overflow-x-auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .crm-table-th {
-    @apply px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-[#52606D] bg-[#F5F7FA] border-b border-[#D9E2EC] whitespace-nowrap select-none;
+    @apply px-4 py-3 text-left text-2xs font-bold uppercase tracking-wider text-[#52606D] bg-[#F5F7FA] border-b border-[#D9E2EC] whitespace-nowrap select-none align-middle;
   }
 
   .crm-table-td {
     @apply px-4 py-3 text-sm text-[#172B4D] align-middle whitespace-nowrap border-b border-[#E9EFF5];
   }
 
-  /* Custom Operations Checkbox Primitive */
+  /* Truncation helpers — safe for any column */
+  .crm-truncate {
+    @apply block max-w-full truncate;
+  }
+
+  /* ============================================================
+     Checkbox Primitives
+     ============================================================ */
   .crm-checkbox {
-    @apply w-5 h-5 rounded-[4px] border-2 border-[#D9E2EC] bg-white flex items-center justify-center transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-teal-500/20 hover:border-teal-500 cursor-pointer disabled:cursor-not-allowed disabled:bg-[#E9EFF5] disabled:border-[#D9E2EC];
+    @apply w-5 h-5 rounded-[4px] border-2 border-[#D9E2EC] bg-white flex items-center justify-center transition-all duration-150 cursor-pointer disabled:cursor-not-allowed disabled:bg-[#E9EFF5] disabled:border-[#D9E2EC] disabled:opacity-60;
+  }
+
+  .crm-checkbox-hover {
+    @apply border-teal-500;
   }
 
   .crm-checkbox-checked {
@@ -45,9 +208,25 @@
   .crm-checkbox-error {
     @apply border-red-500 bg-red-50 text-red-600;
   }
+
+  /* ============================================================
+     Badge Primitives
+     ============================================================ */
+  .crm-badge-dot {
+    @apply w-1.5 h-1.5 rounded-full;
+  }
+
+  /* ============================================================
+     Data Table Toolbar
+     ============================================================ */
+  .crm-toolbar {
+    @apply bg-white rounded-card border border-[#D9E2EC] shadow-card p-4;
+  }
 }
 
-/* Operational Scrollbar Styling */
+/* ============================================================
+   Operational Scrollbar Styling
+   ============================================================ */
 ::-webkit-scrollbar {
   width: 7px;
   height: 7px;
@@ -64,4 +243,16 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #829AB1;
+}
+
+/* Sticky table header base (used with .sticky .top-0 utility) */
+.sticky-table-head th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Prevent layout jumps for numbers */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }

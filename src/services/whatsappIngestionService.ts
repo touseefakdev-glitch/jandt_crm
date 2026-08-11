@@ -62,6 +62,12 @@ export function resolveCustomerFromJid(senderJid?: string | null, remoteJid?: st
   const phoneFromRemote = extractPhoneFromJid(remoteJid);
   const customers = localDb.getCustomers('', 'all');
 
+  // Try matching exact Group JID first
+  if (remoteJid && remoteJid.endsWith('@g.us')) {
+    const groupMatch = customers.find(c => c.whatsapp_group_jid === remoteJid);
+    if (groupMatch) return groupMatch;
+  }
+
   // Try matching sender phone first
   if (phoneFromSender) {
     const normSender = normalizePhoneNumber(phoneFromSender);

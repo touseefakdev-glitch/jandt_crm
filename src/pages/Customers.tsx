@@ -138,6 +138,7 @@ export const Customers: React.FC = () => {
                 <Th>Company Name</Th>
                 <Th>Phone</Th>
                 <Th>WhatsApp</Th>
+                <Th>Group JID</Th>
                 <Th>City</Th>
                 <Th>Country</Th>
                 <Th>Status</Th>
@@ -156,6 +157,9 @@ export const Customers: React.FC = () => {
                   </Td>
                   <Td className="text-xs text-slate-600 font-mono">{cust.phone || <span className="text-slate-400 italic">—</span>}</Td>
                   <Td className="text-xs text-emerald-600 font-mono">{cust.whatsapp_number || <span className="text-slate-400 italic">—</span>}</Td>
+                  <Td className="text-xs font-mono text-purple-700 font-bold max-w-[140px] truncate" title={cust.whatsapp_group_jid || undefined}>
+                    {cust.whatsapp_group_jid ? cust.whatsapp_group_jid : <span className="text-slate-400 italic font-normal">—</span>}
+                  </Td>
                   <Td className="text-xs text-slate-700 font-medium">{cust.city || <span className="text-slate-400 italic">—</span>}</Td>
                   <Td className="text-xs text-slate-600">{cust.country || 'Canada'}</Td>
                   <Td>

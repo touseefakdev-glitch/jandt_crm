@@ -33,6 +33,7 @@ export interface Customer {
   contact_person: string | null;
   phone: string | null;
   whatsapp_number?: string | null;
+  whatsapp_group_jid?: string | null;
   email: string | null;
   address: string | null;
   city: string | null;
@@ -53,6 +54,7 @@ export interface CustomerFormInput {
   contact_person?: string;
   phone?: string;
   whatsapp_number?: string;
+  whatsapp_group_jid?: string;
   email?: string;
   address?: string;
   city?: string;

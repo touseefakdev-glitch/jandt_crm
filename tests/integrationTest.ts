@@ -18,6 +18,94 @@ async function main() {
   const { localDb } = await import('../../CRM/src/services/db');
   const { processIncomingMessage, orderDraftService } = await import('../../CRM/src/services/orderDraftService');
 
+  const adminId = 'a1111111-1111-1111-1111-111111111111';
+
+  // Seed test catalog if running on a clean slate database
+  if (localDb.getCustomers().length === 0) {
+    localDb.createCustomer({
+      company_name: 'Test Bakery Ltd',
+      contact_person: 'John Test',
+      phone: '2505551234',
+      whatsapp_number: '2505551234',
+      email: 'test@bakery.com',
+      city: 'Kelowna',
+      route: 'Kelowna',
+      address: '123 Test St',
+      country: 'Canada',
+      notes: '',
+      status: 'active',
+    }, adminId);
+
+    localDb.createCustomer({
+      company_name: 'Valley Restaurant',
+      contact_person: 'Sarah Valley',
+      phone: '2505555678',
+      whatsapp_number: '2505555678',
+      email: 'sarah@valley.com',
+      city: 'Penticton',
+      route: 'Penticton',
+      address: '456 Main St',
+      country: 'Canada',
+      notes: '',
+      status: 'active',
+    }, adminId);
+
+    localDb.createCustomer({
+      company_name: 'Okanagan Bistro',
+      contact_person: 'Mike Bistro',
+      phone: '2505559012',
+      whatsapp_number: '2505559012',
+      email: 'mike@okbistro.com',
+      city: 'Vernon',
+      route: 'Vernon',
+      address: '789 Lake Rd',
+      country: 'Canada',
+      notes: '',
+      status: 'active',
+    }, adminId);
+  }
+
+  if (localDb.getProducts().length === 0) {
+    localDb.createProduct({
+      sku: 'BLU-GLOV-LRG',
+      product_name: 'Nitrile Examination Gloves Large Blue',
+      description: 'Blue nitrile gloves large size',
+      category_id: '',
+      brand_id: '',
+      unit_price: 15.99,
+      availability_status: 'available',
+      availability_notes: '',
+      expected_available_date: '',
+      is_active: true,
+    }, adminId);
+
+    localDb.createProduct({
+      sku: 'BLU-WRAP-ROLL',
+      product_name: 'Blue Plastic Film Wrap Roll',
+      description: 'Blue plastic film wrap 18 inch roll',
+      category_id: '',
+      brand_id: '',
+      unit_price: 24.50,
+      availability_status: 'available',
+      availability_notes: '',
+      expected_available_date: '',
+      is_active: true,
+    }, adminId);
+
+    localDb.createProduct({
+      sku: 'FPK-GEN-FOIL-ITEM',
+      product_name: 'Aluminum Foil Roll 12in',
+      description: '',
+      category_id: '',
+      brand_id: '',
+      unit_price: 29.00,
+      availability_status: 'available',
+      availability_notes: '',
+      expected_available_date: '',
+      is_active: true,
+    }, adminId);
+  }
+
   const customers = localDb.getCustomers();
   const products = localDb.getProducts();
   console.log(`Catalog ready: ${customers.length} customers, ${products.length} products`);
@@ -69,7 +157,7 @@ async function main() {
   const conv2 = localDb.getOrCreateWhatsAppConversation(contact2.id, customer2.id);
   const orderMsg = localDb.addWhatsAppMessage({
     conversation_id: conv2.id, direction: 'inbound', message_type: 'text',
-    message_text: '5 FPK-GEN-ALUMINFOIL-500FT', sender: customer2.whatsapp_number || undefined,
+    message_text: '5 FPK-GEN-FOIL-ITEM', sender: customer2.whatsapp_number || undefined,
     sent_at: new Date().toISOString(),
   });
   const r3 = processIncomingMessage(conv2, orderMsg.message_text, { messageId: orderMsg.id });

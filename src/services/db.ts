@@ -79,9 +79,6 @@ import {
 } from '../types';
 import { notificationService } from './notificationService';
 import { permissions } from './permissions';
-import { SEED_HTML_PRODUCTS, SEED_HTML_CUSTOMERS } from '../data/seedHtmlData';
-
-
 
 
 // Initial Teams Seed Data
@@ -96,19 +93,9 @@ export const SEED_TEAMS: Team[] = [
     created_at: new Date('2026-01-01').toISOString(),
     updated_at: new Date('2026-01-01').toISOString(),
   },
-  {
-    id: '22222222-2222-2222-2222-222222222222',
-    name: 'Team 2',
-    shift_info: '12 PM – 8 AM',
-    shift_start: '12:00',
-    shift_end: '08:00',
-    is_active: true,
-    created_at: new Date('2026-01-01').toISOString(),
-    updated_at: new Date('2026-01-01').toISOString(),
-  },
 ];
 
-// Initial Demo Accounts Seed Data
+// Initial Demo Accounts Seed Data (Single Admin Account)
 export const SEED_USERS: UserProfile[] = [
   {
     id: 'a1111111-1111-1111-1111-111111111111',
@@ -117,50 +104,6 @@ export const SEED_USERS: UserProfile[] = [
     role: 'admin',
     team_id: '11111111-1111-1111-1111-111111111111',
     team: SEED_TEAMS[0],
-    is_active: true,
-    created_at: new Date('2026-01-01').toISOString(),
-    updated_at: new Date('2026-01-01').toISOString(),
-  },
-  {
-    id: 'b2222222-2222-2222-2222-222222222222',
-    email: 'muzammil@jtsupplies.com',
-    full_name: 'Muzammil (Sales)',
-    role: 'sales_agent',
-    team_id: '11111111-1111-1111-1111-111111111111',
-    team: SEED_TEAMS[0],
-    is_active: true,
-    created_at: new Date('2026-01-01').toISOString(),
-    updated_at: new Date('2026-01-01').toISOString(),
-  },
-  {
-    id: 'c3333333-3333-3333-3333-333333333333',
-    email: 'abdulrehman@jtsupplies.com',
-    full_name: 'Abdul Rehman (Support)',
-    role: 'support_agent',
-    team_id: '22222222-2222-2222-2222-222222222222',
-    team: SEED_TEAMS[1],
-    is_active: true,
-    created_at: new Date('2026-01-01').toISOString(),
-    updated_at: new Date('2026-01-01').toISOString(),
-  },
-  {
-    id: 'd4444444-4444-4444-4444-444444444444',
-    email: 'sohail@jtsupplies.com',
-    full_name: 'Sohail (Sales)',
-    role: 'sales_agent',
-    team_id: '11111111-1111-1111-1111-111111111111',
-    team: SEED_TEAMS[0],
-    is_active: true,
-    created_at: new Date('2026-01-01').toISOString(),
-    updated_at: new Date('2026-01-01').toISOString(),
-  },
-  {
-    id: 'e5555555-5555-5555-5555-555555555555',
-    email: 'aasil@jtsupplies.com',
-    full_name: 'Aasil (Support)',
-    role: 'support_agent',
-    team_id: '22222222-2222-2222-2222-222222222222',
-    team: SEED_TEAMS[1],
     is_active: true,
     created_at: new Date('2026-01-01').toISOString(),
     updated_at: new Date('2026-01-01').toISOString(),
@@ -252,8 +195,8 @@ export const SEED_PRODUCTS: Product[] = [];
 export const SEED_PRODUCT_HISTORY: ProductAvailabilityHistory[] = [];
 
 // Bump this version string whenever the HTML source data changes.
-// Any client with an older version in localStorage will be force re-seeded.
-export const SEED_DATA_VERSION = 'v3-html-1022-products';
+// Clean slate version (auto-seeding disabled).
+export const SEED_DATA_VERSION = 'v4-clean-slate';
 export const SEED_SHIFTS: Shift[] = [];
 export const SEED_HANDOVERS: ShiftHandover[] = [];
 export const SEED_HANDOVER_ITEMS: ShiftHandoverItem[] = [];
@@ -383,41 +326,54 @@ class LocalDatabaseService {
       storagePrime(this.systemSettingsKey, JSON.stringify(defaultSettings));
     }
 
-    // Auto-seed HTML Business Data if products/customers/history are empty
-    this.ensureHtmlBusinessDataSeeded();
+    // Ensure clean slate version control
+    this.ensureCleanSlateVersion();
+  }
+
+  private ensureCleanSlateVersion() {
+    const storedVersion = storageGet(this.seedVersionKey);
+    if (storedVersion !== SEED_DATA_VERSION) {
+      // If upgrading to clean-slate version, wipe previously auto-seeded business catalog
+      storageSet(this.productsKey, JSON.stringify([]));
+      storageSet(this.customersKey, JSON.stringify([]));
+      storageSet(this.customerProductHistoryKey, JSON.stringify([]));
+      storageSet(this.teamsKey, JSON.stringify(SEED_TEAMS));
+      storageSet(this.usersKey, JSON.stringify(SEED_USERS));
+      storageSet(this.seedVersionKey, SEED_DATA_VERSION);
+      console.log(`[Seed] Enforced clean slate database version (${SEED_DATA_VERSION}).`);
+    }
+  }
+
+  public resetToCleanSlate() {
+    storageSet(this.productsKey, JSON.stringify([]));
+    storageSet(this.customersKey, JSON.stringify([]));
+    storageSet(this.customerProductHistoryKey, JSON.stringify([]));
+    storageSet(this.queriesKey, JSON.stringify([]));
+    storageSet(this.activitiesKey, JSON.stringify([]));
+    storageSet(this.notesKey, JSON.stringify([]));
+    storageSet(this.notificationsKey, JSON.stringify([]));
+    storageSet(this.ordersKey, JSON.stringify([]));
+    storageSet(this.orderItemsKey, JSON.stringify([]));
+    storageSet(this.orderHistoryKey, JSON.stringify([]));
+    storageSet(this.orderDocsKey, JSON.stringify([]));
+    storageSet(this.whatsappContactsKey, JSON.stringify([]));
+    storageSet(this.whatsappConversationsKey, JSON.stringify([]));
+    storageSet(this.whatsappMessagesKey, JSON.stringify([]));
+    storageSet(this.orderDraftsKey, JSON.stringify([]));
+    storageSet(this.orderDraftItemsKey, JSON.stringify([]));
+    storageSet(this.teamsKey, JSON.stringify(SEED_TEAMS));
+    storageSet(this.usersKey, JSON.stringify(SEED_USERS));
+    storageSet(this.seedVersionKey, SEED_DATA_VERSION);
+    console.log('[Seed] Database reset to clean slate completed.');
   }
 
   private ensureHtmlBusinessDataSeeded() {
-    // Check if the stored seed version matches the current version.
-    // If not, force a full re-seed regardless of existing row counts.
-    const storedVersion = storageGet(this.seedVersionKey);
-    if (storedVersion === SEED_DATA_VERSION) {
-      // Version matches — no re-seed needed
-      return;
-    }
-
-    const existingProducts = storageGet(this.productsKey);
-    const parsedProds: Product[] = existingProducts ? JSON.parse(existingProducts) : [];
-
-    const existingCusts = storageGet(this.customersKey);
-    const parsedCusts: Customer[] = existingCusts ? JSON.parse(existingCusts) : [];
-
-    const existingHist = storageGet(this.customerProductHistoryKey);
-    const parsedHist: CustomerProductHistory[] = existingHist ? JSON.parse(existingHist) : [];
-
-    if (
-      storedVersion !== SEED_DATA_VERSION ||
-      parsedProds.length < 500 ||
-      parsedCusts.length < 100 ||
-      parsedHist.length < 1000
-    ) {
-      console.log(`[Seed] Version mismatch or insufficient data. Re-seeding HTML business data (version: ${SEED_DATA_VERSION})...`);
-      this.seedHtmlBusinessData();
-    }
+    // Auto-seeding disabled in clean slate mode.
   }
 
 
-  public seedHtmlBusinessData() {
+  public async seedHtmlBusinessData() {
+    const { SEED_HTML_PRODUCTS, SEED_HTML_CUSTOMERS } = await import('../data/seedHtmlData');
     const categories = SEED_PRODUCT_CATEGORIES;
     const catMap = new Map<string, string>();
     categories.forEach(c => catMap.set(c.name.toLowerCase(), c.id));

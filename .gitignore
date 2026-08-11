@@ -33,5 +33,6 @@ lerna-debug.log*
 *.sln
 *.sw?
 
-# OS files
-Thumbs.db
+# Local scratch/backup
+backup/
+

@@ -37,14 +37,6 @@ async function seed() {
   console.log('=== Starting Supabase Catalog Seeding Migration ===');
   console.log(`Target Supabase Host: ${supabaseUrl}`);
 
-  // Clean old dummy data that might collide with SKUs or IDs
-  console.log('Clearing old sample records in Supabase...');
-  await supabase.from('customer_product_history').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-  await supabase.from('order_items').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-  await supabase.from('orders').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-  await supabase.from('products').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-  await supabase.from('customers').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-
   // 1. Seed product categories and brands
   await batchUpsert('product_categories', SEED_PRODUCT_CATEGORIES);
   await batchUpsert('product_brands', SEED_PRODUCT_BRANDS);
@@ -100,16 +92,14 @@ async function seed() {
     const custUuid = `00000000-0000-0000-0002-${String(cIdx + 1).padStart(12, '0')}`;
     const custCode = `CUST-${String(cIdx + 1).padStart(4, '0')}`;
 
-    const custObj = {
+    const custObj: Record<string, unknown> = {
       id: custUuid,
       customer_code: custCode,
       company_name: c.customerName,
       contact_person: null,
       phone: '',
-      whatsapp_number: '',
       email: null,
       city: '',
-      route: '',
       address: '',
       country: 'USA',
       notes: null,

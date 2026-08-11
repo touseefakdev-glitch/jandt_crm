@@ -237,10 +237,15 @@ async function syncTableToSupabase(key: string, value: string): Promise<void> {
 
   if (validRows.length === 0) return;
 
-  const { error } = await supabase.from(table).upsert(validRows, { onConflict: 'id' });
-  if (error) {
-    console.error(`[Supabase] upsert ${table}:`, error.message);
-    return;
+  // Batch upserts in chunks of 100 to prevent payload limits
+  const BATCH_SIZE = 100;
+  for (let i = 0; i < validRows.length; i += BATCH_SIZE) {
+    const chunk = validRows.slice(i, i + BATCH_SIZE);
+    const { error } = await supabase.from(table).upsert(chunk, { onConflict: 'id' });
+    if (error) {
+      console.error(`[Supabase] upsert ${table} batch ${Math.floor(i / BATCH_SIZE) + 1}:`, error.message);
+      return;
+    }
   }
 
   // Remove rows that were deleted locally
@@ -260,8 +265,12 @@ async function syncTableToSupabase(key: string, value: string): Promise<void> {
 function sanitizeRow(table: string, row: Record<string, unknown>): Record<string, unknown> {
   const clean: Record<string, unknown> = { ...row };
 
-  // Alias field not present in database table
+  // Alias fields not present in database tables
   if (table === 'notifications') delete clean['user_id'];
+  if (table === 'customers') {
+    delete clean['route'];
+    delete clean['whatsapp_number'];
+  }
 
   Object.keys(clean).forEach((k) => {
     const v = clean[k];
@@ -274,6 +283,25 @@ function sanitizeRow(table: string, row: Record<string, unknown>): Record<string
 }
 
 // --- Hydration ----------------------------------------------------------------
+
+/** Helper to fetch all rows for a table using pagination */
+async function fetchAllRemoteRows(table: string): Promise<Record<string, unknown>[]> {
+  const allRows: Record<string, unknown>[] = [];
+  let page = 0;
+  const PAGE_SIZE = 1000;
+  while (true) {
+    const { data, error } = await supabase!
+      .from(table)
+      .select('*')
+      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    allRows.push(...(data as Record<string, unknown>[]));
+    if (data.length < PAGE_SIZE) break;
+    page++;
+  }
+  return allRows;
+}
 
 /**
  * Loads all Supabase tables into memory and localStorage.
@@ -288,7 +316,7 @@ export async function initializeFromSupabase(): Promise<void> {
     const entries = Object.entries(TABLE_MAP);
 
     const results = await Promise.allSettled(
-      entries.map(([, table]) => supabase!.from(table).select('*'))
+      entries.map(([, table]) => fetchAllRemoteRows(table))
     );
 
     for (let i = 0; i < entries.length; i++) {
@@ -300,13 +328,7 @@ export async function initializeFromSupabase(): Promise<void> {
         continue;
       }
 
-      const { data, error } = result.value;
-      if (error) {
-        console.warn(`[Supabase] Failed to load ${TABLE_MAP[lsKey]}:`, error.message);
-        continue;
-      }
-
-      const remoteData = data || [];
+      const remoteData = result.value || [];
       const remoteCount = remoteData.length;
 
       const localData = storageGet(lsKey);
@@ -338,7 +360,6 @@ export async function initializeFromSupabase(): Promise<void> {
   }
 }
 
-
 /**
  * Clears local cache and re-hydrates completely from Supabase.
  */
@@ -348,5 +369,6 @@ export async function forceResyncFromSupabase(): Promise<boolean> {
   await initializeFromSupabase();
   return true;
 }
+
 
 

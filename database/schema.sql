@@ -37,7 +37,7 @@ EXCEPTION WHEN duplicate_object THEN null; END $$;
 -- WhatsApp Order Intelligence Enums (Phase A)
 DO $$ BEGIN
     CREATE TYPE message_classification AS ENUM (
-        'ORDER', 'ORDER_CLARIFICATION', 'ORDER_CONFIRMATION', 'NON_ORDER',
+        'ORDER', 'ORDER_CORRECTION', 'ORDER_CONFIRMATION', 'NON_ORDER',
         'QUESTION', 'COMPLAINT', 'GREETING', 'UNKNOWN'
     );
 EXCEPTION WHEN duplicate_object THEN null; END $$;

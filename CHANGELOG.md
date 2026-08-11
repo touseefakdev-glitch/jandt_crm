@@ -5,6 +5,23 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.22.0] - 2026-08-11
+
+### Added
+- **WhatsApp Order Intelligence — Phase 6 (Human Attention, Non-Order Messages & Agent Alerts)**:
+  - Full message classification taxonomy implemented (`ORDER`, `ORDER_CORRECTION`, `ORDER_CONFIRMATION`, `QUESTION`, `COMPLAINT`, `GREETING`, `NON_ORDER`, `UNKNOWN`). Renamed `ORDER_CLARIFICATION` → `ORDER_CORRECTION` across `messageClassifier.ts`, `orderDraftService.ts`, types, badges, and the `message_classification` enum in `database/schema.sql`.
+  - Added safe Web Audio chime (`playAlertSound`) in `attentionAlertService.ts` for high/urgent priority alerts respecting browser autoplay restrictions.
+  - **Global in-app popup center** (`AttentionAlertPopups.tsx`) — toast-style popup per attention alert with **Open Conversation / Dismiss / Create Query** actions. Renders in `AppShell`, subscribes to new alerts via `subscribeToAttentionAlerts`, and replays recent unresolved alerts on mount (session-deduplicated). "Open Conversation" deep-links to `/whatsapp-conversations?conversation=<id>`.
+  - Real-time alert subscription/broadcast in `attentionAlertService.ts`; all pipeline alert creation now routes through `raiseAttentionAlert` (dedupe + sound + notify), including `orderDraftService` escalation paths.
+  - **CRM notification integration** — new `whatsapp.attention_required` notification event (`notifyWhatsAppAttentionRequired`) surfaces customer-attention alerts in the Header bell / Notifications module. Urgent query conversions also dispatch `notifyUrgentQueryCreated`.
+  - Linked attention alerts directly to the existing CRM Customer Query module (`customer_queries` table) via `convertAlertToQuery` (`QRY-XXXXXX`) without creating duplicate ticket systems.
+  - Verified human agent takeover controls (`human_takeover` / `pauseBot`) setting `bot_status = 'human_takeover'` (`BOT_PAUSED`).
+  - **Message ingestion classification** — `whatsappIngestionService` now classifies inbound Baileys messages and raises attention alerts for `QUESTION`, `COMPLAINT`, `UNKNOWN`, and other attention-required messages instead of defaulting every message to `ORDER`.
+  - Fixed route access (`canAccessPath`) so all roles can open WhatsApp Inbox / Simulator.
+  - Updated `PROJECT_SPEC.md` with the completed Phase 6 classification, popup, sound, popup-action, query-conversion, and agent-takeover specifications.
+
+---
+
 ## [1.21.0] - 2026-08-11
 
 ### Added

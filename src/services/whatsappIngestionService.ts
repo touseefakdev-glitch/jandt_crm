@@ -16,6 +16,8 @@
 import { localDb } from './db';
 import { supabase } from './supabaseSync';
 import { normalizePhoneNumber } from './textNormalizer';
+import { classifyMessage } from './messageClassifier';
+import { raiseAttentionAlert } from './attentionAlertService';
 import { Customer, WhatsAppConversation, WhatsAppMessage } from '../types';
 
 export interface RawSupabaseMessage {
@@ -161,18 +163,34 @@ export async function ingestRawSupabaseMessages(): Promise<{ ingested: number; s
 
         const conversation = localDb.getOrCreateWhatsAppConversation(contact.id, customer?.id || null);
 
+        // Phase 6: classify inbound customer messages against the full taxonomy
+        const isInbound = !rawMsg.from_me;
+        const classificationResult = isInbound ? classifyMessage(rawMsg.text || '') : null;
+
         // Record message in CRM
         const created = localDb.addWhatsAppMessage({
           conversation_id: conversation.id,
-          direction: rawMsg.from_me ? 'outbound' : 'inbound',
-          sender: rawMsg.from_me ? 'human_agent' : 'customer',
+          direction: isInbound ? 'inbound' : 'outbound',
+          sender: isInbound ? 'customer' : 'human_agent',
           message_type: 'text',
           message_text: rawMsg.text || '',
           external_message_id: extId,
-          classification: 'ORDER',
-          processing_status: 'confirmed',
+          classification: classificationResult ? classificationResult.classification : 'NON_ORDER',
+          processing_status: classificationResult && classificationResult.requiresHumanAttention ? 'escalated' : 'confirmed',
           sent_at: rawMsg.created_at || new Date().toISOString()
         });
+
+        // Phase 6: raise a human attention alert for non-order / ambiguous messages
+        if (isInbound && classificationResult && classificationResult.requiresHumanAttention) {
+          raiseAttentionAlert({
+            customerId: conversation.customer_id,
+            conversationId: conversation.id,
+            messageId: created.id,
+            classification: classificationResult.classification,
+            messageText: rawMsg.text || '',
+            priority: classificationResult.priority,
+          });
+        }
 
         if (extId) existingIds.add(extId);
         ingested++;

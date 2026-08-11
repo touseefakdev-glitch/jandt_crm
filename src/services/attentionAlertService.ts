@@ -13,8 +13,50 @@ import {
   MessageClassification,
 } from '../types';
 import { normalizeText } from './textNormalizer';
+import { notificationService } from './notificationService';
 
 const URGENCY_KEYWORDS = ['urgent', 'asap', 'emergency', 'immediately', 'right away', 'today'];
+
+type AlertListener = (alert: AgentAttentionAlert) => void;
+
+const alertListeners = new Set<AlertListener>();
+
+/** Subscribe to newly raised attention alerts (powers the in-app popup center). */
+export function subscribeToAttentionAlerts(listener: AlertListener): () => void {
+  alertListeners.add(listener);
+  return () => {
+    alertListeners.delete(listener);
+  };
+}
+
+function broadcastAlert(alert: AgentAttentionAlert) {
+  alertListeners.forEach((listener) => {
+    try {
+      listener(alert);
+    } catch (err) {
+      console.error('Error broadcasting attention alert to listener:', err);
+    }
+  });
+}
+
+/** Raises a CRM notification + Web Audio chime for the alert's priority. */
+function notifyAlert(alert: AgentAttentionAlert) {
+  if (alert.priority === 'urgent' || alert.priority === 'high') {
+    playAlertSound();
+  }
+  const customer = alert.customer_id ? localDb.getCustomerById(alert.customer_id) : null;
+  notificationService.notifyWhatsAppAttentionRequired({
+    alertId: alert.id,
+    conversationId: alert.conversation_id,
+    customerName: customer?.company_name || 'Unknown Customer',
+    messageText: alert.message_text,
+    classification: alert.classification || 'UNKNOWN',
+    priority: alert.priority,
+    linkPath: alert.conversation_id
+      ? `/whatsapp-conversations?conversation=${encodeURIComponent(alert.conversation_id)}`
+      : '/whatsapp-conversations',
+  });
+}
 
 /** Classifies a text's attention priority using urgency keywords. */
 export function assessPriority(rawText: string, base: AttentionPriority = 'normal'): AttentionPriority {
@@ -22,6 +64,27 @@ export function assessPriority(rawText: string, base: AttentionPriority = 'norma
   const hasUrgency = URGENCY_KEYWORDS.some(k => text.includes(k));
   if (hasUrgency) return 'urgent';
   return base;
+}
+
+/** Safely plays an alert chime using Web Audio API respecting browser autoplay restrictions. */
+export function playAlertSound() {
+  if (typeof window === 'undefined') return;
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime); // A5 note
+    osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.25);
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.25);
+  } catch (_) {}
 }
 
 /** Creates an attention alert for a message, deduplicating identical open alerts. */
@@ -32,19 +95,28 @@ export function raiseAttentionAlert(input: {
   classification?: MessageClassification | null;
   messageText: string;
   priority?: AttentionPriority;
+  suppressNotifications?: boolean;
 }): AgentAttentionAlert {
   const existing = localDb.getAgentAttentionAlerts({ status: 'new', conversationId: input.conversationId || undefined });
   const dup = existing.find(a => a.message_text === input.messageText);
   if (dup) return dup;
 
-  return localDb.createAgentAttentionAlert({
+  const priority = input.priority ?? assessPriority(input.messageText);
+
+  const alert = localDb.createAgentAttentionAlert({
     customer_id: input.customerId ?? null,
     conversation_id: input.conversationId ?? null,
     message_id: input.messageId ?? null,
     classification: input.classification ?? null,
     message_text: input.messageText,
-    priority: input.priority ?? assessPriority(input.messageText),
+    priority,
   });
+
+  if (!input.suppressNotifications) {
+    notifyAlert(alert);
+  }
+  broadcastAlert(alert);
+  return alert;
 }
 
 /** Summary counts for the alert center dashboard (plan §38). */
@@ -85,6 +157,14 @@ export function convertAlertToQuery(
     userId
   );
   const updated = localDb.linkAlertToQuery(alert.id, query.id);
+  if (query.priority === 'urgent') {
+    notificationService.notifyUrgentQueryCreated({
+      queryNumber: query.query_number,
+      queryId: query.id,
+      customerName: customer?.company_name || 'Unknown Customer',
+      subject: query.subject,
+    });
+  }
   return { alert: updated, queryId: query.id };
 }
 
@@ -96,4 +176,6 @@ export const attentionAlertService = {
   acknowledgeAlert,
   resolveAlert,
   convertAlertToQuery,
+  playAlertSound,
+  subscribeToAttentionAlerts,
 };

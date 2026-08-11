@@ -10,6 +10,7 @@ export type NotificationEventType =
   | 'order.created'
   | 'order.status_changed'
   | 'product.availability_changed'
+  | 'whatsapp.attention_required'
   | 'system.admin';
 
 export interface NotificationEventPayload {
@@ -389,6 +390,37 @@ class NotificationService {
       entityType: 'system',
       priority: 'high',
       linkPath: params.linkPath,
+    });
+  }
+
+  /**
+   * Trigger: WhatsApp Message Requires Human Attention (Phase 6)
+   */
+  public notifyWhatsAppAttentionRequired(params: {
+    alertId: string;
+    conversationId?: string | null;
+    customerName: string;
+    messageText: string;
+    classification: string;
+    priority: NotificationPriority;
+    linkPath?: string | null;
+  }) {
+    const isUrgent = params.priority === 'urgent';
+    const isHigh = params.priority === 'high';
+    const salesAndSupportAndAdmins = localDb
+      .getUsers()
+      .filter((u) => u.role === 'sales_agent' || u.role === 'support_agent' || u.role === 'admin')
+      .map((u) => u.id);
+
+    this.dispatch({
+      type: 'whatsapp.attention_required',
+      title: `${isUrgent ? '🔴' : isHigh ? '🟠' : '🔔'} Customer Needs Attention`,
+      message: `${params.customerName}: "${params.messageText}"`,
+      recipientUserIds: salesAndSupportAndAdmins,
+      entityType: 'system',
+      entityId: params.alertId,
+      priority: params.priority,
+      linkPath: params.linkPath || '/whatsapp-conversations',
     });
   }
 

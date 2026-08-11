@@ -18,6 +18,7 @@
  */
 import { localDb } from './db';
 import { classifyMessage, detectCancellationIntent } from './messageClassifier';
+import { raiseAttentionAlert } from './attentionAlertService';
 import { parseOrderMessage } from './orderParser';
 import { matchOrderCandidates, ProductMatchContext, MIN_MATCH_CONFIDENCE } from './productMatcher';
 import {
@@ -166,12 +167,12 @@ export function processIncomingMessage(
       };
     }
     // No cancellable draft — escalate to human.
-    const alert = localDb.createAgentAttentionAlert({
-      customer_id: conversation.customer_id,
-      conversation_id: conversation.id,
-      message_id: messageId,
+    const alert = raiseAttentionAlert({
+      customerId: conversation.customer_id,
+      conversationId: conversation.id,
+      messageId,
       classification: classification.classification,
-      message_text: rawText,
+      messageText: rawText,
       priority: 'high',
     });
     logEvent('escalation_created', 'Cancellation request without an active order draft — escalated to human.', {
@@ -196,12 +197,12 @@ export function processIncomingMessage(
   // --- Non-order / attention-required messages (plan §33–§34) ---
   if (!classification.isOrder) {
     if (classification.requiresHumanAttention) {
-      const alert = localDb.createAgentAttentionAlert({
-        customer_id: conversation.customer_id,
-        conversation_id: conversation.id,
-        message_id: messageId,
+      const alert = raiseAttentionAlert({
+        customerId: conversation.customer_id,
+        conversationId: conversation.id,
+        messageId,
         classification: classification.classification,
-        message_text: rawText,
+        messageText: rawText,
         priority: classification.priority,
       });
       logEvent('escalation_created', `Non-order message (${classification.classification}) escalated to human.`, {
@@ -222,12 +223,12 @@ export function processIncomingMessage(
 
   // --- Bot paused / human takeover (plan §53–§54) ---
   if (isConversationBotPaused(conversation)) {
-    const alert = localDb.createAgentAttentionAlert({
-      customer_id: conversation.customer_id,
-      conversation_id: conversation.id,
-      message_id: messageId,
+    const alert = raiseAttentionAlert({
+      customerId: conversation.customer_id,
+      conversationId: conversation.id,
+      messageId,
       classification: classification.classification,
-      message_text: rawText,
+      messageText: rawText,
       priority: classification.priority === 'normal' ? 'normal' : classification.priority,
     });
     logEvent('message_received', 'Message received while bot paused / human takeover — escalated.', {
@@ -331,12 +332,12 @@ export function processIncomingMessage(
   });
 
   if (needsClarification) {
-    const alert = localDb.createAgentAttentionAlert({
-      customer_id: conversation.customer_id,
-      conversation_id: conversation.id,
-      message_id: messageId,
+    const alert = raiseAttentionAlert({
+      customerId: conversation.customer_id,
+      conversationId: conversation.id,
+      messageId,
       classification: classification.classification,
-      message_text: rawText,
+      messageText: rawText,
       priority: matchResult.ambiguous.length > 0 ? 'high' : 'normal',
     });
     return {
@@ -442,7 +443,7 @@ export function applyCorrection(
     });
     const updated = localDb.updateOrderDraft(activeDraft.id, { status: 'AWAITING_CONFIRMATION', pending_question: null });
     const draft = localDb.getOrderDraftWithItems(activeDraft.id);
-    return { classification: { classification: 'ORDER_CLARIFICATION', confidence: 0.9, isOrder: false, requiresHumanAttention: false, priority: 'normal', matchedKeywords: ['remove'] }, outcome: 'clarification', draft: draft ?? undefined, reply: buildConfirmationSummary(draft!) };
+    return { classification: { classification: 'ORDER_CORRECTION', confidence: 0.9, isOrder: false, requiresHumanAttention: false, priority: 'normal', matchedKeywords: ['remove'] }, outcome: 'clarification', draft: draft ?? undefined, reply: buildConfirmationSummary(draft!) };
   }
 
   // Addition / quantity-update intent
@@ -491,7 +492,7 @@ export function applyCorrection(
 
   const draft = localDb.getOrderDraftWithItems(activeDraft.id);
   return {
-    classification: { classification: 'ORDER_CLARIFICATION', confidence: 0.9, isOrder: false, requiresHumanAttention: false, priority: 'normal', matchedKeywords: [] },
+    classification: { classification: 'ORDER_CORRECTION', confidence: 0.9, isOrder: false, requiresHumanAttention: false, priority: 'normal', matchedKeywords: [] },
     outcome: 'clarification',
     draft: draft ?? undefined,
     reply: buildConfirmationSummary(draft!),

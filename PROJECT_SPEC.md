@@ -481,11 +481,11 @@ The CRM application is configured with a clean, 0-data baseline for immediate pr
 
 ### Incoming Message Pipeline
 1. **Text Normalization** (`src/services/textNormalizer.ts`) — lowercase, diacritic/URL stripping, Unicode→ASCII, whitespace collapse, phone normalization, token helpers, edit-distance & overlap similarity utilities.
-2. **Message Classification** (`src/services/messageClassifier.ts`) — `ORDER`, `ORDER_CLARIFICATION`, `ORDER_CONFIRMATION`, `NON_ORDER`, `QUESTION`, `COMPLAINT`, `GREETING`, `UNKNOWN`. Complaint messages take precedence when no order-line structure exists; urgency keywords raise priority to `urgent`.
+2. **Message Classification** (`src/services/messageClassifier.ts`) — `ORDER`, `ORDER_CORRECTION`, `ORDER_CONFIRMATION`, `NON_ORDER`, `QUESTION`, `COMPLAINT`, `GREETING`, `UNKNOWN`. Complaint messages take precedence when no order-line structure exists; urgency keywords raise priority to `urgent`.
 3. **Order Parsing** (`src/services/orderParser.ts`) — splits multi-line orders into segments, extracts `quantity`, `unit`, and product mention; strips leading phrases (`send`, `i need`, …) and date/filler words (`kal`, `aaj`, `today`, `bhai`, `hi`, …); understands word numbers and trailing units. Quantities are never invented — missing quantity is flagged (`quantityMissing`).
 4. **Product Matching** (`src/services/productMatcher.ts`) — priority chain: SKU (1.0) → exact name (0.97) → customer alias (0.95) → global alias (0.9) → customer history (containment 0.8–0.9; partial overlap de-weighted) → normalized name (containment 0.9 / overlap ≥ 0.6 / fuzzy ratio ≥ 0.75). Constants: `MIN_MATCH_CONFIDENCE = 0.6`, `AMBIGUITY_DELTA = 0.15`. Ambiguous short mentions (≤ 2 tokens with multiple contenders, or top-2 within delta) return a clarification question instead of a guess. SKU/exact-name matches are never ambiguous.
 5. **Order Draft Service** (`src/services/orderDraftService.ts`) — orchestrates `processIncomingMessage`, `confirmDraft`, `applyCorrection`, `pauseBot`, `resumeBot`, `takeOverConversation`; renders confirmation summaries, "order received", route order, and order-request templates. Confirmation is explicit only; drafts move to `CONFIRMED` only on explicit confirmation, then receive an internal reference (`CRM-ORD-XXXXXX`).
-6. **Attention Alerts** (`src/services/attentionAlertService.ts`) — raises human-review alerts for questions, complaints, low-confidence orders, and priority escalations; supports `add`/`acknowledge`/`resolve`/`convertAlertToQuery` and alert summaries by priority.
+6. **Attention Alerts** (`src/services/attentionAlertService.ts`) — raises human-review alerts for questions, complaints, low-confidence orders, and priority escalations; supports `acknowledge`/`resolve`/`convertAlertToQuery`, alert summaries by priority, Web Audio chimes, CRM notification dispatch, and a `subscribeToAttentionAlerts` broadcast that powers the global popup center.
 
 ### Matching Rules (enforced)
 - History is context only and never overrides an explicit mention in the message.
@@ -756,6 +756,56 @@ Upon forwarding, confirmed orders seamlessly integrate into the CRM 6-stage oper
 5. **Error ☐** (Error tracking & reporting)
 
 *(No inventory management, billing calculations, or traditional shopping carts added)*
+
+---
+
+## WhatsApp Order Intelligence — Phase 6 (Human Attention, Non-Order Messages & Agent Alerts)
+
+> Implemented message classification taxonomy, human attention alert triggers, Web Audio sound notifications, in-app popup notifications, CRM query conversion, and agent takeover controls.
+
+### Complete Classification Taxonomy
+- `ORDER`: Unambiguous order requests (No human attention required)
+- `ORDER_CORRECTION`: Customer quantity/item modifications (No urgent alert required)
+- `ORDER_CONFIRMATION`: Explicit customer affirmative confirmation (No urgent alert required)
+- `QUESTION`: Customer delivery/pricing inquiry (Human attention required)
+- `COMPLAINT`: Order issues/damages (Human attention & High/Urgent priority required)
+- `GREETING`: Informal customer greetings (No human alert required)
+- `NON_ORDER`: Thank-you or general non-order text (No urgent alert required)
+- `UNKNOWN`: Unclear or low-confidence intent (Human attention required)
+
+### Classification Wiring
+- `messageClassifier.ts` produces the full taxonomy and marks `requiresHumanAttention` for `QUESTION`, `COMPLAINT`, `UNKNOWN`, cancellations, and mixed order+question/complaint messages; urgency keywords elevate priority to `urgent`, complaints/questions to `high`.
+- `whatsappIngestionService.ts` classifies every inbound Baileys message (no more hardcoded `ORDER`) and raises an attention alert for any message requiring human attention.
+- All pipeline escalation paths in `orderDraftService.ts` route through `raiseAttentionAlert` so dedupe, Web Audio sound, CRM notifications, and popup broadcast are always consistent.
+
+### Customer Attention Alert Card & Web Audio Sound
+```text
+🔔 CUSTOMER NEEDS ATTENTION
+
+ABC Pharmacy
+Message: "What time is my driver coming?"
+
+[Open Conversation]  [Dismiss]  [Convert to Support Query]
+```
+- **Web Audio Chime**: Triggers a 440–880Hz chime (`playAlertSound`) for high/urgent priority alerts respecting browser autoplay policies.
+
+### Global In-App Popup Center (`AttentionAlertPopups.tsx`)
+- Rendered inside `AppShell`; subscribes via `subscribeToAttentionAlerts` and displays toast-style popups (bottom-right) for each new attention alert.
+- **Open Conversation** — navigates to `/whatsapp-conversations?conversation=<id>` (deep-linked conversation auto-selected).
+- **Dismiss** — resolves the alert (`status = resolved`, "Dismissed by agent").
+- **Create Query** — converts the alert into the existing CRM Customer Query module.
+- Replays the most recent unresolved alerts on mount using a sessionStorage "seen" set so refreshed pages do not re-pop already-handled alerts.
+
+### CRM Notification Integration
+- New `whatsapp.attention_required` event type — `notifyWhatsAppAttentionRequired` pushes customer-attention alerts into the Header bell dropdown and the Notifications module for sales/support agents and admins.
+
+### Integration with Existing CRM Query System
+- Clicking **Convert Alert to Support Query** converts the WhatsApp attention alert into a formal CRM Support Query in the `customer_queries` table (`QRY-XXXXXX`).
+- **No duplicate ticketing system created**; urgent conversions additionally trigger the existing urgent-ticket notification flow.
+
+### Agent Takeover Controls
+- Clicking **Take Over** sets `bot_status = 'human_takeover'` (`BOT_PAUSED`).
+- Suspends all automated AI responses and grants manual control to the sales/support agent; **Pause Bot** sets `bot_status = 'paused'` and messages arriving while paused are escalated as attention alerts.
 
 ---
 

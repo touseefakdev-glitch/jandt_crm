@@ -2,7 +2,7 @@
  * Message Classifier for the WhatsApp Order Intelligence System.
  *
  * Classifies an incoming customer message into the plan's taxonomy:
- *   ORDER, ORDER_CLARIFICATION, ORDER_CONFIRMATION, NON_ORDER,
+ *   ORDER, ORDER_CORRECTION, ORDER_CONFIRMATION, NON_ORDER,
  *   QUESTION, COMPLAINT, GREETING, UNKNOWN
  *
  * The classifier must NOT treat greetings, questions, complaints or thank-you
@@ -131,7 +131,7 @@ export function classifyMessage(rawText: string): MessageClassificationResult {
   let priority: AttentionPriority = 'normal';
 
   if (isCancellation) {
-    classification = 'ORDER_CLARIFICATION';
+    classification = 'ORDER_CORRECTION';
     requiresHumanAttention = true;
   } else if (isPureConfirmation) {
     classification = 'ORDER_CONFIRMATION';
@@ -152,8 +152,8 @@ export function classifyMessage(rawText: string): MessageClassificationResult {
     classification = 'QUESTION';
     requiresHumanAttention = true;
   } else if (confirmationHits > 0) {
-    // Partial confirmation like "yes 10 gloves" — treat as order clarification
-    classification = 'ORDER_CLARIFICATION';
+    // Partial confirmation like "yes 10 gloves" — treat as order correction
+    classification = 'ORDER_CORRECTION';
     requiresHumanAttention = false;
   } else if (urgency) {
     classification = 'UNKNOWN';
@@ -185,7 +185,7 @@ export function classifyMessage(rawText: string): MessageClassificationResult {
     classification === 'QUESTION' ||
     classification === 'COMPLAINT' ||
     classification === 'UNKNOWN' ||
-    (classification === 'ORDER_CLARIFICATION' && isCancellation)
+    (classification === 'ORDER_CORRECTION' && isCancellation)
   ) {
     requiresHumanAttention = true;
   }

@@ -1,8 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { localDb } from '../services/db';
 import { orderDraftService } from '../services/orderDraftService';
 import { attentionAlertService, getOpenAlerts, convertAlertToQuery } from '../services/attentionAlertService';
 import { whatsappIngestionService } from '../services/whatsappIngestionService';
+import { useAuth } from '../context/AuthContext';
 import {
   Customer,
   CustomerQuery,
@@ -47,6 +49,8 @@ export const WhatsAppConversations: React.FC = () => {
   const [filterTab, setFilterTab] = useState<'all' | 'attention' | 'awaiting' | 'human' | 'confirmed'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [ingestionInfo, setIngestionInfo] = useState<{ ingested: number; skipped: number } | null>(null);
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
 
   // Agent manual reply state
   const [replyText, setReplyText] = useState('');
@@ -61,7 +65,7 @@ export const WhatsAppConversations: React.FC = () => {
   const [queryCategory, setQueryCategory] = useState('');
   const [queryDescription, setQueryDescription] = useState('');
 
-  const activeUserId = useAuthUserId();
+  const activeUserId = user?.id || '00000000-0000-0000-0000-000000000001';
   const catalogProducts = useMemo(() => localDb.getProducts({ activeOnly: true }), []);
   const categories = useMemo(() => localDb.getCategories(), []);
 
@@ -73,7 +77,11 @@ export const WhatsAppConversations: React.FC = () => {
     // 2. Fetch conversations
     const convs = localDb.getWhatsAppConversations();
     setConversations(convs);
-    if (!selectedConvId && convs.length > 0) {
+    const deepLinkConvId = searchParams.get('conversation');
+    const deepLinkMatch = deepLinkConvId && convs.some(c => c.id === deepLinkConvId) ? deepLinkConvId : null;
+    if (deepLinkMatch) {
+      setSelectedConvId(deepLinkMatch);
+    } else if (!selectedConvId && convs.length > 0) {
       setSelectedConvId(convs[0].id);
     }
   };
@@ -391,6 +399,22 @@ export const WhatsAppConversations: React.FC = () => {
                     <span>•</span>
                     <span className="font-bold text-brand-700">Route: {activeConversation.route || 'Kelowna'}</span>
                   </p>
+
+                  {/* Bot Automation Status */}
+                  <span
+                    className={`inline-flex items-center gap-1.5 mt-1.5 text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                      activeConversation.bot_status === 'human_takeover'
+                        ? 'bg-rose-100 text-rose-800 border-rose-200'
+                        : activeConversation.bot_status === 'paused'
+                        ? 'bg-amber-100 text-amber-800 border-amber-200'
+                        : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                    }`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${
+                      activeConversation.bot_status === 'human_takeover' ? 'bg-rose-500' : activeConversation.bot_status === 'paused' ? 'bg-amber-500' : 'bg-emerald-500'
+                    }`} />
+                    Bot Automation: {activeConversation.bot_status === 'human_takeover' ? 'PAUSED (Human Active)' : activeConversation.bot_status === 'paused' ? 'PAUSED' : 'ACTIVE'}
+                  </span>
                 </div>
 
                 {/* Control Action Buttons */}
@@ -644,14 +668,3 @@ export const WhatsAppConversations: React.FC = () => {
     </div>
   );
 };
-
-function useAuthUserId(): string {
-  const rawUser = localStorage.getItem('jt_crm_auth_user');
-  if (rawUser) {
-    try {
-      const u = JSON.parse(rawUser);
-      if (u && u.id) return u.id;
-    } catch (_) {}
-  }
-  return '00000000-0000-0000-0000-000000000001';
-}

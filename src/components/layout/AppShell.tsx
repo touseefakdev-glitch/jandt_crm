@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 import { ToastProvider } from '../ui/Toast';
+import { AttentionAlertPopups } from '../whatsapp/AttentionAlertPopups';
 
 export const AppShell: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -24,6 +25,7 @@ export const AppShell: React.FC = () => {
             </div>
           </main>
         </div>
+        <AttentionAlertPopups />
       </div>
     </ToastProvider>
   );

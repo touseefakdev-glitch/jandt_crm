@@ -770,7 +770,7 @@ export interface HTMLImportPreview {
 
 export type MessageClassification =
   | 'ORDER'
-  | 'ORDER_CLARIFICATION'
+  | 'ORDER_CORRECTION'
   | 'ORDER_CONFIRMATION'
   | 'NON_ORDER'
   | 'QUESTION'

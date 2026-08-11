@@ -145,8 +145,8 @@ export const getMessageClassificationBadge = (classification: string): BadgeStyl
       return { subtle: 'bg-emerald-50 text-emerald-800 ring-emerald-200', solid: 'bg-emerald-600 text-white', dot: 'bg-emerald-500', label: 'Order Request' };
     case 'ORDER_CONFIRMATION':
       return { subtle: 'bg-teal-50 text-teal-800 ring-teal-200', solid: 'bg-teal-600 text-white', dot: 'bg-teal-500', label: 'Order Confirmed' };
-    case 'ORDER_CLARIFICATION':
-      return { subtle: 'bg-amber-50 text-amber-800 ring-amber-200', solid: 'bg-amber-500 text-white', dot: 'bg-amber-500', label: 'Clarification Needed' };
+    case 'ORDER_CORRECTION':
+      return { subtle: 'bg-amber-50 text-amber-800 ring-amber-200', solid: 'bg-amber-500 text-white', dot: 'bg-amber-500', label: 'Order Correction' };
     case 'QUESTION':
       return { subtle: 'bg-sky-50 text-sky-800 ring-sky-200', solid: 'bg-sky-600 text-white', dot: 'bg-sky-500', label: 'Customer Question' };
     case 'COMPLAINT':

@@ -5,6 +5,23 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.23.0] - 2026-08-11
+
+### Added
+- **WhatsApp Order Intelligence — Phase 7 (Automated Daily Order Request)**:
+  - **Backend scheduler (no browser timers)**: Vercel Cron (`*/30 * * * *`) triggers `api/daily-order-request.ts`, which computes the current time in the configured business timezone and dispatches only when it matches the configured send time (default `09:00`, timezone-aware since Vercel cron is UTC).
+  - **Serverless run flow**: loads `order_request_config`, computes tomorrow's delivery date in the business timezone, resolves active routes from `route_schedules`, filters eligible active customers with a WhatsApp number, **deduplicates** against already-sent `order_reminders` for that date, writes outbound messages to the Supabase `messages` table for the Baileys connector, and records `sent`/`failed` reminders with `message_id` and `error_reason`.
+  - Optional `CRON_SECRET` authorization gate for the cron endpoint; `?force=1` bypasses the send-time check for manual testing.
+  - **Configurable template** with `{{customer_name}}`, `{{route}}`, `{{delivery_date}}` placeholders and a default "Good morning… / Your delivery is scheduled for {{route}} tomorrow… / J&T Supplies" message.
+  - **Admin Control Center** (`/admin/order-requests`, admin-only): send time / timezone / enabled toggle / template editor with live preview, **Run Now** manual trigger (same service, deduped), filterable reminder history table, and **Retry** for failed reminders (bumps `attempt_count`, keeps audit trail).
+  - **Shared pure core** (`dailyOrderRequestCore.ts`): environment-agnostic date math, route resolution, template rendering, and eligibility filtering reused by both the browser UI and the Node serverless function.
+  - **New Supabase tables** `order_request_config` (single-row automation config) and `order_reminders` (unique `(customer_id, delivery_date)` dedupe, status/sent_at/message_id/error_reason/attempt_count) with RLS read policies; registered in `supabaseSync.ts` `TABLE_MAP` for local-first write-through sync (`jt_crm_order_request_config`, `jt_crm_order_reminders`).
+  - Removed stale `sanitizeRow` stripping of `customers.route` / `customers.whatsapp_number` so the serverless function and Baileys connector see real customer routing/contact data in Supabase.
+  - New audit actions `order_request_config_updated`, `order_request_sent`, `order_request_failed`, `order_request_retried`.
+  - Updated `PROJECT_SPEC.md` with the full Phase 7 scheduling, run-flow, template, admin, schema, and sync specifications.
+
+---
+
 ## [1.22.0] - 2026-08-11
 
 ### Added

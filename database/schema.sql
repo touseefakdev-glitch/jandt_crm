@@ -878,6 +878,49 @@ CREATE TABLE IF NOT EXISTS public.order_intake_events (
 );
 
 -- =============================================================================
+-- PHASE 7: AUTOMATED DAILY ORDER REQUEST
+-- =============================================================================
+
+-- Order Request Automation Configuration (single row, id fixed)
+CREATE TABLE IF NOT EXISTS public.order_request_config (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    send_time VARCHAR(10) NOT NULL DEFAULT '09:00', -- 24h HH:MM in business timezone
+    timezone VARCHAR(100) NOT NULL DEFAULT 'America/Vancouver',
+    template TEXT NOT NULL DEFAULT 'Good morning {{customer_name}}.
+Your delivery is scheduled for {{route}} tomorrow.
+Please send us your order for tomorrow''s delivery.
+Thank you,
+J&T Supplies',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL
+);
+
+-- Seed default config row
+INSERT INTO public.order_request_config (id, enabled, send_time, timezone)
+VALUES ('00000000-0000-0000-0000-0000000000c1', TRUE, '09:00', 'America/Vancouver')
+ON CONFLICT (id) DO NOTHING;
+
+-- Daily Order Request Reminder Log (per customer per delivery date, dedupe)
+CREATE TABLE IF NOT EXISTS public.order_reminders (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    customer_id UUID NOT NULL REFERENCES public.customers(id) ON DELETE CASCADE,
+    customer_name VARCHAR(255),
+    route VARCHAR(100),
+    delivery_date DATE NOT NULL, -- the delivery date the reminder was for
+    status VARCHAR(20) NOT NULL DEFAULT 'sent', -- sent, failed
+    sent_at TIMESTAMPTZ,
+    message_id VARCHAR(255), -- Baileys message id when dispatched
+    message_text TEXT,
+    error_reason TEXT,
+    attempt_count INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT unique_customer_delivery UNIQUE (customer_id, delivery_date)
+);
+
+-- =============================================================================
 -- WHATSAPP ORDER INTELLIGENCE INDEXES
 -- =============================================================================
 CREATE INDEX IF NOT EXISTS idx_whatsapp_conversations_customer ON public.whatsapp_conversations(customer_id);
@@ -896,6 +939,9 @@ CREATE INDEX IF NOT EXISTS idx_agent_attention_alerts_status ON public.agent_att
 CREATE INDEX IF NOT EXISTS idx_agent_attention_alerts_priority ON public.agent_attention_alerts(priority);
 CREATE INDEX IF NOT EXISTS idx_order_intake_events_draft ON public.order_intake_events(order_draft_id);
 CREATE INDEX IF NOT EXISTS idx_route_destinations_route ON public.route_destinations(route);
+CREATE INDEX IF NOT EXISTS idx_order_reminders_customer ON public.order_reminders(customer_id);
+CREATE INDEX IF NOT EXISTS idx_order_reminders_delivery ON public.order_reminders(delivery_date);
+CREATE INDEX IF NOT EXISTS idx_order_reminders_status ON public.order_reminders(status);
 
 -- =============================================================================
 -- WHATSAPP ORDER INTELLIGENCE ROW LEVEL SECURITY
@@ -910,6 +956,8 @@ ALTER TABLE public.customer_product_aliases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.route_destinations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.agent_attention_alerts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_intake_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.order_request_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.order_reminders ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Authenticated users can read whatsapp contacts" ON public.whatsapp_contacts FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated users can read whatsapp conversations" ON public.whatsapp_conversations FOR SELECT USING (auth.role() = 'authenticated');
@@ -921,3 +969,5 @@ CREATE POLICY "Authenticated users can read customer product aliases" ON public.
 CREATE POLICY "Authenticated users can read route destinations" ON public.route_destinations FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated users can read agent attention alerts" ON public.agent_attention_alerts FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated users can read order intake events" ON public.order_intake_events FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can read order request config" ON public.order_request_config FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can read order reminders" ON public.order_reminders FOR SELECT USING (auth.role() = 'authenticated');

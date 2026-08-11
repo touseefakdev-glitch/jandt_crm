@@ -518,7 +518,11 @@ export type AuditActionType =
   | 'daily_operation_update'
   | 'daily_operation_undo'
   | 'daily_operation_error_query'
-  | 'route_schedule_updated';
+  | 'route_schedule_updated'
+  | 'order_request_config_updated'
+  | 'order_request_sent'
+  | 'order_request_failed'
+  | 'order_request_retried';
 
 export type AuditEntityType = 
   | 'user' 
@@ -535,7 +539,9 @@ export type AuditEntityType =
   | 'system_settings'
   | 'import_job'
   | 'daily_order_operation'
-  | 'route_schedule';
+  | 'route_schedule'
+  | 'order_request_config'
+  | 'order_request_reminder';
 
 // --- Step 10 REBUILD: Route-Based Daily Order Operations Types ---
 
@@ -1004,6 +1010,38 @@ export interface OrderDraftCreationResult {
 export interface OrderDraftProcessingResult {
   draft: OrderDraft;
   message?: string;
+}
+
+// --- Phase 7: Automated Daily Order Request Types ---
+
+export type OrderRequestReminderStatus = 'sent' | 'failed';
+
+export interface OrderRequestConfig {
+  id: string;
+  enabled: boolean;
+  send_time: string; // 24h HH:MM in the configured business timezone
+  timezone: string; // IANA zone, e.g. America/Vancouver
+  template: string; // supports {{customer_name}}, {{route}}, {{delivery_date}}
+  updated_at: string;
+  updated_by?: string | null;
+  updated_by_profile?: UserProfile | null;
+}
+
+export interface OrderRequestReminder {
+  id: string;
+  customer_id: string;
+  customer_name: string;
+  route: string;
+  delivery_date: string; // YYYY-MM-DD (tomorrow in business timezone)
+  status: OrderRequestReminderStatus;
+  sent_at: string | null;
+  message_id?: string | null;
+  message_text: string;
+  error_reason?: string | null;
+  attempt_count: number;
+  created_at: string;
+  updated_at: string;
+  customer?: Customer | null;
 }
 
 

@@ -15,6 +15,7 @@ import {
   Upload,
   History,
   MapPin,
+  CalendarClock,
 } from 'lucide-react';
 import { PageHeader } from '../ui/PageHeader';
 import { Badge } from '../ui/Badge';
@@ -29,6 +30,7 @@ export const AdminLayout: React.FC = () => {
     { label: 'Teams', path: '/admin/teams', icon: UsersRound },
     { label: 'Roles & Permissions', path: '/admin/roles', icon: ShieldAlert },
     { label: 'Route Schedules', path: '/admin/routes', icon: MapPin },
+    { label: 'Order Request Automation', path: '/admin/order-requests', icon: CalendarClock },
     { label: 'Data Import', path: '/admin/import', exact: true, icon: Upload },
     { label: 'Import History', path: '/admin/import/history', icon: History },
     { label: 'Query Categories', path: '/admin/query-categories', icon: Tag },

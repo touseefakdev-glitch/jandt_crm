@@ -17,7 +17,7 @@ const store = new Map<string, string>();
 async function main() {
   const { localDb } = await import('../../CRM/src/services/db');
   const { processIncomingMessage, orderDraftService } = await import('../../CRM/src/services/orderDraftService');
-
+  const { runDailyOrderRequest } = await import('../../CRM/src/services/dailyOrderRequestService');
   const adminId = 'a1111111-1111-1111-1111-111111111111';
 
   // Seed test catalog if running on a clean slate database
@@ -209,6 +209,20 @@ async function main() {
   // --- Flow 7: intake audit trail ---
   const events = localDb.getOrderIntakeEvents(r4.draft?.id);
   check('flow7: intake events recorded', events.length > 0, events.length.toString());
+
+  // --- Flow 8: automated daily order request (Phase 7) ---
+  const future = new Date('2026-08-12T20:00:00Z'); // Wed 13:00 in America/Vancouver → tomorrow = Thursday
+  const runResult = await runDailyOrderRequest(adminId, future);
+  check('flow8: run computed a delivery date', !!runResult.deliveryDate, runResult.deliveryDate);
+  check('flow8: Thursday routes included', runResult.routes.includes('Kelowna'), runResult.routes.join(','));
+  const reminders = localDb.getOrderRequestReminders({ deliveryDate: runResult.deliveryDate });
+  check('flow8: reminders recorded', reminders.length > 0, reminders.length.toString());
+  check('flow8: reminders are sent', reminders.every(r => r.status === 'sent'), reminders.map(r => r.status).join('|'));
+  check('flow8: message text rendered', reminders.every(r => r.message_text.includes('J&T Supplies') && r.message_text.includes(r.customer_name)), '');
+
+  // --- Flow 9: retry only fails cleanly; dedupe prevents double-send ---
+  const rerun = await runDailyOrderRequest(adminId, future);
+  check('flow9: rerun skipped already-sent', rerun.skipped === rerun.eligibleCustomers, `${rerun.skipped}/${rerun.eligibleCustomers}`);
 
   console.log(results.join('\n'));
   console.log(`\n${pass} passed, ${fail} failed`);

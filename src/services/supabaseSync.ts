@@ -62,6 +62,10 @@ export const TABLE_MAP: Record<string, string> = {
   jt_crm_route_destinations:             'route_destinations',
   jt_crm_agent_attention_alerts:         'agent_attention_alerts',
   jt_crm_order_intake_events:            'order_intake_events',
+
+  // Phase 7: Automated Daily Order Request
+  jt_crm_order_request_config:           'order_request_config',
+  jt_crm_order_reminders:                'order_reminders',
 };
 
 
@@ -267,10 +271,6 @@ function sanitizeRow(table: string, row: Record<string, unknown>): Record<string
 
   // Alias fields not present in database tables
   if (table === 'notifications') delete clean['user_id'];
-  if (table === 'customers') {
-    delete clean['route'];
-    delete clean['whatsapp_number'];
-  }
 
   // Convert empty string UUID foreign keys to null so PostgreSQL UUID fields do not fail
   ['assigned_to', 'assigned_team_id', 'created_by', 'resolved_by', 'closed_by', 'reopened_by', 'customer_id', 'order_id', 'product_id', 'category_id', 'performed_by', 'author_id', 'uploaded_by', 'team_id', 'user_id', 'brand_id'].forEach((field) => {

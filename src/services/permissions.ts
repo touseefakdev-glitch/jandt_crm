@@ -95,6 +95,12 @@ export class PermissionsService {
     return { allowed: false, reason: 'Only System Administrators can manage route schedules.' };
   }
 
+  public static canManageOrderRequestAutomation(user: UserProfile | null): PermissionCheckResult {
+    if (!user) return { allowed: false, reason: 'Authentication required.' };
+    if (user.role === 'admin') return { allowed: true };
+    return { allowed: false, reason: 'Only System Administrators can configure daily order request automation.' };
+  }
+
   public static canCreateOrders(user: UserProfile | null): PermissionCheckResult {
     if (!user) return { allowed: false, reason: 'Authentication required.' };
     if (user.role === 'admin' || user.role === 'sales_agent') return { allowed: true };

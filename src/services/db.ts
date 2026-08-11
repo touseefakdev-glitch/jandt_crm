@@ -77,6 +77,9 @@ import {
   AttentionPriority,
   OrderIntakeEvent,
   MessageClassification,
+  OrderRequestConfig,
+  OrderRequestReminder,
+  OrderRequestReminderStatus,
 } from '../types';
 import { notificationService } from './notificationService';
 import { permissions } from './permissions';
@@ -257,6 +260,10 @@ class LocalDatabaseService {
   private agentAttentionAlertsKey = 'jt_crm_agent_attention_alerts';
   private orderIntakeEventsKey = 'jt_crm_order_intake_events';
 
+  // Phase 7: Automated Daily Order Request Keys
+  private orderRequestConfigKey = 'jt_crm_order_request_config';
+  private orderRemindersKey = 'jt_crm_order_reminders';
+
   // Seed version key — used to force re-seed when SEED_DATA_VERSION changes
   private seedVersionKey = 'jt_crm_seed_version';
 
@@ -303,6 +310,8 @@ class LocalDatabaseService {
       [this.routeDestinationsKey, []],
       [this.agentAttentionAlertsKey, []],
       [this.orderIntakeEventsKey, []],
+      [this.orderRequestConfigKey, []],
+      [this.orderRemindersKey, []],
     ];
 
     seeds.forEach(([key, rows]) => {
@@ -4229,6 +4238,151 @@ class LocalDatabaseService {
     list.unshift(event);
     storageSet(this.orderIntakeEventsKey, JSON.stringify(list));
     return event;
+  }
+
+  // --- Phase 7: Automated Daily Order Request Methods ---
+
+  public getOrderRequestConfig(): OrderRequestConfig {
+    try {
+      const data = storageGet(this.orderRequestConfigKey);
+      if (data) {
+        const parsed: OrderRequestConfig = JSON.parse(data);
+        const users = this.getUsers();
+        return {
+          ...parsed,
+          updated_by_profile: parsed.updated_by ? users.find(u => u.id === parsed.updated_by) || null : null,
+        };
+      }
+    } catch {}
+
+    return {
+      id: '00000000-0000-0000-0000-0000000000c1',
+      enabled: true,
+      send_time: '09:00',
+      timezone: 'America/Vancouver',
+      template: [
+        'Good morning {{customer_name}}.',
+        '',
+        'Your delivery is scheduled for {{route}} tomorrow.',
+        '',
+        "Please send us your order for tomorrow's delivery.",
+        '',
+        'Thank you,',
+        'J&T Supplies',
+      ].join('\n'),
+      updated_at: new Date().toISOString(),
+    };
+  }
+
+  public updateOrderRequestConfig(input: Partial<OrderRequestConfig>, currentUserId: string): OrderRequestConfig {
+    const existing = this.getOrderRequestConfig();
+    const updated: OrderRequestConfig = {
+      ...existing,
+      enabled: input.enabled !== undefined ? input.enabled : existing.enabled,
+      send_time: input.send_time !== undefined ? input.send_time.trim() : existing.send_time,
+      timezone: input.timezone !== undefined ? input.timezone.trim() : existing.timezone,
+      template: input.template !== undefined ? input.template : existing.template,
+      updated_at: new Date().toISOString(),
+      updated_by: currentUserId,
+    };
+
+    storageSet(this.orderRequestConfigKey, JSON.stringify(updated));
+
+    this.logAudit({
+      user_id: currentUserId,
+      action: 'order_request_config_updated',
+      entity_type: 'order_request_config',
+      entity_id: updated.id,
+      entity_number: `${updated.send_time} ${updated.timezone}`,
+      summary: `Updated daily order request automation config (enabled: ${updated.enabled})`,
+      previous_value: null,
+      new_value: JSON.stringify({ enabled: updated.enabled, send_time: updated.send_time, timezone: updated.timezone }),
+    });
+
+    return this.getOrderRequestConfig();
+  }
+
+  public getOrderRequestReminders(filters?: { deliveryDate?: string; status?: OrderRequestReminderStatus }): OrderRequestReminder[] {
+    try {
+      const data = storageGet(this.orderRemindersKey);
+      let list: OrderRequestReminder[] = data ? JSON.parse(data) : [];
+      if (filters?.deliveryDate) list = list.filter(r => r.delivery_date === filters.deliveryDate);
+      if (filters?.status) list = list.filter(r => r.status === filters.status);
+      const customers = this.getCustomers();
+      return list
+        .map(r => ({ ...r, customer: customers.find(c => c.id === r.customer_id) || null }))
+        .sort((a, b) => b.delivery_date.localeCompare(a.delivery_date) || b.created_at.localeCompare(a.created_at));
+    } catch { return []; }
+  }
+
+  public upsertOrderRequestReminder(input: Omit<OrderRequestReminder, 'id' | 'created_at' | 'updated_at'>, currentUserId: string): OrderRequestReminder {
+    const list = this.getOrderRequestReminders();
+    const existingIdx = list.findIndex(r => r.customer_id === input.customer_id && r.delivery_date === input.delivery_date);
+    const now = new Date().toISOString();
+
+    let reminder: OrderRequestReminder;
+    if (existingIdx >= 0) {
+      reminder = {
+        ...list[existingIdx],
+        ...input,
+        id: list[existingIdx].id,
+        attempt_count: input.attempt_count || list[existingIdx].attempt_count,
+        created_at: list[existingIdx].created_at,
+        updated_at: now,
+      };
+      list[existingIdx] = reminder;
+    } else {
+      reminder = {
+        ...input,
+        id: crypto.randomUUID(),
+        attempt_count: input.attempt_count || 1,
+        created_at: now,
+        updated_at: now,
+      };
+      list.push(reminder);
+    }
+
+    storageSet(this.orderRemindersKey, JSON.stringify(list));
+
+    this.logAudit({
+      user_id: currentUserId,
+      action: input.status === 'failed' ? 'order_request_failed' : 'order_request_sent',
+      entity_type: 'order_request_reminder',
+      entity_id: reminder.id,
+      entity_number: `${reminder.customer_name} - ${reminder.delivery_date}`,
+      summary: input.status === 'failed'
+        ? `Daily order request FAILED for ${reminder.customer_name} (${reminder.route})`
+        : `Daily order request sent to ${reminder.customer_name} (${reminder.route})`,
+      previous_value: null,
+      new_value: JSON.stringify({ status: reminder.status, message_id: reminder.message_id, error_reason: reminder.error_reason }),
+    });
+
+    return reminder;
+  }
+
+  public retryOrderRequestReminder(id: string, currentUserId: string): OrderRequestReminder | null {
+    const list = this.getOrderRequestReminders();
+    const idx = list.findIndex(r => r.id === id);
+    if (idx === -1) return null;
+    list[idx] = {
+      ...list[idx],
+      status: 'failed', // kept failed until re-dispatch completes; service flips to 'sent'
+      attempt_count: (list[idx].attempt_count || 0) + 1,
+      error_reason: 'retry_queued',
+      updated_at: new Date().toISOString(),
+    };
+    storageSet(this.orderRemindersKey, JSON.stringify(list));
+    this.logAudit({
+      user_id: currentUserId,
+      action: 'order_request_retried',
+      entity_type: 'order_request_reminder',
+      entity_id: id,
+      entity_number: `${list[idx].customer_name} - ${list[idx].delivery_date}`,
+      summary: `Manual retry queued for daily order request to ${list[idx].customer_name}`,
+      previous_value: null,
+      new_value: null,
+    });
+    return list[idx];
   }
 
   // --- Alias helpers for the matching engine ---

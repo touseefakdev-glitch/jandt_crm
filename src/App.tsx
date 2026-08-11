@@ -33,6 +33,7 @@ import { AdminAuditLogs } from './pages/admin/AdminAuditLogs';
 import { AdminImport } from './pages/admin/AdminImport';
 import { AdminImportHistory } from './pages/admin/AdminImportHistory';
 import { AdminRouteSchedules } from './pages/admin/AdminRouteSchedules';
+import { AdminOrderRequests } from './pages/admin/AdminOrderRequests';
 
 export const App: React.FC = () => {
   return (
@@ -77,6 +78,7 @@ export const App: React.FC = () => {
               <Route path="teams" element={<AdminTeams />} />
               <Route path="roles" element={<AdminRoles />} />
               <Route path="routes" element={<AdminRouteSchedules />} />
+              <Route path="order-requests" element={<AdminOrderRequests />} />
               <Route path="import" element={<AdminImport />} />
               <Route path="import/history" element={<AdminImportHistory />} />
               <Route path="query-categories" element={<AdminQueryCategories />} />

@@ -809,6 +809,57 @@ Message: "What time is my driver coming?"
 
 ---
 
+## WhatsApp Order Intelligence — Phase 7 (Automated Daily Order Request)
+
+> Backend-scheduled (Vercel Cron + serverless function) daily order request that automatically messages active customers on tomorrow's delivery routes with a configurable order-request template. No browser timers — automation runs even when the CRM page is closed.
+
+### Scheduling Architecture (Backend, No Browser Timers)
+- **Vercel Cron** (`vercel.json` → `crons`) triggers `api/daily-order-request.ts` every 30 minutes.
+- Because Vercel cron runs in UTC, the function computes the current time in the **configured business timezone** (`order_request_config.timezone`, default `America/Vancouver`) and only dispatches when it matches the configured **send time** (`send_time`, default `09:00`). A `?force=1` query bypasses the time check for manual testing.
+- Optional `CRON_SECRET` env gate: when set, Vercel cron's `Authorization: Bearer $CRON_SECRET` header is verified and other callers get `401`.
+
+### Daily Run Flow
+1. Load `order_request_config`; if `enabled = false` → exit (`disabled`).
+2. Compute tomorrow's date + weekday in the business timezone (`dailyOrderRequestCore.getTomorrowInTimezone`).
+3. Resolve tomorrow's active routes from `route_schedules` (falls back to the built-in weekly matrix).
+4. Select eligible customers: `status = active`, route on tomorrow's schedule, and a resolvable WhatsApp number.
+5. **Dedupe**: customers with an existing `order_reminders` row `status = sent` for that delivery date are skipped (unique `(customer_id, delivery_date)`).
+6. Render the configurable template and insert an outbound message into the Supabase `messages` table (`from_me = true`) for the Baileys connector to pick up.
+7. Record the outcome in `order_reminders` (`sent`/`failed`, `message_id`, `error_reason`, `attempt_count`).
+
+### Configurable Template
+- Placeholders: `{{customer_name}}`, `{{route}}`, `{{delivery_date}}`.
+- Default message:
+  ```text
+  Good morning {{customer_name}}.
+
+  Your delivery is scheduled for {{route}} tomorrow.
+
+  Please send us your order for tomorrow's delivery.
+
+  Thank you,
+  J&T Supplies
+  ```
+
+### Admin Control Center — `/admin/order-requests`
+- **Configuration**: send time (24h), business timezone, enabled toggle, and live template editor with placeholder preview.
+- **Run Now**: manually triggers the same service (`dailyOrderRequestService.runDailyOrderRequest`) from the browser; writes to Supabase `messages` + `order_reminders` with dedupe.
+- **History**: filterable reminders table (status / delivery date) showing customer, route, delivery date, status badge, sent-at timestamp, message id / error reason.
+- **Retry**: failed reminders can be re-sent by an authorized admin (`retryOrderRequestReminder`), bumping `attempt_count` and preserving the audit trail.
+
+### New Database Schema
+- `order_request_config` — single-row automation configuration (enabled, send_time, timezone, template).
+- `order_reminders` — per-customer-per-delivery-date reminder log with `unique (customer_id, delivery_date)` dedupe constraint, status, `sent_at`, `message_id`, `error_reason`, `attempt_count`.
+- Both tables registered in `supabaseSync.ts` `TABLE_MAP` (local-first write-through sync) and granted authenticated RLS read policies.
+
+### New Local Storage Keys
+- `jt_crm_order_request_config`, `jt_crm_order_reminders`.
+
+### Shared Pure Core
+- `dailyOrderRequestCore.ts` is environment-agnostic (no localStorage/`import.meta.env`/Supabase client), so the browser admin UI and the Node serverless function reuse identical date math, route resolution, template rendering, and eligibility filtering.
+
+---
+
 ## Change Log
 All technical changes are logged in [CHANGELOG.md](file:///c:/Users/TIW%20COMPUTER/Desktop/CRM/CHANGELOG.md).
 

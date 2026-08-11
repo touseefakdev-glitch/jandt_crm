@@ -97,6 +97,30 @@ export const WhatsAppConversations: React.FC = () => {
     }
   };
 
+  const handleSimulateTestOrder = () => {
+    const sampleText = "Hi JT Supplies! Please process order for 10 cases of Heavy Duty Paper Towels and 5 boxes of Nitrile Gloves for Apex Hospitality.";
+    const samplePhone = "12505550199";
+    const sampleJid = `${samplePhone}@s.whatsapp.net`;
+    
+    const customers = localDb.getCustomers('', 'all');
+    const cust = customers[0] || null;
+
+    const contact = localDb.getOrCreateWhatsAppContact(sampleJid, cust ? cust.company_name : "Apex Hospitality");
+    const conv = localDb.getOrCreateWhatsAppConversation(contact.id, cust ? cust.id : null);
+
+    const msg = localDb.addWhatsAppMessage({
+      conversation_id: conv.id,
+      direction: 'inbound',
+      message_type: 'text',
+      message_text: sampleText,
+      sent_at: new Date().toISOString(),
+    });
+
+    orderDraftService.processIncomingMessage(conv, sampleText, { messageId: msg.id });
+    refreshData();
+    setSelectedConvId(conv.id);
+  };
+
   useEffect(() => {
     refreshData();
   }, []);
@@ -298,6 +322,9 @@ export const WhatsAppConversations: React.FC = () => {
               Synced: +{ingestionInfo.ingested} / skipped {ingestionInfo.skipped}
             </span>
           )}
+          <Button variant="secondary" size="sm" onClick={handleSimulateTestOrder} icon={<Plus className="w-3.5 h-3.5 text-brand-600" />}>
+            Simulate Test Order
+          </Button>
           <Button variant="outline" size="sm" onClick={refreshData} icon={<RefreshCw className="w-3.5 h-3.5" />}>
             Sync Baileys Messages
           </Button>

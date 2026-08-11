@@ -3,8 +3,7 @@
  *
  * Platform Architecture:
  * - Runs as a 24/7 persistent Node.js worker service on cloud infrastructure (Railway / Render / Fly.io / VPS).
- * - Authenticates via Baileys WebSocket protocol.
- * - Stores auth session state persistently in Supabase DB (`whatsapp_baileys_auth`).
+ * - Authenticates via Baileys WebSocket protocol using native multi-file auth state synced to Supabase DB.
  * - Updates connector status & heartbeat every 15s in Supabase (`whatsapp_connector_status`).
  * - Dispatches queued outbound messages from Supabase outbox (`whatsapp_outbox`).
  * - Ingests inbound WhatsApp messages into Supabase (`messages`) with idempotency deduplication.
@@ -17,13 +16,12 @@ const {
   default: makeWASocket,
   DisconnectReason,
   fetchLatestBaileysVersion,
-  useMultiFileAuthState,
   Browsers,
 } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode-terminal');
 const pino = require('pino');
 const { supabase } = require('./supabase');
-const { useSupabaseAuthState } = require('./supabaseAuthAdapter');
+const { getAuthManager } = require('./authManager');
 const { processOutbox } = require('./outboxProcessor');
 const { processOrderMessage } = require('./orderHandler');
 
@@ -38,7 +36,7 @@ let outboxTimer = null;
 let commandTimer = null;
 let reconnectAttempts = 0;
 let isConnecting = false;
-let currentAuthState = null;
+let authManager = null;
 
 /**
  * Updates connector status and heartbeat in Supabase database
@@ -77,27 +75,16 @@ async function startWorker(forceFresh = false) {
   await updateStatus('CONNECTING', { error_message: null });
 
   try {
-    if (forceFresh && (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL)) {
-      console.log('[Worker] Force fresh requested. Wiping stale auth keys from database...');
-      try {
-        await supabase.from('whatsapp_baileys_auth').delete().neq('id', 'keep_table');
-      } catch (e) {}
+    authManager = await getAuthManager();
+
+    if (forceFresh) {
+      console.log('[Worker] Force fresh requested. Clearing auth state...');
+      await authManager.clearAuthState();
+      authManager = await getAuthManager();
     }
 
+    const { state, saveCreds, clearAuthState } = authManager;
     const { version } = await fetchLatestBaileysVersion().catch(() => ({ version: undefined }));
-    let authState = null;
-
-    if (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      console.log('[Worker] Using persistent cloud Supabase database auth store...');
-      authState = await useSupabaseAuthState(supabase, 'baileys_auth');
-    } else {
-      const authFolder = process.env.AUTH_FOLDER || './auth';
-      console.log(`[Worker] Fallback to local auth directory: ${authFolder}`);
-      authState = await useMultiFileAuthState(authFolder);
-    }
-
-    currentAuthState = authState;
-    const { state, saveCreds } = authState;
 
     if (socket) {
       try {
@@ -112,7 +99,7 @@ async function startWorker(forceFresh = false) {
       auth: state,
       browser: Browsers.macOS('Desktop'),
       logger: pino({ level: 'silent' }),
-      printQRInTerminal: false,
+      printQRInTerminal: true,
       connectTimeoutMs: 60000,
       defaultQueryTimeoutMs: 60000,
       keepAliveIntervalMs: 25000,
@@ -120,7 +107,9 @@ async function startWorker(forceFresh = false) {
       syncFullHistory: false,
     });
 
-    socket.ev.on('creds.update', saveCreds);
+    socket.ev.on('creds.update', async () => {
+      await saveCreds();
+    });
 
     socket.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect, qr } = update;
@@ -144,6 +133,8 @@ async function startWorker(forceFresh = false) {
         reconnectAttempts = 0;
         isConnecting = false;
         console.log('✅ [Worker] WhatsApp Connection Established Successfully!');
+
+        await saveCreds();
 
         await updateStatus('CONNECTED', {
           connected_at: new Date().toISOString(),
@@ -176,9 +167,7 @@ async function startWorker(forceFresh = false) {
           setTimeout(() => startWorker(false), delayMs);
         } else {
           console.error('[Worker] Device logged out or rejected. Wiping auth state and generating fresh QR...');
-          if (authState.clearAuthState) {
-            await authState.clearAuthState();
-          }
+          await clearAuthState();
           await updateStatus('AUTH_REQUIRED', {
             qr_code_data: null,
             error_message: 'Logged out. Generating fresh QR code...',

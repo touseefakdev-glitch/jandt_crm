@@ -17,7 +17,9 @@ import {
   Upload,
   FileText,
   Settings,
-  ShieldCheck
+  ShieldCheck,
+  MessageSquare,
+  Bot
 } from 'lucide-react';
 import { UserRole } from '../../types';
 
@@ -33,6 +35,8 @@ interface SidebarNavItem {
 
 const NAV_ITEMS: SidebarNavItem[] = [
   { id: 'dashboard', label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
+  { id: 'whatsapp-conversations', label: 'WhatsApp Inbox', path: '/whatsapp-conversations', icon: MessageSquare, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
+  { id: 'whatsapp-simulator', label: 'WhatsApp Simulator', path: '/whatsapp-simulator', icon: Bot, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
   { id: 'orders', label: 'Daily Operations', path: '/orders', icon: ShoppingBag, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
   { id: 'customers', label: 'Customers', path: '/customers', icon: Users, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
   { id: 'products', label: 'Products Catalog', path: '/products', icon: Package, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },

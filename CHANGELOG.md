@@ -5,6 +5,25 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.17.0] - 2026-08-11
+
+### Added
+- **WhatsApp Order Intelligence — Phase B (Simulator Testing Workbench)**:
+  - Added `/whatsapp-simulator` route and page component (`src/pages/WhatsAppSimulator.tsx`).
+  - Interactive testing workbench allowing sales and support agents to test messy customer WhatsApp messages against the 393 live customer accounts and 1,022 product catalog items.
+  - Included 8 quick preset test scenarios (Multi-product orders, customer history "usual", ambiguous mentions, missing quantities, exact SKUs, non-order questions, urgent complaints, order confirmations).
+  - Real-time Visual Pipeline Inspector showing text normalization, message classification, candidate extraction, product catalog match methods, ambiguity prompts, order draft references (`CRM-ORD-XXXXXX`), and human attention alert triggers.
+- **WhatsApp Order Intelligence — Phase C (Human Review Workspace)**:
+  - Added `/whatsapp-conversations` route and page component (`src/pages/WhatsAppConversations.tsx`).
+  - Directory of active WhatsApp customer conversations filterable by `Attention Required`, `Awaiting Confirmation`, `Human Active`, `Confirmed`, and `All`.
+  - Real-time chat stream with sender tags (Customer vs AI Bot vs Human Agent) and classification badges.
+  - Side Inspector panel displaying Order Draft details, matched catalog line items, confidence scores, and internal reference numbers.
+  - Controls for `Human Takeover` (*Bot Paused* vs *Bot Active*), `Pause Bot`, `Resume Bot`, draft line item editing, quantity adjustments, manual draft confirmation, and 1-click conversion of attention alerts into CRM Support Queries (`QRY-XXXXXX`).
+- **Sidebar & App Navigation**:
+  - Added **WhatsApp Inbox** (`/whatsapp-conversations`) and **WhatsApp Simulator** (`/whatsapp-simulator`) to the primary Operations navigation section in `Sidebar.tsx`.
+
+---
+
 ## [1.16.0] - 2026-08-11
 
 ### Changed

@@ -500,6 +500,31 @@ The CRM application is configured with a clean, 0-data baseline for immediate pr
 
 ---
 
+## WhatsApp Order Intelligence — Phase B (Simulator Workbench)
+
+> Implemented `/whatsapp-simulator` testing workbench for real-world messy customer WhatsApp messages.
+
+### Interactive Features
+- **Customer Account Selector**: Select from 393 live customer accounts to pull real history and route metadata.
+- **Preset Scenarios**: Multi-product orders, customer history ("usual"), ambiguous mentions, missing quantities, exact SKUs, non-order questions, urgent complaints, order confirmations.
+- **Visual Pipeline Inspector**: Displays step-by-step text normalization, message classification, candidate extraction, product catalog matching methods, ambiguity choice prompts, order draft reference generation, and human attention alert triggers.
+
+---
+
+## WhatsApp Order Intelligence — Phase C (Human Review Workspace)
+
+> Implemented `/whatsapp-conversations` inbox and human review workspace for sales and support agents.
+
+### Workspace Capabilities
+- **Conversation List & Filters**: Directory of active customer WhatsApp chats filterable by `Attention Required`, `Awaiting Confirmation`, `Human Active`, `Confirmed`, and `All`.
+- **Live Chat Stream**: Real-time message history with classification badges and sender tags.
+- **Order Draft Inspector**: Displays matched catalog products, line items, quantities, match methods, confidence scores, and internal reference.
+- **Human Control Toolbar**: `Human Takeover` toggle (*Bot Paused* vs *Bot Active*), `Pause Bot` / `Resume Bot` controls.
+- **Draft Management**: Edit items, change quantities, manual draft approval & confirmation.
+- **Query Conversion**: Single-click conversion of non-order attention alerts into formal CRM Support Queries (`QRY-XXXXXX`).
+
+---
+
 ## Change Log
 All technical changes are logged in [CHANGELOG.md](file:///c:/Users/TIW%20COMPUTER/Desktop/CRM/CHANGELOG.md).
 

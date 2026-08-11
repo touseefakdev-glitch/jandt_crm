@@ -4,7 +4,7 @@ const { supabase } = require('./supabase');
 const draftOrders = new Map();
 
 /**
- * Parse text using Supabase Edge Function or local DB fallback
+ * Parse text using Supabase Edge Function or database catalog matcher fallback
  */
 async function parseOrderText(text) {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -23,23 +23,23 @@ async function parseOrderText(text) {
 
       if (response.ok) {
         const data = await response.json();
-        if (data && Array.isArray(data.items)) {
+        if (data && Array.isArray(data.items) && data.items.length > 0) {
           return data.items;
         }
       }
     } catch (e) {
-      console.warn('Edge function parse-order unavailable, using DB fallback:', e.message);
+      console.warn('[OrderHandler] Edge function parse-order unavailable, using catalog matcher fallback:', e.message);
     }
   }
 
   // Fallback: Query products table directly from Supabase DB
-  const { data: products } = await supabase.from('products').select('*');
+  const { data: products } = await supabase.from('products').select('*').eq('is_active', true);
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   const items = [];
 
   for (const line of lines) {
     const match = line.match(/^(\d+(?:\.\d+)?)\s*([a-zA-Z]+)?\s+(.+)$/) || line.match(/^(\d+(?:\.\d+)?)\s+(.+)$/);
-    let quantity = null;
+    let quantity = 1;
     let unit = null;
     let itemText = line;
 
@@ -55,11 +55,23 @@ async function parseOrderText(text) {
 
     let matchedProduct = null;
     if (products && products.length > 0) {
+      const lowerText = itemText.toLowerCase();
+      const words = lowerText.split(/\s+/).filter(w => w.length > 2);
+
       matchedProduct = products.find(p => {
-        const lowerText = itemText.toLowerCase();
-        const nameMatch = p.name?.toLowerCase().includes(lowerText) || lowerText.includes(p.name?.toLowerCase());
-        const aliasMatch = Array.isArray(p.aliases) && p.aliases.some(a => a.toLowerCase().includes(lowerText) || lowerText.includes(a.toLowerCase()));
-        return nameMatch || aliasMatch;
+        const pName = (p.product_name || p.name || '').toLowerCase();
+        const pSku = (p.sku || '').toLowerCase();
+
+        if (pName.includes(lowerText) || lowerText.includes(pName) || pSku.includes(lowerText)) {
+          return true;
+        }
+
+        if (words.length > 0) {
+          const matchCount = words.filter(w => pName.includes(w) || pSku.includes(w)).length;
+          return matchCount >= Math.min(2, words.length);
+        }
+
+        return false;
       });
     }
 
@@ -69,7 +81,7 @@ async function parseOrderText(text) {
       unit,
       item_text: itemText,
       matched_product_id: matchedProduct ? matchedProduct.id : null,
-      matched_product_name: matchedProduct ? matchedProduct.name : null,
+      matched_product_name: matchedProduct ? (matchedProduct.product_name || matchedProduct.name) : null,
     });
   }
 

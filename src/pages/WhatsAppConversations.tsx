@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { localDb } from '../services/db';
 import { orderDraftService } from '../services/orderDraftService';
 import { attentionAlertService, getOpenAlerts, convertAlertToQuery } from '../services/attentionAlertService';
+import { whatsappIngestionService } from '../services/whatsappIngestionService';
 import {
   Customer,
   CustomerQuery,
@@ -35,7 +36,8 @@ import {
   Check,
   X,
   FileText,
-  RefreshCw
+  RefreshCw,
+  RotateCcw
 } from 'lucide-react';
 import { getMessageClassificationBadge, getAttentionPriorityBadge } from '../utils/badges';
 
@@ -44,6 +46,7 @@ export const WhatsAppConversations: React.FC = () => {
   const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
   const [filterTab, setFilterTab] = useState<'all' | 'attention' | 'awaiting' | 'human' | 'confirmed'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [ingestionInfo, setIngestionInfo] = useState<{ ingested: number; skipped: number } | null>(null);
 
   // Agent manual reply state
   const [replyText, setReplyText] = useState('');
@@ -62,7 +65,12 @@ export const WhatsAppConversations: React.FC = () => {
   const catalogProducts = useMemo(() => localDb.getProducts({ activeOnly: true }), []);
   const categories = useMemo(() => localDb.getCategories(), []);
 
-  const refreshData = () => {
+  const refreshData = async () => {
+    // 1. Ingest raw Baileys messages from Supabase (Phase 2)
+    const ingRes = await whatsappIngestionService.ingestRawSupabaseMessages();
+    setIngestionInfo({ ingested: ingRes.ingested, skipped: ingRes.skipped });
+
+    // 2. Fetch conversations
     const convs = localDb.getWhatsAppConversations();
     setConversations(convs);
     if (!selectedConvId && convs.length > 0) {
@@ -97,6 +105,12 @@ export const WhatsAppConversations: React.FC = () => {
     if (!selectedConvId) return [];
     return getOpenAlerts().filter(a => a.conversation_id === selectedConvId);
   }, [selectedConvId, conversations]);
+
+  const activeGroupMapping = useMemo(() => {
+    if (!activeConversation || !activeConversation.whatsapp_contact_id) return null;
+    const contact = localDb.getWhatsAppContacts().find(c => c.id === activeConversation.whatsapp_contact_id);
+    return contact ? whatsappIngestionService.resolveGroupFromRemoteJid(contact.whatsapp_number) : null;
+  }, [activeConversation]);
 
   const filteredConversations = useMemo(() => {
     let list = [...conversations];
@@ -150,6 +164,13 @@ export const WhatsAppConversations: React.FC = () => {
     });
 
     setReplyText('');
+    refreshData();
+  };
+
+  // Reprocess / Replay Message (Plan §6)
+  const handleReprocessMessage = (msgId: string) => {
+    const res = whatsappIngestionService.reprocessWhatsAppMessage(msgId);
+    alert(res.note);
     refreshData();
   };
 
@@ -222,15 +243,25 @@ export const WhatsAppConversations: React.FC = () => {
       {/* Page Title & Status Summary */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">WhatsApp Order Intelligence Workspace</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">WhatsApp Message Center</h1>
+            <span className="text-xs font-mono bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded border border-emerald-200">
+              Baileys Connect Pipe
+            </span>
+          </div>
           <p className="text-xs text-slate-500 mt-1">
-            Monitor real-time WhatsApp conversations, review AI order interpretations, override drafts, and handle customer alerts.
+            Monitor real-time Baileys WhatsApp messages, inspect resolved customer/group accounts, manage draft proposals, and reprocess failed items.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
+          {ingestionInfo && (
+            <span className="text-[11px] font-mono text-slate-500 bg-white px-2.5 py-1 rounded border border-slate-200">
+              Synced: +{ingestionInfo.ingested} / skipped {ingestionInfo.skipped}
+            </span>
+          )}
           <Button variant="outline" size="sm" onClick={refreshData} icon={<RefreshCw className="w-3.5 h-3.5" />}>
-            Refresh Conversations
+            Sync Baileys Messages
           </Button>
         </div>
       </div>
@@ -296,13 +327,13 @@ export const WhatsAppConversations: React.FC = () => {
                     }`}
                   >
                     <div className="w-9 h-9 bg-slate-900 text-white rounded-xl flex items-center justify-center font-bold text-xs shrink-0">
-                      {cust ? cust.company_name.substring(0, 2).toUpperCase() : 'WA'}
+                      {cust ? cust.company_name.substring(0, 2).toUpperCase() : '??'}
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1">
                         <span className="font-bold text-xs text-slate-900 truncate">
-                          {cust ? cust.company_name : 'Unknown WhatsApp Contact'}
+                          {cust ? cust.company_name : 'UNKNOWN_CUSTOMER'}
                         </span>
                         <span className="text-[10px] font-mono text-slate-400 shrink-0">
                           {new Date(conv.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -345,11 +376,18 @@ export const WhatsAppConversations: React.FC = () => {
               {/* Chat Header */}
               <div className="p-4 border-b border-slate-200 flex items-center justify-between gap-2 bg-slate-50/50">
                 <div>
-                  <h2 className="text-sm font-extrabold text-slate-900">
-                    {activeCustomer ? activeCustomer.company_name : 'Unknown WhatsApp Contact'}
-                  </h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-sm font-extrabold text-slate-900">
+                      {activeCustomer ? activeCustomer.company_name : 'UNKNOWN_CUSTOMER'}
+                    </h2>
+                    {activeGroupMapping && (
+                      <span className="text-[10px] font-mono font-bold bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded">
+                        {activeGroupMapping.name}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
-                    <span>Phone: {activeCustomer?.phone || '2505550199'}</span>
+                    <span>Phone: {activeCustomer?.phone || 'Not Resolved'}</span>
                     <span>•</span>
                     <span className="font-bold text-brand-700">Route: {activeConversation.route || 'Kelowna'}</span>
                   </p>
@@ -395,6 +433,13 @@ export const WhatsAppConversations: React.FC = () => {
                         <span className="text-[10px] font-mono text-slate-400">
                           {new Date(msg.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
+                        <button
+                          onClick={() => handleReprocessMessage(msg.id)}
+                          title="Reprocess message cleanly without duplicate orders"
+                          className="text-[10px] text-slate-400 hover:text-brand-600 flex items-center gap-0.5 ml-1"
+                        >
+                          <RotateCcw className="w-3 h-3" /> Replay
+                        </button>
                       </div>
 
                       <div className={`p-3 rounded-2xl max-w-md text-xs leading-relaxed ${

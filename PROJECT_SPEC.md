@@ -525,6 +525,66 @@ The CRM application is configured with a clean, 0-data baseline for immediate pr
 
 ---
 
+## WhatsApp Connector Integration
+
+### Existing Connector
+- Node.js microservice (`whatsapp-connector` at `C:\Users\TIW COMPUTER\Desktop\whatsapp-connector`).
+- Dependencies: `@whiskeysockets/baileys` (v6.7.9), `@supabase/supabase-js`, `pino`, `qrcode-terminal`, `dotenv`.
+- Authenticates directly with WhatsApp Web using Baileys multi-file auth state stored in `./auth` (or `/data/auth` on cloud volume).
+
+### Baileys Architecture
+- Listens to WhatsApp messages via `sock.ev.on('messages.upsert')`.
+- Renders QR code in terminal for linked device pair setup.
+- Captures raw incoming text, `remoteJid` (group/chat JID), `sender_jid` (`participant`), `from_me` flag, and full raw message payload.
+- Automatically reconnects on non-logout disconnects.
+
+### Connector Responsibilities
+- Primary role: **Communication Gateway & Message Transport**.
+- Receives WhatsApp messages and persists raw events to Supabase.
+- Sends outbound messages to customer groups and forwards confirmed order summaries to internal route groups (`ORDER_GROUP_JID`).
+
+### CRM Responsibilities
+- Primary role: **Business Logic & Operations Engine**.
+- Owns Customer account binding (`whatsapp_number` / group JID match), Product Catalog (1,022 SKUs), Customer Purchasing History (6,479 relationships), Multi-level Order Intelligence matching engine, Ambiguity Detection, Order Draft lifecycle (`CRM-ORD-XXXXXX`), Human Takeover, Attention Alerts, and 6-stage Daily Operations Workflow.
+
+### Supabase Responsibilities
+- Primary role: **Shared Persistent Data Layer**.
+- Maintains unified records for `messages`, `products`, `orders`, `order_items`, `whatsapp_conversations`, `order_drafts`, `order_draft_items`, and `agent_attention_alerts`.
+
+### Message Lifecycle
+1. Customer sends message to WhatsApp Group JID.
+2. Baileys fires `messages.upsert` in `whatsapp-connector`.
+3. Connector extracts `message_id`, `remote_jid`, `sender_jid`, `text`, `is_group`, `from_me`, `raw_message`.
+4. Connector writes message record to Supabase table `messages` with `processing_status = 'RECEIVED'`.
+5. CRM Order Intelligence Engine reads message, checks idempotency key (`message_id`), updates `processing_status = 'PROCESSING'`, runs classification & product matching, updates order draft, and records `processing_status = 'PROCESSED'`.
+
+### Integration Contract
+- **Incoming Message Path**: `WhatsApp` ➔ `Baileys Connector` ➔ `Supabase (messages)` ➔ `CRM Order Intelligence Engine`.
+- **Outgoing Message Path**: `CRM` ➔ `Supabase Outbox / Messaging Gateway` ➔ `Baileys Connector (sock.sendMessage)` ➔ `WhatsApp Group JID`.
+
+### Idempotency
+- Uses the native WhatsApp `msg.key.id` (or combined `remote_jid + message_id`) as the primary idempotency key.
+- Duplicate message events with an already-processed `message_id` are flagged `IGNORED` and skipped without creating duplicate order draft items.
+
+### Error Handling
+- Unparseable or low-confidence messages set `processing_status = 'HUMAN_REVIEW'` or `'FAILED'` with `error_reason`.
+- Failed messages trigger human attention alerts in `agent_attention_alerts` for agent intervention.
+
+### Environment Variables
+- `CUSTOMER_GROUP_JID`: Customer WhatsApp group JID (e.g. `120363431515227779@g.us`).
+- `ORDER_GROUP_JID`: Internal operations route group JID (e.g. `120363409575608646@g.us`).
+- `SUPABASE_URL`: Live Supabase project URL (`https://zdedyandanzkgvlaivfw.supabase.co`).
+- `SUPABASE_ANON_KEY` / `SUPABASE_KEY`: Supabase client access credentials.
+- `AUTH_FOLDER`: Local/volume session persistence directory (default `./auth`).
+
+### Database Ownership
+- `products`: Owned by CRM catalog. Connector reads for quick fallback match.
+- `customers`: Owned by CRM. Matched by `phone` or `whatsapp_number` / group JID.
+- `messages`: Owned jointly (Connector writes raw transport data, CRM updates processing status & classification).
+- `orders` & `order_items`: Owned by CRM operations (fed by confirmed WhatsApp intake drafts).
+
+---
+
 ## Change Log
 All technical changes are logged in [CHANGELOG.md](file:///c:/Users/TIW%20COMPUTER/Desktop/CRM/CHANGELOG.md).
 

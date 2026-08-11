@@ -5,6 +5,20 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.18.0] - 2026-08-11
+
+### Added
+- **WhatsApp Connector Integration — Phase 1 Audit & Architecture Contract**:
+  - Conducted full technical audit of existing Node.js Baileys microservice (`whatsapp-connector`).
+  - Documented complete message lifecycle: `WhatsApp` ➔ `Baileys Connector` ➔ `Supabase (messages)` ➔ `CRM Order Intelligence Engine` ➔ `Order Group JID`.
+  - Documented environment variables (`CUSTOMER_GROUP_JID`, `ORDER_GROUP_JID`, `SUPABASE_URL`, `SUPABASE_KEY`, `AUTH_FOLDER`).
+  - Audited and mapped schema structures (`products`, `groups`, `messages`, `orders`, `order_items`).
+  - Defined System-of-Record ownership rules (Connector = Communication Gateway, CRM = Business Logic & Operations, Supabase = Shared Persistent Layer).
+  - Established idempotency key protocol (`msg.key.id` / `remote_jid + message_id`) and message processing status taxonomy (`RECEIVED`, `PROCESSING`, `PROCESSED`, `IGNORED`, `FAILED`, `HUMAN_REVIEW`).
+  - Updated `PROJECT_SPEC.md` with complete Phase 1 integration contract and architecture specifications.
+
+---
+
 ## [1.17.0] - 2026-08-11
 
 ### Added

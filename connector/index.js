@@ -196,20 +196,21 @@ async function startWorker(forceFresh = false) {
 
         if (!text && !msg.message.imageMessage) continue;
 
-        // Inbound Duplicate Protection / Idempotency Check
-        const { data: existing } = await supabase
-          .from('messages')
-          .select('id')
-          .eq('remote_jid', remoteJid)
-          .eq('sender_jid', senderJid)
-          .eq('text', text)
-          .gte('created_at', new Date(Date.now() - 60000).toISOString())
-          .maybeSingle();
+        try {
+          const { data: existing } = await supabase
+            .from('messages')
+            .select('id')
+            .eq('remote_jid', remoteJid)
+            .eq('sender_jid', senderJid)
+            .eq('text', text)
+            .gte('created_at', new Date(Date.now() - 60000).toISOString())
+            .maybeSingle();
 
-        if (existing) {
-          console.log(`[Worker] Duplicate message ${messageId} ignored.`);
-          continue;
-        }
+          if (existing) {
+            console.log(`[Worker] Duplicate message ${messageId} ignored.`);
+            continue;
+          }
+        } catch (e) {}
 
         console.log(`[Worker] Inbound message received from ${remoteJid}: "${text.substring(0, 40)}..."`);
 

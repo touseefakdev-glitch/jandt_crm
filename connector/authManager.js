@@ -50,8 +50,9 @@ async function getAuthManager() {
       for (const filename of files) {
         if (!filename.endsWith('.json')) continue;
         const filepath = path.join(AUTH_DIR, filename);
-        const content = fs.readFileSync(filepath, 'utf-8');
+        if (!fs.existsSync(filepath)) continue;
         try {
+          const content = fs.readFileSync(filepath, 'utf-8');
           const jsonVal = JSON.parse(content);
           await supabase.from('whatsapp_baileys_auth').upsert({
             id: `file:${filename}`,

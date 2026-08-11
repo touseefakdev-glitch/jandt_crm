@@ -416,30 +416,6 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Out of Stock Alert */}
-      {outOfStockProducts.length > 0 && (
-        <div className="bg-red-50 rounded-xl border border-red-200 p-6 shadow-card">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2 text-red-950 font-bold">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
-              <h3 className="text-base font-bold">Product Availability Alerts</h3>
-            </div>
-            <Link to="/out-of-stock" className="text-xs font-bold text-red-700 hover:underline">View All ({outOfStockProducts.length})</Link>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-            {outOfStockProducts.slice(0, 4).map((p) => (
-              <Link key={p.id} to={`/products/${p.id}`} className="p-3 bg-white rounded-lg border border-red-200 flex items-center justify-between hover:border-red-400 transition-colors">
-                <div>
-                  <span className="font-mono font-bold text-brand-700 mr-2">{p.sku}</span>
-                  <span className="font-bold text-slate-900">{p.product_name}</span>
-                </div>
-                <span className="text-[10px] bg-red-100 text-red-800 px-2 py-0.5 rounded font-bold uppercase">Unavailable</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

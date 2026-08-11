@@ -225,34 +225,6 @@ export const OrderFormModal: React.FC<OrderFormModalProps> = ({
             </div>
           )}
 
-          {unavailableItemWarnings.length > 0 && (
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2 text-xs">
-              <div className="flex items-center space-x-2 text-amber-900 font-bold uppercase tracking-wider">
-                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>Product Availability Warning</span>
-              </div>
-              <p className="text-amber-950 font-medium">
-                The following selected order products are currently marked <span className="font-bold text-red-700 uppercase">Out of Stock</span>. Orders can still be created for unavailable products:
-              </p>
-              <div className="space-y-1 pt-1">
-                {unavailableItemWarnings.map((w, idx) => (
-                  <div key={idx} className="p-2.5 bg-white rounded-lg border border-amber-200 text-slate-800 flex justify-between items-center">
-                    <div>
-                      <span className="font-mono font-bold text-red-700 mr-2">{w.sku}</span>
-                      <span className="font-bold">{w.productName}</span>
-                      {w.notes && <span className="text-slate-500 block text-[11px] mt-0.5">Reason: {w.notes}</span>}
-                    </div>
-                    {w.expectedDate && (
-                      <span className="font-mono text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded">
-                        Expected: {new Date(w.expectedDate).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
             <div>
               <div className="flex items-center justify-between mb-1.5">

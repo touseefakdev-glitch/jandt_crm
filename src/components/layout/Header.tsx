@@ -121,9 +121,9 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileNav, sidebarCollapse
     }
     if (connState === 'not_configured') {
       return (
-        <span title={connError || 'No Supabase credentials for this build.'} className="hidden lg:inline-flex items-center gap-1.5 text-[11px] font-medium text-red-700 bg-red-50 px-2.5 py-1.5 rounded-lg border border-red-200">
-          <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
-          Supabase Not Configured
+        <span title={connError || 'No Supabase credentials for this build.'} className="hidden lg:inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-600 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+          Local Mode
         </span>
       );
     }
@@ -131,10 +131,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileNav, sidebarCollapse
       return (
         <span
           title={`Host: ${connHost || 'none'} — ${connError || 'cannot reach Supabase'}`}
-          className="hidden lg:inline-flex items-center gap-1.5 text-[11px] font-medium text-amber-700 bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-200"
+          className="hidden lg:inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-600 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200"
         >
-          <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-          Supabase Offline
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+          Local Storage Mode
         </span>
       );
     }

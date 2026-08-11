@@ -68,11 +68,13 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   // Optional CRON_SECRET gate (set in Vercel env). Vercel cron sends Authorization: Bearer $CRON_SECRET.
+  // Phase 8 security: compared in constant time so a timing side-channel can't
+  // leak the secret. The secret never reaches the browser — it is env-only.
   const cronSecret = process.env.CRON_SECRET;
   if (cronSecret) {
     const auth = req.headers.get('authorization') || '';
     const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-    if (bearer !== cronSecret) {
+    if (!safeEqual(bearer, cronSecret)) {
       return json({ error: 'unauthorized' }, 401);
     }
   }
@@ -267,6 +269,16 @@ function emptySummary(timezone: string, deliveryDate?: string, reason?: string):
     reason,
     reminders: [],
   };
+}
+
+/** Constant-time string comparison to avoid leaking CRON_SECRET via timing. */
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
 }
 
 function json(body: unknown, status = 200): Response {

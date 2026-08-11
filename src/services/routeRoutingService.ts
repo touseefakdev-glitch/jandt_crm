@@ -106,11 +106,21 @@ export function resolveDestinationJidForRoute(route: string): string {
 
 /**
  * Forwards a confirmed order draft to the Baileys WhatsApp route destination via Supabase outbox / messages.
+ * Phase 8: idempotent — never forwards the same order twice.
  */
 export async function forwardConfirmedOrderToRoute(draftId: string): Promise<{ success: boolean; destinationJid: string; messageText: string }> {
   const draft = localDb.getOrderDraftWithItems(draftId);
   if (!draft) {
     throw new Error(`Order draft ${draftId} not found.`);
+  }
+
+  // Duplicate protection: a forwarded order is never forwarded again.
+  if (draft.status === 'FORWARDED') {
+    return {
+      success: true,
+      destinationJid: resolveDestinationJidForRoute(draft.route || 'Kelowna'),
+      messageText: buildInternalRouteMessage(draft),
+    };
   }
 
   const destinationJid = resolveDestinationJidForRoute(draft.route || 'Kelowna');
@@ -134,12 +144,19 @@ export async function forwardConfirmedOrderToRoute(draftId: string): Promise<{ s
     }
   }
 
-  // Log order intake event
+  // Log order intake events: order_forwarded for the audit trail + route_forwarded for the route pipeline
   localDb.logOrderIntakeEvent({
     order_draft_id: draftId,
     conversation_id: draft.conversation_id,
     event_type: 'order_forwarded',
     description: `Confirmed order ${draft.internal_reference} forwarded to destination JID ${destinationJid}`,
+  });
+  localDb.logOrderIntakeEvent({
+    order_draft_id: draftId,
+    conversation_id: draft.conversation_id,
+    event_type: 'route_forwarded',
+    description: `Order ${draft.internal_reference} dispatched on route ${draft.route || 'Kelowna'}`,
+    payload: { destination_jid: destinationJid },
   });
 
   return { success: true, destinationJid, messageText };

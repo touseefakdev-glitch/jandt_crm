@@ -921,6 +921,28 @@ CREATE TABLE IF NOT EXISTS public.order_reminders (
 );
 
 -- =============================================================================
+-- PHASE 8: PRODUCTION HARDENING
+-- =============================================================================
+
+-- Order Processing Error Log (error recovery: nothing silently disappears)
+-- Failed messages are stored here for retry / manual review.
+CREATE TABLE IF NOT EXISTS public.order_processing_errors (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    conversation_id UUID REFERENCES public.whatsapp_conversations(id) ON DELETE SET NULL,
+    message_id UUID REFERENCES public.whatsapp_messages(id) ON DELETE SET NULL,
+    customer_id UUID REFERENCES public.customers(id) ON DELETE SET NULL,
+    stage VARCHAR(30) NOT NULL, -- ingest, classify, parse, match, dispatch, ai, supabase
+    error_code VARCHAR(100) NOT NULL,
+    error_message TEXT,
+    raw_message_text TEXT,
+    external_message_id VARCHAR(255),
+    status VARCHAR(20) NOT NULL DEFAULT 'open', -- open, retrying, resolved, dismissed
+    attempt_count INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- =============================================================================
 -- WHATSAPP ORDER INTELLIGENCE INDEXES
 -- =============================================================================
 CREATE INDEX IF NOT EXISTS idx_whatsapp_conversations_customer ON public.whatsapp_conversations(customer_id);
@@ -942,6 +964,9 @@ CREATE INDEX IF NOT EXISTS idx_route_destinations_route ON public.route_destinat
 CREATE INDEX IF NOT EXISTS idx_order_reminders_customer ON public.order_reminders(customer_id);
 CREATE INDEX IF NOT EXISTS idx_order_reminders_delivery ON public.order_reminders(delivery_date);
 CREATE INDEX IF NOT EXISTS idx_order_reminders_status ON public.order_reminders(status);
+CREATE INDEX IF NOT EXISTS idx_order_processing_errors_status ON public.order_processing_errors(status);
+CREATE INDEX IF NOT EXISTS idx_order_processing_errors_created ON public.order_processing_errors(created_at);
+CREATE INDEX IF NOT EXISTS idx_order_processing_errors_message ON public.order_processing_errors(message_id);
 
 -- =============================================================================
 -- WHATSAPP ORDER INTELLIGENCE ROW LEVEL SECURITY
@@ -958,6 +983,7 @@ ALTER TABLE public.agent_attention_alerts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_intake_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_request_config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_reminders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.order_processing_errors ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Authenticated users can read whatsapp contacts" ON public.whatsapp_contacts FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated users can read whatsapp conversations" ON public.whatsapp_conversations FOR SELECT USING (auth.role() = 'authenticated');
@@ -971,3 +997,4 @@ CREATE POLICY "Authenticated users can read agent attention alerts" ON public.ag
 CREATE POLICY "Authenticated users can read order intake events" ON public.order_intake_events FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated users can read order request config" ON public.order_request_config FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated users can read order reminders" ON public.order_reminders FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can read order processing errors" ON public.order_processing_errors FOR SELECT USING (auth.role() = 'authenticated');

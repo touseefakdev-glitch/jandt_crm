@@ -27,6 +27,7 @@ import {
   MessageClassificationResult,
   OrderDraft,
   OrderDraftItem,
+  OrderIntakeEventType,
   WhatsAppConversation,
   WhatsAppMessage,
 } from '../types';
@@ -101,7 +102,7 @@ function buildRouteOrderMessage(draft: OrderDraft): string {
 }
 
 function logEvent(
-  eventType: string,
+  eventType: OrderIntakeEventType,
   description: string,
   opts: { draftId?: string | null; conversationId?: string | null; messageId?: string | null; confidence?: number | null; payload?: Record<string, unknown> | null } = {}
 ) {
@@ -149,6 +150,11 @@ export function processIncomingMessage(
   const classification = classifyMessage(rawText);
   const customer = resolveDraftCustomer(conversation);
   const messageId = opts.messageId || null;
+
+  // Phase 8 audit trail: every classified message is recorded.
+  logEvent('message_classified', `Message classified as ${classification.classification} (confidence ${Math.round(classification.confidence * 100)}%).`, {
+    conversationId: conversation.id, messageId, confidence: classification.confidence,
+  });
 
   // --- Cancellation intent (plan §49) ---
   if (detectCancellationIntent(rawText)) {
@@ -332,6 +338,9 @@ export function processIncomingMessage(
   });
 
   if (needsClarification) {
+    logEvent('clarification_requested', `Clarification requested: ${matchResult.clarificationQuestion || 'Order requires clarification.'}`, {
+      draftId: draft.id, conversationId: conversation.id, messageId,
+    });
     const alert = raiseAttentionAlert({
       customerId: conversation.customer_id,
       conversationId: conversation.id,
@@ -372,6 +381,17 @@ export function confirmDraft(
     return { classification: { classification: 'ORDER_CONFIRMATION', confidence: 1, isOrder: false, requiresHumanAttention: false, priority: 'normal', matchedKeywords: [] }, outcome: 'non_order' };
   }
 
+  // Phase 8 duplicate protection: a confirmed/forwarded order can never be
+  // confirmed again — no second confirmation, no second reference, no double forward.
+  if (existing.status === 'CONFIRMED' || existing.status === 'FORWARDED') {
+    return {
+      classification: { classification: 'ORDER_CONFIRMATION', confidence: 1, isOrder: false, requiresHumanAttention: false, priority: 'normal', matchedKeywords: ['yes'] },
+      outcome: 'confirmation',
+      draft: localDb.getOrderDraftWithItems(draftId) ?? undefined,
+      reply: 'This order has already been confirmed. No duplicate will be created.',
+    };
+  }
+
   const internalReference = existing.internal_reference || localDb.generateInternalReference();
   const now = new Date().toISOString();
 
@@ -401,6 +421,13 @@ export function confirmDraft(
   });
   logEvent('draft_confirmed', `Order draft confirmed and recorded as ${internalReference}.`, {
     draftId, conversationId: conversation.id, messageId, confidence: 1,
+  });
+  logEvent('order_created', `Order ${internalReference} created from confirmed draft.`, {
+    draftId, conversationId: conversation.id, messageId, confidence: 1,
+    payload: {
+      internal_reference: internalReference,
+      items: items.filter(i => i.status !== 'rejected').map(i => ({ product_id: i.product_id, product_name: i.matched_product_name, quantity: i.quantity })),
+    },
   });
 
   return {
@@ -499,6 +526,84 @@ export function applyCorrection(
   };
 }
 
+// --- Phase 8: Human Control — reject & edit drafts ---
+
+/**
+ * Agent rejects an order draft. Confirmed/forwarded orders cannot be rejected.
+ * The draft is moved to CANCELLED with the agent reason recorded on the audit trail.
+ */
+export function rejectOrderDraft(
+  draftId: string,
+  reason: string,
+  opts: { conversationId?: string | null; messageId?: string | null; userId?: string | null } = {}
+): OrderDraft | null {
+  const draft = localDb.getOrderDraftById(draftId);
+  if (!draft) return null;
+  if (draft.status === 'CONFIRMED' || draft.status === 'FORWARDED') {
+    return draft; // terminal states cannot be rejected
+  }
+
+  const updated = localDb.updateOrderDraft(draftId, {
+    status: 'CANCELLED',
+    clarification_reason: `Rejected by agent: ${reason}`,
+    pending_question: null,
+  });
+
+  logEvent('draft_rejected', `Order draft ${draft.internal_reference || draftId} rejected by agent. Reason: ${reason}`, {
+    draftId, conversationId: opts.conversationId ?? draft.conversation_id, messageId: opts.messageId ?? null,
+  });
+
+  localDb.logAudit({
+    user_id: opts.userId ?? null,
+    action: 'order_draft_rejected',
+    entity_type: 'order_draft',
+    entity_id: draftId,
+    entity_number: draft.internal_reference,
+    summary: `Order draft ${draft.internal_reference || draftId} rejected by agent. Reason: ${reason}`,
+    new_value: 'CANCELLED',
+  });
+
+  return updated;
+}
+
+/**
+ * Agent edits draft line items (quantities / product assignment) before
+ * confirmation. Records a draft_edited intake event for the audit trail.
+ */
+export function editOrderDraftItems(
+  draftId: string,
+  items: Array<{ id: string; quantity?: number | null; product_id?: string | null }>,
+  opts: { userId?: string | null } = {}
+): OrderDraft | null {
+  const draft = localDb.getOrderDraftById(draftId);
+  if (!draft) return null;
+
+  items.forEach(edit => {
+    if (!edit.id) return;
+    const patch: Partial<OrderDraftItem> = {};
+    if (edit.quantity !== undefined) patch.quantity = edit.quantity;
+    if (edit.product_id !== undefined) patch.product_id = edit.product_id;
+    localDb.updateOrderDraftItem(edit.id, patch);
+  });
+
+  logEvent('draft_edited', `Order draft ${draft.internal_reference || draftId} edited by agent.`, {
+    draftId, conversationId: draft.conversation_id,
+    payload: { edited_items: items.map(i => ({ id: i.id, quantity: i.quantity ?? null })) },
+  });
+
+  localDb.logAudit({
+    user_id: opts.userId ?? null,
+    action: 'order_draft_edited',
+    entity_type: 'order_draft',
+    entity_id: draftId,
+    entity_number: draft.internal_reference,
+    summary: `Order draft ${draft.internal_reference || draftId} line items edited by agent`,
+    new_value: `${items.length} item(s)`,
+  });
+
+  return localDb.getOrderDraftWithItems(draftId);
+}
+
 // --- Bot controls (plan §53–§54) ---
 
 export function pauseBot(conversationId: string): WhatsAppConversation | null {
@@ -545,6 +650,8 @@ export const orderDraftService = {
   processIncomingMessage,
   confirmDraft,
   applyCorrection,
+  rejectOrderDraft,
+  editOrderDraftItems,
   pauseBot,
   resumeBot,
   takeOverConversation,

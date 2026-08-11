@@ -18,6 +18,9 @@ async function main() {
   const { localDb } = await import('../../CRM/src/services/db');
   const { processIncomingMessage, orderDraftService } = await import('../../CRM/src/services/orderDraftService');
   const { runDailyOrderRequest } = await import('../../CRM/src/services/dailyOrderRequestService');
+  const { processMessageSafely } = await import('../../CRM/src/services/resilientProcessing');
+  const { getWhatsAppMonitoringStats } = await import('../../CRM/src/services/whatsappMonitoringService');
+  const { forwardConfirmedOrderToRoute } = await import('../../CRM/src/services/routeRoutingService');
   const adminId = 'a1111111-1111-1111-1111-111111111111';
 
   // Seed test catalog if running on a clean slate database
@@ -223,6 +226,112 @@ async function main() {
   // --- Flow 9: retry only fails cleanly; dedupe prevents double-send ---
   const rerun = await runDailyOrderRequest(adminId, future);
   check('flow9: rerun skipped already-sent', rerun.skipped === rerun.eligibleCustomers, `${rerun.skipped}/${rerun.eligibleCustomers}`);
+
+  // --- Flow 10: Phase 8 duplicate protection on confirmDraft ---
+  const confirmedDraft = r4.draft;
+  check('flow10: confirmed draft exists', !!confirmedDraft, confirmedDraft?.id);
+  const beforeOrderEvents = localDb.getOrderIntakeEvents().filter(e => e.event_type === 'order_created').length;
+  const dupConfirm = orderDraftService.confirmDraft(confirmedDraft!.id, 'confirm again', conv2, confirmMsg.id);
+  check('flow10: double confirm blocked', dupConfirm.outcome === 'confirmation' && dupConfirm.reply.includes('No duplicate will be created'), dupConfirm.reply);
+  const afterOrderEvents = localDb.getOrderIntakeEvents().filter(e => e.event_type === 'order_created').length;
+  check('flow10: no second order created', afterOrderEvents === beforeOrderEvents, `${beforeOrderEvents} -> ${afterOrderEvents}`);
+
+  // --- Flow 11: Phase 8 route-forward idempotency ---
+  const fwd1 = await forwardConfirmedOrderToRoute(confirmedDraft!.id);
+  const fwd2 = await forwardConfirmedOrderToRoute(confirmedDraft!.id);
+  const fwdEvents = localDb.getOrderIntakeEvents().filter(e => e.event_type === 'route_forwarded' && e.order_draft_id === confirmedDraft!.id);
+  check('flow11: first forward dispatched', fwd1.success === true, fwd1.destinationJid);
+  check('flow11: second forward short-circuited', fwd2.success === true, '');
+  check('flow11: only one route_forwarded event', fwdEvents.length === 1, fwdEvents.length.toString());
+  const fwdDraft = localDb.getOrderDraftWithItems(confirmedDraft!.id);
+  check('flow11: draft status FORWARDED', fwdDraft?.status === 'FORWARDED', fwdDraft?.status);
+
+  // --- Flow 12: Phase 8 reject draft (human control) ---
+  const rejectContact = localDb.getOrCreateWhatsAppContact('5550001111', 'Reject Test Co');
+  const rejectConv = localDb.getOrCreateWhatsAppConversation(rejectContact.id, null);
+  const rejectMsg = localDb.addWhatsAppMessage({
+    conversation_id: rejectConv.id, direction: 'inbound', message_type: 'text',
+    message_text: '3 BLU-GLOV-LRG', sender: '5550001111', sent_at: new Date().toISOString(),
+  });
+  const rejectResult = processIncomingMessage(rejectConv, rejectMsg.message_text, { messageId: rejectMsg.id });
+  const rejected = orderDraftService.rejectOrderDraft(rejectResult.draft!.id, 'Customer cancelled by phone', { userId: adminId, conversationId: rejectConv.id });
+  check('flow12: draft cancelled', rejected?.status === 'CANCELLED', rejected?.status);
+  const rejectEvent = localDb.getOrderIntakeEvents().find(e => e.event_type === 'draft_rejected' && e.order_draft_id === rejectResult.draft!.id);
+  check('flow12: draft_rejected event recorded', !!rejectEvent, rejectEvent?.description);
+  const auditLogs = localDb.getAuditLogs({ action: 'order_draft_rejected' });
+  check('flow12: audit entry written', auditLogs.some(a => a.entity_id === rejectResult.draft!.id), auditLogs.map(a => a.entity_id).join('|'));
+
+  // --- Flow 13: Phase 8 edit draft (human control) ---
+  const editContact = localDb.getOrCreateWhatsAppContact('5550002222', 'Edit Test Co');
+  const editConv = localDb.getOrCreateWhatsAppConversation(editContact.id, null);
+  const editMsg = localDb.addWhatsAppMessage({
+    conversation_id: editConv.id, direction: 'inbound', message_type: 'text',
+    message_text: '5 FPK-GEN-FOIL-ITEM', sender: '5550002222', sent_at: new Date().toISOString(),
+  });
+  const editResult = processIncomingMessage(editConv, editMsg.message_text, { messageId: editMsg.id });
+  const editItem = (editResult.draft?.items || [])[0];
+  check('flow13: draft has a matched item', !!editItem, editItem?.matched_product_name);
+  const edited = orderDraftService.editOrderDraftItems(editResult.draft!.id, [{ id: editItem.id, quantity: 7 }], { userId: adminId });
+  const editedItem = (edited?.items || []).find(i => i.id === editItem.id);
+  check('flow13: quantity edited to 7', editedItem?.quantity === 7, String(editedItem?.quantity));
+  const editEvent = localDb.getOrderIntakeEvents().find(e => e.event_type === 'draft_edited' && e.order_draft_id === editResult.draft!.id);
+  check('flow13: draft_edited event recorded', !!editEvent, '');
+
+  // --- Flow 14: Phase 8 resilient pipeline never throws ---
+  const resilientConv = localDb.getOrCreateWhatsAppConversation(
+    localDb.getOrCreateWhatsAppContact('5550003333', 'Resilient Co').id, null
+  );
+  const resilientMsg = localDb.addWhatsAppMessage({
+    conversation_id: resilientConv.id, direction: 'inbound', message_type: 'text',
+    message_text: '@#%$^!(( unparseable noise', sender: '5550003333', sent_at: new Date().toISOString(),
+  });
+  let resilientOutcome = '';
+  let threw = false;
+  try {
+    const res = processMessageSafely(resilientConv, resilientMsg.message_text, { messageId: resilientMsg.id });
+    resilientOutcome = res.outcome;
+  } catch (err) {
+    threw = true;
+  }
+  check('flow14: processMessageSafely never throws', threw === false, String(threw));
+  check('flow14: returns a valid outcome', ['order', 'clarification', 'human_review', 'non_order'].includes(resilientOutcome), resilientOutcome);
+
+  // --- Flow 15: Phase 8 error recovery dedupe ---
+  const err1 = localDb.recordOrderProcessingError({
+    conversation_id: resilientConv.id, customer_id: null, message_id: resilientMsg.id,
+    external_message_id: null, stage: 'parse', error_code: 'test_error', error_message: 'boom',
+    raw_message_text: resilientMsg.message_text,
+  });
+  const err2 = localDb.recordOrderProcessingError({
+    conversation_id: resilientConv.id, customer_id: null, message_id: resilientMsg.id,
+    external_message_id: null, stage: 'parse', error_code: 'test_error', error_message: 'boom',
+    raw_message_text: resilientMsg.message_text,
+  });
+  const sameRecord = err1.id === err2.id;
+  const attemptBumped = err2.attempt_count === 2;
+  check('flow15: duplicate error deduped to same record', sameRecord, `${err1.id} vs ${err2.id}`);
+  check('flow15: attempt_count bumped to 2', attemptBumped, String(err2.attempt_count));
+  const openErrors = localDb.getOrderProcessingErrors({ status: 'open' }).filter(e => e.message_id === resilientMsg.id);
+  check('flow15: exactly one open record', openErrors.length === 1, openErrors.length.toString());
+  localDb.resolveOrderProcessingError(err1.id, 'Resolved in test', adminId);
+  check('flow15: error resolved', localDb.getOrderProcessingErrors().find(e => e.id === err1.id)?.status === 'resolved', '');
+
+  // --- Flow 16: Phase 8 monitoring dashboard stats ---
+  const stats = getWhatsAppMonitoringStats();
+  check('flow16: stats computed', !!stats.dateKey, stats.dateKey);
+  check('flow16: messagesToday > 0', stats.messagesToday > 0, String(stats.messagesToday));
+  check('flow16: ordersDetected > 0', stats.ordersDetected > 0, String(stats.ordersDetected));
+  check('flow16: ordersConfirmed >= 1', stats.ordersConfirmed >= 1, String(stats.ordersConfirmed));
+  check('flow16: openProcessingErrors >= 0', stats.openProcessingErrors >= 0, String(stats.openProcessingErrors));
+  localDb.updateWhatsAppMessage(msg1.id, { classification: 'ORDER' });
+  const stats2 = getWhatsAppMonitoringStats();
+  check('flow16: byClassification counts classified messages', (stats2.byClassification.ORDER || 0) >= 1, JSON.stringify(stats2.byClassification.ORDER));
+
+  // --- Flow 17: Phase 8 audit trail shows order lifecycle ---
+  const lifecycle = localDb.getOrderIntakeEvents(confirmedDraft!.id).map(e => e.event_type);
+  check('flow17: draft_confirmed in lifecycle', lifecycle.includes('draft_confirmed'), lifecycle.join(','));
+  check('flow17: order_created in lifecycle', lifecycle.includes('order_created'), lifecycle.join(','));
+  check('flow17: order_forwarded in lifecycle', lifecycle.includes('order_forwarded'), lifecycle.join(','));
 
   console.log(results.join('\n'));
   console.log(`\n${pass} passed, ${fail} failed`);

@@ -860,6 +860,137 @@ Message: "What time is my driver coming?"
 
 ---
 
+## WhatsApp Ordering — Phase 8 (Production Hardening)
+
+> Production hardening for the WhatsApp ordering pipeline: duplicate protection, a complete audit trail, a monitoring dashboard, error recovery, an AI-failure deterministic fallback, security, and full human control. No inventory management, no traditional order form — WhatsApp ordering stays a messaging conversation end-to-end.
+
+### 1. Duplicate Protection (Idempotency)
+- **Messages**: ingestion dedupes by `external_message_id` / raw `key.id`; a message already ingested is skipped.
+- **Drafts**: only one active draft per conversation is created; new order messages update the active draft instead of creating a second one.
+- **Confirmations**: `confirmDraft` is idempotent — a draft already `CONFIRMED`/`FORWARDED` returns the existing draft and replies "This order has already been confirmed. No duplicate will be created."
+- **Orders**: the `order_created` intake event is written exactly once, together with `draft_confirmed`.
+- **Route forwards**: `forwardConfirmedOrderToRoute` guards on status `FORWARDED` and never dispatches the same order twice.
+- **Reminders**: `order_reminders` keeps the `unique (customer_id, delivery_date)` dedupe; already-`sent` rows are skipped.
+
+### 2. Audit Log
+Every pipeline stage is written to the `order_intake_events` table (`event_type` is a strict union) plus CRM audit log entries for agent actions:
+- Message received → classified → candidate extracted → product matched → draft created → clarification requested → customer confirmed → **order created** → order/route forwarded.
+- Human actions: human takeover, bot paused, bot resumed, **draft rejected**, **draft edited**.
+- Recovery: retry queued, processing error recorded/resolved.
+
+### 3. Monitoring Dashboard — `/whatsapp-monitor`
+Seven core KPIs for the last 24h (local calendar day):
+1. Messages Today (inbound/outbound split)
+2. Orders Detected (drafts parsed into references)
+3. Orders Confirmed (confirmed + forwarded)
+4. Needs Clarification (drafts awaiting customer input)
+5. Human Reviews (escalated to a person)
+6. Failed Messages (stuck in error state)
+7. Failed Sends (outbound dispatch failures)
+Also surfaced: failed reminders, open processing errors (with **Retry**), per-classification breakdown, recent intake activity feed, and per-conversation drill-down links. All authenticated roles can view; **Retry** is gated to Admin + Sales Agent.
+
+### 4. Error Recovery
+- Failures are never dropped: every stage failure is written to `order_processing_errors` (stage, error code/message, raw text, external message id, status, attempt count) and, for pipeline failures, a high-priority human attention alert is raised.
+- `recordOrderProcessingError` dedupes open/retrying records per `(message_id, stage)` and bumps `attempt_count`.
+- Agents can **Retry** from the inbox or monitor; retries run the resilient pipeline again, resolve successful retries, and keep re-failed ones open. Duplicate orders are impossible (guarded by intake-event checks).
+- New table `order_processing_errors` + RLS read policy, synced locally via `jt_crm_order_processing_errors`.
+
+### 5. AI-Failure Deterministic Fallback
+- The pipeline is intentionally **deterministic** (classifier → parser → product matcher; `aiService.ts` remains a stub with no runtime dependency).
+- `resilientProcessing.ts` wraps every stage (`safeClassify`, `safeParse`, `safeMatch`) and `processMessageSafely` never throws — on any failure it records a `processing_error`, writes a `processing_error` intake event, raises an attention alert, and returns a `human_review` outcome so the customer's order still reaches a person.
+- Ingestion (`whatsappIngestionService`) runs every inbound message through `processMessageSafely`, stores the raw payload, and marks the message `error`/`escalated` on failure.
+
+### 6. Security
+- **No secrets in the browser**: `SUPABASE_SERVICE_ROLE_KEY` / `CRON_SECRET` are used only server-side (Vercel function env). `src/` contains no secret references (verified by grep).
+- The Vercel cron gate now compares `CRON_SECRET` in **constant time** (`safeEqual`) to prevent timing side-channels.
+- `raw_payload` is stored with the message so sensitive raw webhook data stays inspectable by agents but never logged to the console.
+
+### 7. Human Control (Never Fully Autonomous)
+- Pause/resume bot, human takeover, confirm draft, **reject draft** (cancels + records reason, never auto-replies to the customer), **edit draft line items**, **retry failed processing**, **view raw message payload**, **view matching result**, and **view audit history** — all from the WhatsApp Message Center.
+- Outbound replies to customers remain **human-only**; autonomous outbound ordering is intentionally disabled until the production readiness review.
+
+### 8. No Inventory
+WhatsApp ordering deliberately does **not** deduct or manage stock. Product availability is read from the existing catalog; availability control stays in the Products module.
+
+### 9. No Traditional Order Form
+Order entry has no form. The customer's free-form WhatsApp message is parsed, matched, confirmed in-conversation, and forwarded to the route destination group — mirroring the existing manual chat workflow.
+
+### 10. Production Readiness Report
+| Area | Status |
+| --- | --- |
+| Duplicate protection | Implemented (messages/drafts/confirmations/orders/forwards/reminders) |
+| Audit trail | `order_intake_events` (24 event types) + CRM audit log |
+| Monitoring | `/whatsapp-monitor` — 7 KPIs + drill-downs |
+| Error recovery | `order_processing_errors` + retry/manual review |
+| AI fallback | Deterministic pipeline + `processMessageSafely` safety net |
+| Security | No client secrets; constant-time `CRON_SECRET` compare |
+| Human control | Pause/takeover/reject/edit/retry/raw/matching/audit |
+| Autonomous replies | **Disabled** — outbound remains human-only (pending review) |
+| Inventory | Out of scope — no stock integration |
+| Order form | Out of scope — chat-native ordering only |
+| Known gaps | Real Baileys traffic needs a live connector test; Supabase RLS write policies to be granted per production environment |
+
+### New Database Schema
+- `order_processing_errors` — stage, error code/message, raw text, external message id, status (`open`/`retrying`/`resolved`/`dismissed`), `attempt_count`, resolution, indexes on status/created/message, RLS read policy.
+- Registered in `supabaseSync.ts` `TABLE_MAP` as `jt_crm_order_processing_errors`.
+
+### New Local Storage Keys
+- `jt_crm_order_processing_errors`.
+
+---
+
+## WhatsApp Ordering System (Consolidated Reference)
+
+### 1. Architecture
+A chat-native ordering system layered on the existing CRM: Baileys writes raw WhatsApp messages to the Supabase `messages` table; the browser app ingests them, runs a deterministic pipeline, and (with an authorized agent) confirms and routes orders. Local-first write-through sync (`supabaseSync.ts`) mirrors every table to `localStorage` keys under the `jt_crm_` prefix.
+
+### 2. Baileys Connector
+Baileys remains a separate service — this repo only consumes and produces rows in the `messages` table. Inbound rows carry `sender_jid`/`remote_jid`; outbound rows are inserted `from_me = true` and picked up by Baileys.
+
+### 3. Message Lifecycle
+`received` → `classified` → `parsed` → `draft_created` → `awaiting_confirmation` → `confirmed` (or `escalated` / `error`). Every transition is stored on the message and mirrored in `order_intake_events`.
+
+### 4. Customer Identification
+`sender_jid`/`remote_jid` → phone → customer (phone / WhatsApp number suffix match). Unmatched senders become `UNKNOWN_CUSTOMER`; never guessed.
+
+### 5. Product Matching
+`productMatcher.matchOrderCandidates` scores mentions against the catalog with `MIN_MATCH_CONFIDENCE = 0.6`; `AMBIGUITY_DELTA = 0.15` separates confident from ambiguous matches. Results are reviewed by agents in the matching inspector.
+
+### 6. Historical Purchases
+`customer_product_history` feeds the matcher context so repeat customers are matched faster and more accurately.
+
+### 7. Order Drafts
+One active draft per conversation (`NEW_MESSAGE → ANALYZING → DRAFT_CREATED → NEEDS_CLARIFICATION / AWAITING_CONFIRMATION → CONFIRMED → FORWARDED → CANCELLED / HUMAN_REVIEW`). Agents can edit line items before confirmation.
+
+### 8. Confirmation
+The customer confirms in-conversation (or an agent approves). `confirmDraft` creates the CRM order, records `order_created`, and is idempotent against duplicates.
+
+### 9. Route Forwarding
+`forwardConfirmedOrderToRoute` resolves the route destination JID, inserts an outbound group message, marks the draft `FORWARDED` (guarded), and logs `order_forwarded` + `route_forwarded`.
+
+### 10. Human Escalation
+Non-order, ambiguous, or failed messages escalate to human review instead of being dropped.
+
+### 11. Attention Alerts
+`attentionAlertService` raises deduplicated priority alerts with sound + notification; agents resolve them or convert them into Support Queries.
+
+### 12. Scheduling
+`api/daily-order-request.ts` runs on Vercel Cron (every 30 min, UTC), computes business-timezone send time, and dispatches order-request reminders with `(customer_id, delivery_date)` dedupe.
+
+### 13. Error Handling
+Every failure lands in `order_processing_errors` for retry/manual review; `processMessageSafely` guarantees the pipeline never throws and never silently loses a customer order.
+
+### 14. Security
+No secret ever reaches the browser (env-only server keys); `CRON_SECRET` is compared in constant time; raw payloads are stored on messages, not logged.
+
+### 15. Audit Trail
+`order_intake_events` (24 typed event types) captures the full pipeline; agent actions (reject/edit/retry/takeover/pause) also write CRM audit log entries with user attribution.
+
+### 16. Production Operations
+Operations run from three places: **WhatsApp Inbox** (per-conversation human control), **WhatsApp Monitor** (KPIs, errors, retries), and **Admin → Order Requests** (scheduler config + reminder history). No inventory, no order form — ordering stays a conversation.
+
+---
+
 ## Change Log
 All technical changes are logged in [CHANGELOG.md](file:///c:/Users/TIW%20COMPUTER/Desktop/CRM/CHANGELOG.md).
 

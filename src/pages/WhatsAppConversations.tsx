@@ -15,7 +15,7 @@ import {
   OrderDraftItem,
   AgentAttentionAlert
 } from '../types';
-import { Card, CardHeader, CardBody, Button, Badge, Input, Select, Textarea, Modal } from '../components/ui';
+import { Card, CardHeader, CardBody, Button, Badge, Input, Select, Textarea, Modal, ConfirmDialog } from '../components/ui';
 import {
   MessageSquare,
   Bot,
@@ -39,7 +39,9 @@ import {
   X,
   FileText,
   RefreshCw,
-  RotateCcw
+  RotateCcw,
+  ShieldCheck,
+  Eye
 } from 'lucide-react';
 import { getMessageClassificationBadge, getAttentionPriorityBadge } from '../utils/badges';
 
@@ -58,6 +60,15 @@ export const WhatsAppConversations: React.FC = () => {
   // Draft Edit Modal State
   const [isEditItemsModalOpen, setIsEditItemsModalOpen] = useState(false);
   const [editItemsList, setEditItemsList] = useState<OrderDraftItem[]>([]);
+
+  // Phase 8: Reject Draft Modal State
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+
+  // Phase 8: Raw Message / Matching / Audit Inspectors
+  const [rawMessage, setRawMessage] = useState<WhatsAppMessage | null>(null);
+  const [showMatching, setShowMatching] = useState(false);
+  const [showAudit, setShowAudit] = useState(false);
 
   // Query Conversion Modal State
   const [isCreateQueryModalOpen, setIsCreateQueryModalOpen] = useState(false);
@@ -175,9 +186,16 @@ export const WhatsAppConversations: React.FC = () => {
     refreshData();
   };
 
-  // Reprocess / Replay Message (Plan §6)
+  // Reprocess / Replay Message (Plan §6 + Phase 8 retry)
   const handleReprocessMessage = (msgId: string) => {
-    const res = whatsappIngestionService.reprocessWhatsAppMessage(msgId);
+    const res = whatsappIngestionService.reprocessWhatsAppMessage(msgId, activeUserId);
+    alert(res.note);
+    refreshData();
+  };
+
+  // Phase 8: Retry a failed message through the resilient pipeline
+  const handleRetryFailedMessage = (msgId: string) => {
+    const res = whatsappIngestionService.retryFailedMessage(msgId, activeUserId);
     alert(res.note);
     refreshData();
   };
@@ -221,10 +239,22 @@ export const WhatsAppConversations: React.FC = () => {
 
   const handleSaveEditedItems = () => {
     if (!activeDraft) return;
-    editItemsList.forEach(item => {
-      localDb.updateOrderDraftItem(item.id, { quantity: item.quantity });
-    });
+    const updated = orderDraftService.editOrderDraftItems(activeDraft.id, editItemsList, { userId: activeUserId });
     setIsEditItemsModalOpen(false);
+    alert(updated ? 'Draft line items saved.' : 'Could not update draft.');
+    refreshData();
+  };
+
+  // Phase 8: Reject Draft (human override — never auto-replies to the customer)
+  const handleOpenReject = () => {
+    setRejectReason('');
+    setIsRejectModalOpen(true);
+  };
+
+  const handleConfirmReject = () => {
+    if (!activeDraft) return;
+    orderDraftService.rejectOrderDraft(activeDraft.id, rejectReason.trim() || 'Rejected by agent', { userId: activeUserId });
+    setIsRejectModalOpen(false);
     refreshData();
   };
 
@@ -454,6 +484,9 @@ export const WhatsAppConversations: React.FC = () => {
                         {msg.classification && (
                           <Badge badge={getMessageClassificationBadge(msg.classification)} />
                         )}
+                        {msg.processing_status === 'error' && (
+                          <span className="text-[10px] font-bold text-red-700 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">ERROR</span>
+                        )}
                         <span className="text-[10px] font-mono text-slate-400">
                           {new Date(msg.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
@@ -464,6 +497,24 @@ export const WhatsAppConversations: React.FC = () => {
                         >
                           <RotateCcw className="w-3 h-3" /> Replay
                         </button>
+                        {msg.processing_status === 'error' && (
+                          <button
+                            onClick={() => handleRetryFailedMessage(msg.id)}
+                            title="Retry failed processing"
+                            className="text-[10px] text-red-600 hover:text-red-800 flex items-center gap-0.5"
+                          >
+                            <RefreshCw className="w-3 h-3" /> Retry
+                          </button>
+                        )}
+                        {!!msg.raw_payload && (
+                          <button
+                            onClick={() => setRawMessage(msg)}
+                            title="View raw Baileys payload"
+                            className="text-[10px] text-slate-400 hover:text-brand-600 flex items-center gap-0.5"
+                          >
+                            <FileText className="w-3 h-3" /> Raw
+                          </button>
+                        )}
                       </div>
 
                       <div className={`p-3 rounded-2xl max-w-md text-xs leading-relaxed ${
@@ -569,15 +620,31 @@ export const WhatsAppConversations: React.FC = () => {
 
                 {/* Draft Management Toolbar */}
                 <div className="space-y-2 pt-2 border-t border-slate-200">
-                  <Button size="sm" variant="secondary" className="w-full text-xs" onClick={handleOpenEditItems} icon={<Edit className="w-3.5 h-3.5" />}>
-                    Edit Draft Line Items
-                  </Button>
-
-                  {activeDraft.status !== 'CONFIRMED' && (
-                    <Button size="sm" className="w-full text-xs" onClick={handleApproveDraft} icon={<CheckCircle2 className="w-3.5 h-3.5" />}>
-                      Approve & Confirm Order
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="secondary" className="flex-1 text-xs" onClick={handleOpenEditItems} icon={<Edit className="w-3.5 h-3.5" />}>
+                      Edit Items
                     </Button>
-                  )}
+                    <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => setShowMatching(true)} icon={<FileText className="w-3.5 h-3.5" />}>
+                      Matching
+                    </Button>
+                  </div>
+
+                  <div className="flex gap-2">
+                    {activeDraft.status !== 'CONFIRMED' && activeDraft.status !== 'FORWARDED' && (
+                      <Button size="sm" className="flex-1 text-xs" onClick={handleApproveDraft} icon={<CheckCircle2 className="w-3.5 h-3.5" />}>
+                        Confirm Order
+                      </Button>
+                    )}
+                    {activeDraft.status !== 'CONFIRMED' && activeDraft.status !== 'FORWARDED' && activeDraft.status !== 'CANCELLED' && (
+                      <Button size="sm" variant="outline" className="flex-1 text-xs text-red-700 border-red-300 hover:bg-red-50" onClick={handleOpenReject} icon={<X className="w-3.5 h-3.5" />}>
+                        Reject Draft
+                      </Button>
+                    )}
+                  </div>
+
+                  <Button size="sm" variant="outline" className="w-full text-xs" onClick={() => setShowAudit(true)} icon={<ShieldCheck className="w-3.5 h-3.5" />}>
+                    View Audit Trail
+                  </Button>
                 </div>
               </CardBody>
             </Card>
@@ -664,6 +731,125 @@ export const WhatsAppConversations: React.FC = () => {
             <Button onClick={handleCreateQueryFromAlert} icon={<HelpCircle className="w-3.5 h-3.5" />}>Create Support Query</Button>
           </div>
         </div>
+      </Modal>
+      {/* Reject Draft Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={isRejectModalOpen}
+        onClose={() => setIsRejectModalOpen(false)}
+        onConfirm={handleConfirmReject}
+        title="Reject This Order Draft?"
+        confirmLabel="Reject Draft"
+        variant="danger"
+        icon={<X className="w-5 h-5" />}
+        message={
+          <div className="space-y-3 pt-1">
+            <p>The draft will be cancelled. No reply is sent to the customer and no order is created. This action is recorded in the audit trail.</p>
+            <Input
+              label="Rejection Reason"
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="e.g. Duplicate order, customer cancelled, invalid product"
+              className="text-sm"
+            />
+          </div>
+        }
+      />
+
+      {/* Raw Message Inspector */}
+      <Modal
+        isOpen={!!rawMessage}
+        onClose={() => setRawMessage(null)}
+        title="Raw Baileys Message Payload"
+        subtitle="Unmodified webhook payload for technical inspection."
+        size="lg"
+      >
+        {rawMessage && (
+          <div className="space-y-3 text-xs">
+            <div className="grid grid-cols-2 gap-2">
+              <span className="text-slate-400 font-bold uppercase">Message ID</span>
+              <span className="font-mono text-slate-700 break-all">{rawMessage.id}</span>
+              <span className="text-slate-400 font-bold uppercase">External ID</span>
+              <span className="font-mono text-slate-700 break-all">{rawMessage.external_message_id || '—'}</span>
+              <span className="text-slate-400 font-bold uppercase">Status</span>
+              <span className="font-bold text-slate-700">{rawMessage.processing_status || '—'}</span>
+              <span className="text-slate-400 font-bold uppercase">Classification</span>
+              <span className="font-bold text-slate-700">{rawMessage.classification || '—'}</span>
+            </div>
+            <pre className="bg-slate-900 text-emerald-300 text-[11px] p-4 rounded-lg overflow-auto max-h-80">
+              {JSON.stringify(rawMessage.raw_payload, null, 2)}
+            </pre>
+          </div>
+        )}
+      </Modal>
+
+      {/* Matching Result Inspector */}
+      <Modal
+        isOpen={showMatching}
+        onClose={() => setShowMatching(false)}
+        title="Product Matching Result"
+        subtitle="How each customer mention was matched against the catalog."
+        size="md"
+      >
+        {activeDraft && (
+          <div className="space-y-3 text-xs">
+            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex justify-between">
+              <span className="text-slate-500 font-bold uppercase">Overall Confidence</span>
+              <span className="font-extrabold text-emerald-700">{(activeDraft.overall_confidence * 100).toFixed(0)}%</span>
+            </div>
+            {(activeDraft.items || localDb.getOrderDraftItems(activeDraft.id)).map((item: OrderDraftItem, idx: number) => (
+              <div key={idx} className="p-3 bg-white rounded-lg border border-slate-200">
+                <div className="flex justify-between font-bold text-slate-900">
+                  <span>"{item.customer_text}"</span>
+                  <span className="font-mono text-brand-700">x{item.quantity}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-1 mt-2 text-[10px] text-slate-500">
+                  <span>Matched: <b className="text-slate-800">{item.matched_product_name || '—'}</b></span>
+                  <span>Product ID: <b className="text-slate-800 font-mono">{item.product_id || '—'}</b></span>
+                  <span>Method: <b className="text-slate-800">{item.match_method}</b></span>
+                  <span>Confidence: <b className="text-emerald-700">{(item.match_confidence * 100).toFixed(0)}%</b></span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
+
+      {/* Audit Trail Inspector */}
+      <Modal
+        isOpen={showAudit}
+        onClose={() => setShowAudit(false)}
+        title="Order Processing Audit Trail"
+        subtitle="Full pipeline event history for this conversation."
+        size="lg"
+      >
+        {selectedConvId && (() => {
+          const intakeEvents = localDb.getOrderIntakeEvents().filter(e => e.conversation_id === selectedConvId);
+          return (
+            <div className="space-y-4 text-xs max-h-[60vh] overflow-y-auto pr-1">
+              <div>
+                <span className="font-bold text-slate-900 block mb-2">Intake Events ({intakeEvents.length})</span>
+                {intakeEvents.length === 0 ? (
+                  <div className="text-slate-400 italic">No intake events recorded for this conversation.</div>
+                ) : (
+                  <ul className="space-y-2">
+                    {intakeEvents.map(e => (
+                      <li key={e.id} className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-bold text-slate-900">{e.event_type}</span>
+                          <span className="font-mono text-[10px] text-slate-400">{new Date(e.created_at).toLocaleString()}</span>
+                        </div>
+                        <p className="text-slate-600 mt-1">{e.description}</p>
+                        {e.confidence != null && (
+                          <p className="text-[10px] text-emerald-700 font-bold mt-1">Confidence: {(e.confidence * 100).toFixed(0)}%</p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </Modal>
     </div>
   );

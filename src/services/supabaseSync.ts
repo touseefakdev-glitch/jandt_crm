@@ -66,6 +66,9 @@ export const TABLE_MAP: Record<string, string> = {
   // Phase 7: Automated Daily Order Request
   jt_crm_order_request_config:           'order_request_config',
   jt_crm_order_reminders:                'order_reminders',
+
+  // Phase 8: Production Hardening (error recovery)
+  jt_crm_order_processing_errors:        'order_processing_errors',
 };
 
 

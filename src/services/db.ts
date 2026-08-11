@@ -80,6 +80,9 @@ import {
   OrderRequestConfig,
   OrderRequestReminder,
   OrderRequestReminderStatus,
+  ProcessingErrorRecord,
+  ProcessingErrorStage,
+  ProcessingErrorStatus,
 } from '../types';
 import { notificationService } from './notificationService';
 import { permissions } from './permissions';
@@ -264,6 +267,9 @@ class LocalDatabaseService {
   private orderRequestConfigKey = 'jt_crm_order_request_config';
   private orderRemindersKey = 'jt_crm_order_reminders';
 
+  // Phase 8: Production Hardening Keys
+  private orderProcessingErrorsKey = 'jt_crm_order_processing_errors';
+
   // Seed version key — used to force re-seed when SEED_DATA_VERSION changes
   private seedVersionKey = 'jt_crm_seed_version';
 
@@ -312,6 +318,7 @@ class LocalDatabaseService {
       [this.orderIntakeEventsKey, []],
       [this.orderRequestConfigKey, []],
       [this.orderRemindersKey, []],
+      [this.orderProcessingErrorsKey, []],
     ];
 
     seeds.forEach(([key, rows]) => {
@@ -4238,6 +4245,108 @@ class LocalDatabaseService {
     list.unshift(event);
     storageSet(this.orderIntakeEventsKey, JSON.stringify(list));
     return event;
+  }
+
+  // --- Phase 8: Order Processing Error Log (Error Recovery) ---
+
+  public getOrderProcessingErrors(filters?: { status?: ProcessingErrorStatus; stage?: ProcessingErrorStage; messageId?: string }): ProcessingErrorRecord[] {
+    try {
+      const data = storageGet(this.orderProcessingErrorsKey);
+      let list: ProcessingErrorRecord[] = data ? JSON.parse(data) : [];
+      if (filters?.status) list = list.filter(e => e.status === filters.status);
+      if (filters?.stage) list = list.filter(e => e.stage === filters.stage);
+      if (filters?.messageId) list = list.filter(e => e.message_id === filters.messageId);
+      const customers = this.getCustomers();
+      return list
+        .map(e => ({ ...e, customer: e.customer_id ? customers.find(c => c.id === e.customer_id) || null : null }))
+        .sort((a, b) => b.created_at.localeCompare(a.created_at));
+    } catch { return []; }
+  }
+
+  public recordOrderProcessingError(input: Omit<ProcessingErrorRecord, 'id' | 'status' | 'attempt_count' | 'created_at' | 'updated_at'>): ProcessingErrorRecord {
+    const list = this.getOrderProcessingErrors();
+    const now = new Date().toISOString();
+
+    // Dedupe: a repeated failure of the same message+stage updates the open record
+    // instead of growing unbounded duplicate error rows.
+    const existingIdx = list.findIndex(e =>
+      (e.status === 'open' || e.status === 'retrying') &&
+      e.stage === input.stage &&
+      e.message_id != null && input.message_id != null && e.message_id === input.message_id
+    );
+
+    let record: ProcessingErrorRecord;
+    if (existingIdx >= 0) {
+      record = {
+        ...list[existingIdx],
+        ...input,
+        id: list[existingIdx].id,
+        attempt_count: (list[existingIdx].attempt_count || 0) + 1,
+        status: 'open',
+        updated_at: now,
+      };
+      list[existingIdx] = record;
+    } else {
+      record = {
+        ...input,
+        id: crypto.randomUUID(),
+        status: 'open',
+        attempt_count: 1,
+        created_at: now,
+        updated_at: now,
+      };
+      list.unshift(record);
+    }
+
+    storageSet(this.orderProcessingErrorsKey, JSON.stringify(list));
+
+    this.logAudit({
+      user_id: 'system_ai',
+      action: 'processing_error_recorded',
+      entity_type: 'order_processing_error',
+      entity_id: record.id,
+      entity_number: `${record.stage} ${record.error_code}`,
+      summary: `Order processing failed at stage '${record.stage}': ${record.error_message}`,
+      previous_value: null,
+      new_value: JSON.stringify({ stage: record.stage, error_code: record.error_code }),
+    });
+
+    return record;
+  }
+
+  public updateOrderProcessingError(id: string, patch: Partial<ProcessingErrorRecord>): ProcessingErrorRecord | null {
+    const list = this.getOrderProcessingErrors();
+    const idx = list.findIndex(e => e.id === id);
+    if (idx === -1) return null;
+    list[idx] = { ...list[idx], ...patch, updated_at: new Date().toISOString() };
+    storageSet(this.orderProcessingErrorsKey, JSON.stringify(list));
+    return list[idx];
+  }
+
+  public resolveOrderProcessingError(id: string, resolution: string, userId: string): ProcessingErrorRecord | null {
+    const list = this.getOrderProcessingErrors();
+    const idx = list.findIndex(e => e.id === id);
+    if (idx === -1) return null;
+    list[idx] = {
+      ...list[idx],
+      status: 'resolved',
+      resolution: resolution || list[idx].resolution || null,
+      updated_at: new Date().toISOString(),
+    };
+    storageSet(this.orderProcessingErrorsKey, JSON.stringify(list));
+
+    this.logAudit({
+      user_id: userId,
+      action: 'processing_error_resolved',
+      entity_type: 'order_processing_error',
+      entity_id: id,
+      entity_number: `${list[idx].stage} ${list[idx].error_code}`,
+      summary: `Resolved order processing error: ${resolution || 'manually reviewed'}`,
+      previous_value: null,
+      new_value: null,
+    });
+
+    return list[idx];
   }
 
   // --- Phase 7: Automated Daily Order Request Methods ---

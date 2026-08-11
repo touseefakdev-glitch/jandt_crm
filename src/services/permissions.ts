@@ -136,6 +136,17 @@ export class PermissionsService {
     return user.role === 'admin' || user.role === 'support_agent';
   }
 
+  // --- WhatsApp Ordering (Phase 8) Permissions ---
+  public static canViewWhatsAppMonitor(user: UserProfile | null): boolean {
+    return !!user;
+  }
+
+  public static canManageWhatsAppOrderProcessing(user: UserProfile | null): PermissionCheckResult {
+    if (!user) return { allowed: false, reason: 'Authentication required.' };
+    if (user.role === 'admin' || user.role === 'sales_agent') return { allowed: true };
+    return { allowed: false, reason: 'Only Sales Agents and Admins can retry failed order processing.' };
+  }
+
   // --- Shift Handover Permissions ---
   public static canViewHandovers(user: UserProfile | null): boolean {
     return !!user;

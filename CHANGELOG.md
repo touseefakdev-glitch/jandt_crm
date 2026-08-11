@@ -5,6 +5,22 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.24.0] - 2026-08-11
+
+### Added
+- **WhatsApp Ordering — Phase 8 (Production Hardening)**:
+  - **Duplicate protection (idempotency)**: `confirmDraft` no longer creates a second order — drafts already `CONFIRMED`/`FORWARDED` return the existing draft with "no duplicate will be created"; `forwardConfirmedOrderToRoute` guards on status `FORWARDED`; ingestion keeps message-level dedupe; reminders keep `(customer_id, delivery_date)` dedupe.
+  - **Full audit trail**: typed `OrderIntakeEventType` union (24 events incl. `message_classified`, `clarification_requested`, `order_created`, `draft_rejected`, `draft_edited`, `route_forwarded`, `retry_queued`, `processing_error`); new CRM audit actions `order_draft_rejected`, `order_draft_edited`, `order_forwarded`, `processing_error_recorded`, `processing_error_resolved`.
+  - **Monitoring dashboard** (`/whatsapp-monitor`, new main-nav tab): 7 KPIs (Messages Today, Orders Detected, Orders Confirmed, Needs Clarification, Human Reviews, Failed Messages, Failed Sends) plus failed reminders, open error table with **Retry** (admin/sales only), classification breakdown, and a recent-intake-activity feed with drill-down links.
+  - **Error recovery**: new `order_processing_errors` table (+ 3 indexes, RLS read policy, `supabaseSync` map `jt_crm_order_processing_errors`); `db.recordOrderProcessingError` dedupes per `(message_id, stage)` and bumps `attempt_count`; `getOrderProcessingErrors`/`updateOrderProcessingError`/`resolveOrderProcessingError`; `reprocessWhatsAppMessage`/`retryFailedMessage` re-run the resilient pipeline with idempotency guards and resolve successful retries.
+  - **AI-failure deterministic fallback**: new `resilientProcessing.ts` — `safeClassify`/`safeParse`/`safeMatch` never throw; `processMessageSafely` catches any pipeline failure, records the error, logs `processing_error`, raises a high-priority attention alert, and returns a `human_review` outcome so no customer order is silently lost.
+  - **Ingestion wiring**: `whatsappIngestionService.ingestRawSupabaseMessages` now runs every inbound message through `processMessageSafely`, persists `raw_payload`, sets `processing_status` (`classified`/`draft_created`/`awaiting_confirmation`/`confirmed`/`escalated`), and records `ingest`-stage failures.
+  - **Human control**: WhatsApp Message Center gains Reject Draft (with reason, audit-logged, never auto-replies), Edit Draft via `editOrderDraftItems` (audit-logged), Retry for failed messages, and Raw Message / Matching Result / Audit Trail inspector modals; new permission `canManageWhatsAppOrderProcessing` (admin + sales_agent).
+  - **Security**: `api/daily-order-request.ts` now compares `CRON_SECRET` in constant time (`safeEqual`); verified no secrets exist anywhere in `src/`.
+  - **Documentation**: `PROJECT_SPEC.md` — Phase 8 section (10 hardening areas + production readiness report) and consolidated **WhatsApp Ordering System** reference (16 subsections); `CHANGELOG.md` `[1.24.0]`.
+
+---
+
 ## [1.23.0] - 2026-08-11
 
 ### Added

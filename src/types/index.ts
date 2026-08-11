@@ -522,7 +522,12 @@ export type AuditActionType =
   | 'order_request_config_updated'
   | 'order_request_sent'
   | 'order_request_failed'
-  | 'order_request_retried';
+  | 'order_request_retried'
+  | 'order_draft_rejected'
+  | 'order_draft_edited'
+  | 'order_forwarded'
+  | 'processing_error_recorded'
+  | 'processing_error_resolved';
 
 export type AuditEntityType = 
   | 'user' 
@@ -541,7 +546,9 @@ export type AuditEntityType =
   | 'daily_order_operation'
   | 'route_schedule'
   | 'order_request_config'
-  | 'order_request_reminder';
+  | 'order_request_reminder'
+  | 'order_draft'
+  | 'order_processing_error';
 
 // --- Step 10 REBUILD: Route-Based Daily Order Operations Types ---
 
@@ -855,6 +862,7 @@ export interface WhatsAppMessage {
   classification?: MessageClassification | null;
   processing_status?: MessageProcessingStatus;
   processed_at?: string | null;
+  raw_payload?: unknown;
   sent_at: string;
   created_at: string;
 }
@@ -950,16 +958,64 @@ export interface AgentAttentionAlert {
   customer?: Customer | null;
 }
 
+export type OrderIntakeEventType =
+  | 'message_received'
+  | 'message_classified'
+  | 'candidate_extracted'
+  | 'product_matched'
+  | 'history_used'
+  | 'draft_created'
+  | 'draft_updated'
+  | 'draft_cancelled'
+  | 'draft_rejected'
+  | 'draft_edited'
+  | 'clarification_requested'
+  | 'customer_confirmed'
+  | 'draft_confirmed'
+  | 'order_created'
+  | 'order_forwarded'
+  | 'route_forwarded'
+  | 'human_takeover'
+  | 'bot_paused'
+  | 'bot_resumed'
+  | 'escalation_created'
+  | 'message_replayed'
+  | 'retry_queued'
+  | 'processing_error';
+
 export interface OrderIntakeEvent {
   id: string;
   order_draft_id?: string | null;
   conversation_id?: string | null;
   message_id?: string | null;
-  event_type: string;
+  event_type: OrderIntakeEventType;
   description: string;
   confidence?: number | null;
   payload?: Record<string, unknown> | null;
   created_at: string;
+}
+
+// --- Phase 8: Order Processing Error Recovery ---
+
+export type ProcessingErrorStage = 'ingest' | 'classify' | 'parse' | 'match' | 'dispatch' | 'ai' | 'supabase';
+export type ProcessingErrorStatus = 'open' | 'retrying' | 'resolved' | 'dismissed';
+
+export interface ProcessingErrorRecord {
+  id: string;
+  conversation_id?: string | null;
+  message_id?: string | null;
+  customer_id?: string | null;
+  stage: ProcessingErrorStage;
+  error_code: string;
+  error_message: string;
+  raw_message_text?: string | null;
+  external_message_id?: string | null;
+  status: ProcessingErrorStatus;
+  attempt_count: number;
+  resolution?: string | null;
+  created_at: string;
+  updated_at: string;
+  customer?: Customer | null;
 }
 
 // --- WhatsApp Order Intelligence Service Input/Output Types ---
@@ -1042,6 +1098,27 @@ export interface OrderRequestReminder {
   created_at: string;
   updated_at: string;
   customer?: Customer | null;
+}
+
+// --- Phase 8: WhatsApp Ordering Monitoring Dashboard ---
+
+export interface WhatsAppMonitoringStats {
+  dateKey: string;
+  messagesToday: number;
+  inboundToday: number;
+  outboundToday: number;
+  ordersDetected: number;
+  ordersConfirmed: number;
+  needsClarification: number;
+  humanReviews: number;
+  failedMessages: number;
+  failedSends: number;
+  failedReminders: number;
+  openProcessingErrors: number;
+  byClassification: Partial<Record<MessageClassification, number>>;
+  recentActivity: OrderIntakeEvent[];
+  openErrors: ProcessingErrorRecord[];
+  failedRemindersList: OrderRequestReminder[];
 }
 
 

@@ -16,9 +16,8 @@
 import { localDb } from './db';
 import { supabase } from './supabaseSync';
 import { normalizePhoneNumber } from './textNormalizer';
-import { classifyMessage } from './messageClassifier';
-import { raiseAttentionAlert } from './attentionAlertService';
-import { Customer, WhatsAppConversation, WhatsAppMessage } from '../types';
+import { processMessageSafely } from './resilientProcessing';
+import { Customer, WhatsAppConversation, WhatsAppMessage, MessageProcessingStatus } from '../types';
 
 export interface RawSupabaseMessage {
   id: string;
@@ -163,9 +162,11 @@ export async function ingestRawSupabaseMessages(): Promise<{ ingested: number; s
 
         const conversation = localDb.getOrCreateWhatsAppConversation(contact.id, customer?.id || null);
 
-        // Phase 6: classify inbound customer messages against the full taxonomy
+        // Phase 8: inbound messages run the full resilient order pipeline
+        // (classify → parse → match → draft/confirm/escalate). The pipeline never
+        // throws; failures are persisted as processing errors and escalated to
+        // human review so no customer order can silently disappear.
         const isInbound = !rawMsg.from_me;
-        const classificationResult = isInbound ? classifyMessage(rawMsg.text || '') : null;
 
         // Record message in CRM
         const created = localDb.addWhatsAppMessage({
@@ -175,20 +176,33 @@ export async function ingestRawSupabaseMessages(): Promise<{ ingested: number; s
           message_type: 'text',
           message_text: rawMsg.text || '',
           external_message_id: extId,
-          classification: classificationResult ? classificationResult.classification : 'NON_ORDER',
-          processing_status: classificationResult && classificationResult.requiresHumanAttention ? 'escalated' : 'confirmed',
+          classification: null,
+          processing_status: 'received',
+          raw_payload: rawMsg.raw_message || null,
           sent_at: rawMsg.created_at || new Date().toISOString()
         });
 
-        // Phase 6: raise a human attention alert for non-order / ambiguous messages
-        if (isInbound && classificationResult && classificationResult.requiresHumanAttention) {
-          raiseAttentionAlert({
-            customerId: conversation.customer_id,
-            conversationId: conversation.id,
+        if (isInbound) {
+          const pipelineResult = processMessageSafely(conversation, rawMsg.text || '', {
             messageId: created.id,
-            classification: classificationResult.classification,
-            messageText: rawMsg.text || '',
-            priority: classificationResult.priority,
+            externalMessageId: extId,
+          });
+          const processingStatus: MessageProcessingStatus =
+            pipelineResult.outcome === 'human_review' ? 'escalated'
+            : pipelineResult.outcome === 'clarification' ? 'awaiting_confirmation'
+            : pipelineResult.draft?.status === 'CONFIRMED' ? 'confirmed'
+            : pipelineResult.draft ? 'draft_created'
+            : 'classified';
+          localDb.updateWhatsAppMessage(created.id, {
+            classification: pipelineResult.classification.classification,
+            processing_status: processingStatus,
+            processed_at: new Date().toISOString(),
+          });
+        } else {
+          localDb.updateWhatsAppMessage(created.id, {
+            classification: 'NON_ORDER',
+            processing_status: 'confirmed',
+            processed_at: new Date().toISOString(),
           });
         }
 
@@ -196,6 +210,17 @@ export async function ingestRawSupabaseMessages(): Promise<{ ingested: number; s
         ingested++;
       } catch (err: any) {
         console.error('[Ingestion] Failed to ingest message:', err);
+        // Phase 8 error recovery: persist the failure for retry / manual review.
+        localDb.recordOrderProcessingError({
+          conversation_id: null,
+          customer_id: null,
+          message_id: null,
+          external_message_id: extId || null,
+          stage: 'ingest',
+          error_code: 'ingest_failed',
+          error_message: err?.message || String(err),
+          raw_message_text: rawMsg.text || null,
+        });
         errors++;
       }
     }
@@ -208,10 +233,12 @@ export async function ingestRawSupabaseMessages(): Promise<{ ingested: number; s
 }
 
 /**
- * Message Replay (Plan §6):
- * Development/Admin capability to re-process a message without duplicate orders.
+ * Message Replay (Plan §6 / Phase 8 error recovery):
+ * Admin capability to re-process a failed message without duplicate orders.
+ * Runs the full resilient pipeline again; failures are re-recorded, successes
+ * resolve open processing-error records for this message.
  */
-export function reprocessWhatsAppMessage(messageId: string): { success: boolean; note: string } {
+export function reprocessWhatsAppMessage(messageId: string, userId: string = 'system_ai'): { success: boolean; note: string } {
   const messages = localDb.getWhatsAppMessages();
   const target = messages.find(m => m.id === messageId || m.external_message_id === messageId);
 
@@ -219,23 +246,59 @@ export function reprocessWhatsAppMessage(messageId: string): { success: boolean;
     return { success: false, note: 'Message record not found in system.' };
   }
 
-  // Idempotency check: verify if an order draft or intake event already processed this message
+  // Duplicate protection: never re-process a message already turned into a confirmed order.
   const intakeEvents = localDb.getOrderIntakeEvents();
-  const alreadyProcessed = intakeEvents.some(e => e.message_id === target.id && (e.event_type === 'draft_confirmed' || e.event_type === 'customer_confirmed'));
+  const alreadyProcessed = intakeEvents.some(e => e.message_id === target.id && (
+    e.event_type === 'customer_confirmed' || e.event_type === 'draft_confirmed' ||
+    e.event_type === 'order_created' || e.event_type === 'route_forwarded'
+  ));
 
   if (alreadyProcessed) {
-    return { success: true, note: 'Message was already processed into a confirmed order. Replay skipped for idempotency.' };
+    return { success: true, note: 'Message already produced a confirmed order. Retry skipped for idempotency.' };
   }
 
-  // Touch updated timestamp to trigger re-evaluation
+  const conversation = target.conversation_id ? localDb.getWhatsAppConversationById(target.conversation_id) : null;
+  if (!conversation) {
+    return { success: false, note: 'Conversation record missing for this message.' };
+  }
+
+  // Mark open processing errors as retrying while we reprocess.
+  const openErrors = localDb.getOrderProcessingErrors({ status: 'open' }).filter(e => e.message_id === target.id);
+  openErrors.forEach(e => localDb.updateOrderProcessingError(e.id, { status: 'retrying' }));
+
+  const result = processMessageSafely(conversation, target.message_text, {
+    messageId: target.id,
+    externalMessageId: target.external_message_id,
+  });
+
+  localDb.updateWhatsAppMessage(target.id, {
+    classification: result.classification.classification,
+    processing_status: result.outcome === 'human_review' ? 'escalated' : 'draft_created',
+    processed_at: new Date().toISOString(),
+  });
+
   localDb.logOrderIntakeEvent({
     conversation_id: target.conversation_id,
     message_id: target.id,
-    event_type: 'message_replayed',
-    description: `Admin manually replayed message: "${target.message_text.substring(0, 40)}..."`,
+    event_type: 'retry_queued',
+    description: `Admin retried processing for message "${target.message_text.substring(0, 40)}..."`,
+    payload: { outcome: result.outcome },
   });
 
-  return { success: true, note: 'Message reprocessed cleanly without duplicate order creation.' };
+  // A record still in 'retrying' was not re-failed by the pipeline → reprocess succeeded.
+  openErrors.forEach(e => {
+    const current = localDb.getOrderProcessingErrors().find(x => x.id === e.id);
+    if (current && current.status === 'retrying') {
+      localDb.resolveOrderProcessingError(e.id, 'Reprocessed successfully via manual retry', userId);
+    }
+  });
+
+  return { success: true, note: `Message reprocessed. Outcome: ${result.outcome}.` };
+}
+
+/** Phase 8: alias for the human-control "Retry" action in the WhatsApp inbox. */
+export function retryFailedMessage(messageId: string, userId: string): { success: boolean; note: string } {
+  return reprocessWhatsAppMessage(messageId, userId);
 }
 
 export const whatsappIngestionService = {
@@ -244,4 +307,5 @@ export const whatsappIngestionService = {
   resolveGroupFromRemoteJid,
   ingestRawSupabaseMessages,
   reprocessWhatsAppMessage,
+  retryFailedMessage,
 };

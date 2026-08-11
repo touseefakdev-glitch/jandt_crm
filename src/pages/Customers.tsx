@@ -136,10 +136,10 @@ export const Customers: React.FC = () => {
               <Tr hover={false}>
                 <Th>Code</Th>
                 <Th>Company Name</Th>
-                <Th>Contact Person</Th>
                 <Th>Phone</Th>
-                <Th>Email</Th>
+                <Th>WhatsApp</Th>
                 <Th>City</Th>
+                <Th>Country</Th>
                 <Th>Status</Th>
                 <Th>Created</Th>
                 <Th className="text-right">Actions</Th>
@@ -154,10 +154,10 @@ export const Customers: React.FC = () => {
                   <Td className="font-semibold text-slate-900">
                     <Link to={`/customers/${cust.id}`} className="hover:text-brand-600 transition-colors">{cust.company_name}</Link>
                   </Td>
-                  <Td>{cust.contact_person || <span className="text-slate-400 italic">—</span>}</Td>
                   <Td className="text-xs text-slate-600 font-mono">{cust.phone || <span className="text-slate-400 italic">—</span>}</Td>
-                  <Td className="text-xs text-slate-600">{cust.email || <span className="text-slate-400 italic">—</span>}</Td>
-                  <Td className="text-xs text-slate-600">{cust.city || <span className="text-slate-400 italic">—</span>}</Td>
+                  <Td className="text-xs text-emerald-600 font-mono">{cust.whatsapp_number || <span className="text-slate-400 italic">—</span>}</Td>
+                  <Td className="text-xs text-slate-700 font-medium">{cust.city || <span className="text-slate-400 italic">—</span>}</Td>
+                  <Td className="text-xs text-slate-600">{cust.country || 'Canada'}</Td>
                   <Td>
                     <Badge badge={getCustomerStatusBadge(cust.status)} />
                   </Td>

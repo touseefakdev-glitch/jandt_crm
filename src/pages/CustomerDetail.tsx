@@ -194,13 +194,9 @@ export const CustomerDetail: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <Card>
-              <CardHeader title="Contact Details" />
+              <CardHeader title="Contact & Location Details" />
               <CardBody className="pt-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                  <div className="p-3.5 bg-[#F5F7FA] rounded-[8px] border border-[#D9E2EC]">
-                    <span className="text-[10px] text-[#52606D] font-extrabold block uppercase tracking-wider">Contact Person</span>
-                    <span className="font-bold text-[#172B4D] mt-0.5 block">{customer.contact_person || <span className="text-[#829AB1] italic">Not specified</span>}</span>
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                   <div className="p-3.5 bg-[#F5F7FA] rounded-[8px] border border-[#D9E2EC]">
                     <span className="text-[10px] text-[#52606D] font-extrabold block uppercase tracking-wider">Telephone</span>
                     <span className="font-bold text-[#172B4D] font-mono mt-0.5 block">{customer.phone || <span className="text-[#829AB1] italic">Not specified</span>}</span>
@@ -210,30 +206,12 @@ export const CustomerDetail: React.FC = () => {
                     <span className="font-bold text-teal-600 font-mono mt-0.5 block">{customer.whatsapp_number || <span className="text-[#829AB1] italic">Not specified</span>}</span>
                   </div>
                   <div className="p-3.5 bg-[#F5F7FA] rounded-[8px] border border-[#D9E2EC]">
-                    <span className="text-[10px] text-[#52606D] font-extrabold block uppercase tracking-wider">Email Address</span>
-                    <span className="font-bold text-[#172B4D] font-mono mt-0.5 block">
-                      {customer.email ? (
-                        <a href={`mailto:${customer.email}`} className="text-teal-600 hover:underline">{customer.email}</a>
-                      ) : (
-                        <span className="text-[#829AB1] italic">Not specified</span>
-                      )}
-                    </span>
-                  </div>
-                </div>
-              </CardBody>
-            </Card>
-
-            <Card>
-              <CardHeader title="Shipping & Route Information" />
-              <CardBody className="pt-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                  <div className="sm:col-span-2 p-3.5 bg-[#F5F7FA] rounded-[8px] border border-[#D9E2EC]">
-                    <span className="text-[10px] text-[#52606D] font-extrabold block uppercase tracking-wider">Street Address</span>
-                    <span className="font-semibold text-[#172B4D] mt-0.5 block">{customer.address || <span className="text-[#829AB1] italic">No street address recorded</span>}</span>
+                    <span className="text-[10px] text-[#52606D] font-extrabold block uppercase tracking-wider">City (Auto-acquired) & Route</span>
+                    <span className="font-extrabold text-navy-900 mt-0.5 block">{customer.city || 'N/A'} {customer.route ? `• ${customer.route}` : ''}</span>
                   </div>
                   <div className="p-3.5 bg-[#F5F7FA] rounded-[8px] border border-[#D9E2EC]">
-                    <span className="text-[10px] text-[#52606D] font-extrabold block uppercase tracking-wider">City & Route</span>
-                    <span className="font-extrabold text-navy-900 mt-0.5 block">{customer.city || 'N/A'} {customer.route ? `• ${customer.route}` : ''}</span>
+                    <span className="text-[10px] text-[#52606D] font-extrabold block uppercase tracking-wider">Country</span>
+                    <span className="font-bold text-[#172B4D] mt-0.5 block">{customer.country || 'Canada'}</span>
                   </div>
                 </div>
               </CardBody>

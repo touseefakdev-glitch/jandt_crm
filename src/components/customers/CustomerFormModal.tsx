@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Customer, CustomerFormInput } from '../../types';
-import { Building2, User, Phone, Mail, MapPin, Globe, FileText, Save } from 'lucide-react';
+import { Building2, User, Phone, MapPin, Globe, Save } from 'lucide-react';
 import { localDb } from '../../services/db';
 import { Button, Input, Modal, Select, Textarea } from '../ui';
+import { extractCityFromCompanyName } from '../../utils/cityExtractor';
 
 interface CustomerFormModalProps {
   isOpen: boolean;
@@ -23,11 +24,9 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
   const [contactPerson, setContactPerson] = useState('');
   const [phone, setPhone] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
-  const [email, setEmail] = useState('');
-  const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [route, setRoute] = useState('');
-  const [country, setCountry] = useState('USA');
+  const [country, setCountry] = useState('Canada');
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
 
@@ -42,11 +41,9 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       setContactPerson(customerToEdit.contact_person || '');
       setPhone(customerToEdit.phone || '');
       setWhatsappNumber(customerToEdit.whatsapp_number || '');
-      setEmail(customerToEdit.email || '');
-      setAddress(customerToEdit.address || '');
       setCity(customerToEdit.city || '');
       setRoute(customerToEdit.route || '');
-      setCountry(customerToEdit.country || 'USA');
+      setCountry(customerToEdit.country || 'Canada');
       setNotes(customerToEdit.notes || '');
       setStatus(customerToEdit.status || 'active');
       setPreviewCode(customerToEdit.customer_code);
@@ -55,11 +52,9 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       setContactPerson('');
       setPhone('');
       setWhatsappNumber('');
-      setEmail('');
-      setAddress('');
       setCity('');
       setRoute('');
-      setCountry('USA');
+      setCountry('Canada');
       setNotes('');
       setStatus('active');
       setPreviewCode(localDb.generateCustomerCode());
@@ -69,18 +64,19 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
 
   if (!isOpen) return null;
 
+  const handleCompanyNameChange = (val: string) => {
+    setCompanyName(val);
+    if (errors.companyName) setErrors((prev) => ({ ...prev, companyName: '' }));
+    if (!isEditMode && val.trim()) {
+      setCity(extractCityFromCompanyName(val));
+    }
+  };
+
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
 
     if (!companyName.trim()) {
       errs.companyName = 'Company name is required.';
-    }
-
-    if (email.trim()) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email.trim())) {
-        errs.email = 'Please enter a valid email address.';
-      }
     }
 
     setErrors(errs);
@@ -96,11 +92,11 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
       contact_person: contactPerson,
       phone,
       whatsapp_number: whatsappNumber,
-      email,
-      address,
-      city,
+      email: '',
+      address: '',
+      city: city || extractCityFromCompanyName(companyName),
       route,
-      country,
+      country: country || 'Canada',
       notes,
       status,
     });
@@ -130,11 +126,8 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
               label="Company Name *"
               required
               value={companyName}
-              onChange={(e) => {
-                setCompanyName(e.target.value);
-                if (errors.companyName) setErrors((prev) => ({ ...prev, companyName: '' }));
-              }}
-              placeholder="e.g. Apex Industrial Supplies"
+              onChange={(e) => handleCompanyNameChange(e.target.value)}
+              placeholder="e.g. AA Tire Kelowna"
               icon={<Building2 className="w-4 h-4" />}
               error={errors.companyName}
             />
@@ -150,62 +143,48 @@ export const CustomerFormModal: React.FC<CustomerFormModalProps> = ({
             label="Contact Person"
             value={contactPerson}
             onChange={(e) => setContactPerson(e.target.value)}
-            placeholder="e.g. Robert Carter"
+            placeholder="e.g. John Smith"
             icon={<User className="w-4 h-4" />}
           />
           <Input
             label="Phone Number"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="e.g. 03001234567"
+            placeholder="e.g. 2505551234"
             icon={<Phone className="w-4 h-4" />}
           />
           <Input
             label="WhatsApp Number"
             value={whatsappNumber}
             onChange={(e) => setWhatsappNumber(e.target.value)}
-            placeholder="e.g. 03001234567"
+            placeholder="e.g. 2505551234"
             icon={<Phone className="w-4 h-4 text-emerald-600" />}
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Input
-            label="Email Address"
-            type="email"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              if (errors.email) setErrors((prev) => ({ ...prev, email: '' }));
-            }}
-            placeholder="robert@apexind.com"
-            icon={<Mail className="w-4 h-4" />}
-            error={errors.email}
-          />
-          <Input
-            label="City"
+            label="City (Auto-acquired)"
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            placeholder="e.g. Peshawar"
+            placeholder="e.g. Kelowna"
             icon={<MapPin className="w-4 h-4" />}
           />
           <Input
-            label="Route"
+            label="Delivery Route"
             value={route}
             onChange={(e) => setRoute(e.target.value)}
-            placeholder="e.g. Route 1"
+            placeholder="e.g. Kelowna"
             icon={<MapPin className="w-4 h-4" />}
           />
           <Input
             label="Country"
             value={country}
             onChange={(e) => setCountry(e.target.value)}
-            placeholder="USA"
+            placeholder="Canada"
             icon={<Globe className="w-4 h-4" />}
           />
         </div>
-
-        <Input label="Street Address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="e.g. 100 Industrial Parkway, Suite 400" />
 
         <Textarea
           label="Internal Customer Notes"

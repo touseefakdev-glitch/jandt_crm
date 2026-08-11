@@ -1,6 +1,7 @@
 // Supabase client + in-memory store + write-through helpers are provided by supabaseSync
 import { supabase, storageGet, storageSet, storagePrime } from './supabaseSync';
 export { supabase };
+import { extractCityFromCompanyName } from '../utils/cityExtractor';
 import { 
   Team, 
   UserProfile, 
@@ -600,18 +601,21 @@ class LocalDatabaseService {
     const customers = this.getCustomers();
     const customerCode = this.generateCustomerCode();
 
+    const companyName = input.company_name.trim();
+    const city = input.city?.trim() || extractCityFromCompanyName(companyName);
+
     const newCustomer: Customer = {
       id: crypto.randomUUID(),
       customer_code: customerCode,
-      company_name: input.company_name.trim(),
+      company_name: companyName,
       contact_person: input.contact_person?.trim() || null,
       phone: input.phone?.trim() || null,
       whatsapp_number: input.whatsapp_number?.trim() || null,
-      email: input.email?.trim() || null,
-      address: input.address?.trim() || null,
-      city: input.city?.trim() || null,
+      email: null,
+      address: null,
+      city: city,
       route: input.route?.trim() || null,
-      country: input.country?.trim() || 'USA',
+      country: input.country?.trim() || 'Canada',
       notes: input.notes?.trim() || null,
       status: input.status || 'active',
       created_at: new Date().toISOString(),
@@ -638,17 +642,20 @@ class LocalDatabaseService {
     if (index === -1) return null;
 
     const existing = customers[index];
+    const companyName = input.company_name ? input.company_name.trim() : existing.company_name;
+    const city = input.city ? input.city.trim() : (existing.city || extractCityFromCompanyName(companyName));
+
     const updated: Customer = {
       ...existing,
-      company_name: input.company_name.trim(),
+      company_name: companyName,
       contact_person: input.contact_person?.trim() || null,
       phone: input.phone?.trim() || null,
       whatsapp_number: input.whatsapp_number !== undefined ? (input.whatsapp_number?.trim() || null) : existing.whatsapp_number,
-      email: input.email?.trim() || null,
-      address: input.address?.trim() || null,
-      city: input.city?.trim() || null,
+      email: null,
+      address: null,
+      city: city,
       route: input.route !== undefined ? (input.route?.trim() || null) : existing.route,
-      country: input.country?.trim() || 'USA',
+      country: input.country?.trim() || 'Canada',
       notes: input.notes?.trim() || null,
       status: input.status || existing.status,
       updated_at: new Date().toISOString(),

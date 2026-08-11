@@ -16,7 +16,6 @@ import { ProductDetail } from './pages/ProductDetail';
 import { OutOfStock } from './pages/OutOfStock';
 import { Notifications } from './pages/Notifications';
 import { ShiftHandover } from './pages/ShiftHandover';
-import { WhatsAppSimulator } from './pages/WhatsAppSimulator';
 import { WhatsAppConversations } from './pages/WhatsAppConversations';
 import { WhatsAppMonitor } from './pages/WhatsAppMonitor';
 import { AdminLayout } from './components/admin/AdminLayout';
@@ -70,7 +69,6 @@ export const App: React.FC = () => {
             <Route path="shift-handover" element={<ShiftHandover />} />
             <Route path="whatsapp-conversations" element={<WhatsAppConversations />} />
             <Route path="whatsapp-monitor" element={<WhatsAppMonitor />} />
-            <Route path="whatsapp-simulator" element={<WhatsAppSimulator />} />
             
             {/* Step 9: Admin Panel Sub-Routes */}
             <Route path="admin" element={<AdminLayout />}>

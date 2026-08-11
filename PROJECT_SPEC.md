@@ -502,7 +502,7 @@ The CRM application is configured with a clean, 0-data baseline for immediate pr
 
 ## WhatsApp Order Intelligence — Phase B (Simulator Workbench)
 
-> Implemented `/whatsapp-simulator` testing workbench for real-world messy customer WhatsApp messages.
+> Note: Testing Workbench (`/whatsapp-simulator`) was removed as the active WhatsApp Chat module (`/whatsapp-conversations`) handles real messaging workflows.
 
 ### Interactive Features
 - **Customer Account Selector**: Select from 393 live customer accounts to pull real history and route metadata.
@@ -610,7 +610,7 @@ The CRM application is configured with a clean, 0-data baseline for immediate pr
 7. **Order Draft Lifecycle**:
    - Draft records created in `order_drafts` and `order_draft_items` capturing Customer ID, Route, Delivery Date, Customer Text, Matched Product ID, Matched Product Name, Quantity, Unit, Match Method, Match Confidence, and Status.
 8. **Human Review Operations**:
-   - Agents review drafts in `/whatsapp-conversations` and `/whatsapp-simulator` with controls to `Approve`, `Edit`, `Reject`, or `Request Clarification`.
+   - Agents review drafts in `/whatsapp-conversations` with controls to `Approve`, `Edit`, `Reject`, or `Request Clarification`.
    - **No Automated WhatsApp Sending**: In Phase 3, no automated messages are sent to real WhatsApp customers during testing.
 
 ### Verified Test Cases (12 Test Scenarios)

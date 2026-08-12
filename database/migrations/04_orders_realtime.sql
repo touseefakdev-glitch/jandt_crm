@@ -3,17 +3,21 @@
 --
 -- Summary:
 --   1. Extends public.profiles with an operational_area assignment.
---   2. Extends public.daily_order_operations with the full daily workflow:
+--   2. Defensively creates the orders-module tables if they are missing from the
+--      deployed database (route_schedules, daily_order_operations,
+--      daily_order_operation_history) — the app previously kept these purely in
+--      localStorage, so they may not exist in Supabase yet.
+--   3. Extends public.daily_order_operations with the full daily workflow:
 --        - POD Sent (pod_sent / pod_sent_at / pod_sent_by)
 --        - Order Match (order_match SAME|DIFFERENT + difference_note + invoice_updated)
 --        - Exceptions (exception_status NONE|ERROR + exception_note)
 --        - Operational Area (KELOWNA | OUTSIDE_KELOWNA) + updated_by
---   3. Backfills operational_area + exceptions from existing rows.
---   4. Enables ROW LEVEL SECURITY on the orders module tables with
+--   4. Backfills operational_area + exceptions from existing rows.
+--   5. Enables ROW LEVEL SECURITY on the orders module tables with
 --      area-scoped policies (admin = all areas, agent = own area).
---   5. Publishes daily_order_operations + daily_order_operation_history to the
+--   6. Publishes daily_order_operations + daily_order_operation_history to the
 --      Supabase Realtime publication so two open browsers stay in sync.
---   6. Adds indexes justified by the Orders page queries.
+--   7. Adds indexes justified by the Orders page queries.
 --
 -- SAFE TO RE-RUN. No data is dropped, deleted, or reset.
 -- =============================================================================
@@ -29,9 +33,23 @@ ALTER TABLE public.profiles
         CHECK (operational_area IN ('KELOWNA', 'OUTSIDE_KELOWNA', 'BOTH'));
 
 -- -----------------------------------------------------------------------------
--- 2. DAILY ORDER OPERATIONS — Defensive table create (corrected FK) then add
---    the new workflow columns. If the table already exists this block is a
---    no-op and the ALTER statements below apply the new columns instead.
+-- 2a. ROUTE SCHEDULES — defensive create (may be missing from the deployed DB)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.route_schedules (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    day_of_week VARCHAR(20) NOT NULL,
+    city_or_route VARCHAR(100) NOT NULL,
+    portal VARCHAR(50) NOT NULL DEFAULT 'outside_kelowna',
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT unique_day_city UNIQUE (day_of_week, city_or_route)
+);
+
+-- -----------------------------------------------------------------------------
+-- 2b. DAILY ORDER OPERATIONS — Defensive table create (corrected FK) then add
+--     the new workflow columns. If the table already exists this block is a
+--     no-op and the ALTER statements below apply the new columns instead.
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.daily_order_operations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -106,6 +124,22 @@ DROP TRIGGER IF EXISTS update_daily_order_operations_modtime ON public.daily_ord
 CREATE TRIGGER update_daily_order_operations_modtime
     BEFORE UPDATE ON public.daily_order_operations
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- -----------------------------------------------------------------------------
+-- 2c. DAILY ORDER OPERATION HISTORY — defensive create (may be missing)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.daily_order_operation_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    operation_id UUID NOT NULL REFERENCES public.daily_order_operations(id) ON DELETE CASCADE,
+    customer_id UUID NOT NULL REFERENCES public.customers(id) ON DELETE CASCADE,
+    action VARCHAR(100) NOT NULL,
+    previous_state VARCHAR(50),
+    new_state VARCHAR(50) NOT NULL,
+    reference_number VARCHAR(100),
+    user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    reason TEXT,
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
 -- -----------------------------------------------------------------------------
 -- 3. BACKFILLS — derive operational_area from the route schedule, migrate the
@@ -274,7 +308,15 @@ CREATE INDEX IF NOT EXISTS idx_daily_ops_updated_at
     ON public.daily_order_operations (updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_daily_ops_history_op_ts
     ON public.daily_order_operation_history (operation_id, timestamp DESC);
-CREATE INDEX IF NOT EXISTS idx_orders_updated_at
-    ON public.orders (updated_at DESC);
+
+-- The legacy sales-orders table may not exist in the deployed DB yet, so only
+-- create the index when the table is present.
+DO $orders_idx$
+BEGIN
+    IF to_regclass('public.orders') IS NOT NULL THEN
+        CREATE INDEX IF NOT EXISTS idx_orders_updated_at
+            ON public.orders (updated_at DESC);
+    END IF;
+END $orders_idx$;
 
 COMMIT;

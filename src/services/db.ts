@@ -568,7 +568,7 @@ class LocalDatabaseService {
    * it strips that column from the payload and retries automatically until success or unrecoverable error.
    */
   private async executeSupabaseCustomerMutation<T extends Record<string, any>>(
-    operation: (payload: T) => Promise<{ data: any; error: any }>,
+    operation: (payload: T) => PromiseLike<{ data: any; error: any }>,
     initialPayload: T
   ): Promise<{ data: any; error: any }> {
     let payload = { ...initialPayload };
@@ -646,7 +646,7 @@ class LocalDatabaseService {
       };
 
       const res = await this.executeSupabaseCustomerMutation(
-        (p) => supabase!.from('customers').insert(p).select().single(),
+        async (p) => await supabase!.from('customers').insert(p).select().single(),
         cleanRow
       );
 
@@ -703,7 +703,7 @@ class LocalDatabaseService {
 
     if (supabase) {
       const res = await this.executeSupabaseCustomerMutation(
-        (p) => supabase!.from('customers').update(p).eq('id', id).select().single(),
+        async (p) => await supabase!.from('customers').update(p).eq('id', id).select().single(),
         updatePayload
       );
 

@@ -10,6 +10,7 @@ import {
   Scale,
   Send,
   FileText,
+  ReceiptText,
   Truck,
 } from 'lucide-react';
 import { DailyOrderOperation, DailyOrderOperationHistory } from '../../types';
@@ -38,17 +39,17 @@ interface OrderDetailDrawerProps {
 const stepIcons: Record<DailyOpStepKey, React.ReactNode> = {
   order_received: <ClipboardList className="w-3.5 h-3.5" />,
   sales_order_generated: <FileText className="w-3.5 h-3.5" />,
-  invoiced: <FileText className="w-3.5 h-3.5" />,
+  invoiced: <ReceiptText className="w-3.5 h-3.5" />,
   dispatched: <Truck className="w-3.5 h-3.5" />,
   pod_sent: <Send className="w-3.5 h-3.5" />,
 };
 
 const stepColors: Record<DailyOpStepKey, { done: string; active: string }> = {
-  order_received: { done: 'bg-sky-600 text-white', active: 'text-sky-600' },
-  sales_order_generated: { done: 'bg-indigo-600 text-white', active: 'text-indigo-600' },
-  invoiced: { done: 'bg-purple-600 text-white', active: 'text-purple-600' },
-  dispatched: { done: 'bg-emerald-600 text-white', active: 'text-emerald-600' },
-  pod_sent: { done: 'bg-cyan-600 text-white', active: 'text-cyan-600' },
+  order_received: { done: 'bg-sky-500 text-white', active: 'text-sky-600' },
+  sales_order_generated: { done: 'bg-indigo-500 text-white', active: 'text-indigo-600' },
+  invoiced: { done: 'bg-purple-500 text-white', active: 'text-purple-600' },
+  dispatched: { done: 'bg-emerald-500 text-white', active: 'text-emerald-600' },
+  pod_sent: { done: 'bg-cyan-500 text-white', active: 'text-cyan-600' },
 };
 
 export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({

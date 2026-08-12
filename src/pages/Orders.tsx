@@ -1,20 +1,23 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { DailyOrderOperation, PortalType } from '../types';
+import { DailyOrderOperation, DailyOrderOperationStatus, PortalType } from '../types';
 import { localDb } from '../services/db';
 import { subscribeOrdersRealtime } from '../services/realtime';
 import { permissions } from '../services/permissions';
+import { cn } from '../utils/cn';
 import { formatDate, timeAgo } from '../utils/format';
 import {
   ORDER_WORKFLOW_STEPS,
   DailyOpStepKey,
   OrdersQuickFilter,
   getExceptionKind,
+  getPendingStep,
   hasOrderException,
   isOperationCompleted,
   isOperationError,
   isOrderDifferent,
+  isStepDone,
   matchesQuickFilter,
 } from '../utils/orderWorkflow';
 import { SOModal } from '../components/orders/SOModal';
@@ -24,45 +27,49 @@ import { UndoStepModal } from '../components/orders/UndoStepModal';
 import { OrderMatchModal } from '../components/orders/OrderMatchModal';
 import { OrderDetailDrawer } from '../components/orders/OrderDetailDrawer';
 import {
+  AlertCircle,
+  AlertTriangle,
   Calendar as CalendarIcon,
   CalendarClock,
+  Check,
   ChevronLeft,
   ChevronRight,
-  MapPin,
-  Search,
-  CheckCircle2,
-  AlertTriangle,
+  ClipboardList,
+  Clock,
   ExternalLink,
-  Filter,
-  Send,
+  FileText,
+  Inbox,
+  MapPin,
+  PackageCheck,
+  ReceiptText,
   Scale,
+  Search,
+  Send,
+  ShieldCheck,
+  Truck,
   Wifi,
   WifiOff,
-  RefreshCw,
-  ShieldCheck,
-  Inbox,
-  ClipboardList,
-  FileText,
-  Truck,
-  AlertCircle,
 } from 'lucide-react';
 import {
+  Avatar,
+  Badge,
   Button,
   Card,
   EmptyState,
   Input,
   PageHeader,
+  Pagination,
   Select,
   StatCard,
   Table,
   TableToolbar,
+  Tabs,
   TBody,
   Td,
   Th,
   THead,
   Tr,
   useToast,
-  Pagination,
 } from '../components/ui';
 
 type AreaView = 'ALL' | 'KELOWNA' | 'OUTSIDE_KELOWNA';
@@ -79,6 +86,34 @@ const QUICK_FILTERS: { value: OrdersQuickFilter; label: string }[] = [
   { value: 'different', label: 'Different Orders' },
   { value: 'pod_pending', label: 'POD Pending' },
 ];
+
+const AREA_TABS: { value: AreaView; label: string }[] = [
+  { value: 'ALL', label: 'All Areas' },
+  { value: 'KELOWNA', label: 'Kelowna' },
+  { value: 'OUTSIDE_KELOWNA', label: 'Outside Kelowna' },
+];
+
+/** Status pill styling derived from the operation status. */
+const STATUS_PILL: Record<DailyOrderOperationStatus, { label: string; className: string; dot: string }> = {
+  not_started: { label: 'Not Started', className: 'bg-[#E9EFF5] text-[#52606D]', dot: 'bg-[#829AB1]' },
+  order_received: { label: 'Received', className: 'bg-sky-50 text-sky-700', dot: 'bg-sky-500' },
+  sales_order_generated: { label: 'Sales Order', className: 'bg-indigo-50 text-indigo-700', dot: 'bg-indigo-500' },
+  invoiced: { label: 'Invoiced', className: 'bg-purple-50 text-purple-700', dot: 'bg-purple-500' },
+  dispatched: { label: 'Dispatched', className: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' },
+  completed: { label: 'Completed', className: 'bg-green-50 text-green-700', dot: 'bg-green-500' },
+  error: { label: 'Error', className: 'bg-rose-50 text-rose-700', dot: 'bg-rose-500' },
+};
+
+/** Per-stage theme shared with the detail drawer so colors stay consistent. */
+const STEP_THEME: Record<DailyOpStepKey, { done: string; active: string; header: string; icon: React.ReactNode }> = {
+  order_received: { done: 'bg-sky-500 text-white', active: 'text-sky-600', header: 'text-sky-600', icon: <ClipboardList className="w-3.5 h-3.5" /> },
+  sales_order_generated: { done: 'bg-indigo-500 text-white', active: 'text-indigo-600', header: 'text-indigo-600', icon: <FileText className="w-3.5 h-3.5" /> },
+  invoiced: { done: 'bg-purple-500 text-white', active: 'text-purple-600', header: 'text-purple-600', icon: <ReceiptText className="w-3.5 h-3.5" /> },
+  dispatched: { done: 'bg-emerald-500 text-white', active: 'text-emerald-600', header: 'text-emerald-600', icon: <Truck className="w-3.5 h-3.5" /> },
+  pod_sent: { done: 'bg-cyan-500 text-white', active: 'text-cyan-600', header: 'text-cyan-600', icon: <Send className="w-3.5 h-3.5" /> },
+};
+
+const STEP_ORDER: DailyOpStepKey[] = ORDER_WORKFLOW_STEPS.map((s) => s.key);
 
 export const Orders: React.FC = () => {
   const { user, dbVersion } = useAuth();
@@ -381,38 +416,114 @@ export const Orders: React.FC = () => {
     else handleTogglePODSent(op);
   };
 
-  const renderWorkflowCheck = (op: DailyOrderOperation, step: DailyOpStepKey, done: boolean, locked: boolean, color: string) => (
-    <button
-      onClick={() => toggleStepFor(op, step)}
-      disabled={!canUpdate}
-      title={done ? `${ORDER_WORKFLOW_STEPS.find(s => s.key === step)?.label} complete — click to revert` : locked ? 'Complete the previous stage first' : `Mark ${ORDER_WORKFLOW_STEPS.find(s => s.key === step)?.label} done`}
-      aria-label={done ? `Revert ${step}` : `Complete ${step}`}
-      className={`w-7 h-7 rounded-lg inline-flex items-center justify-center transition-all shrink-0 ${
-        done ? color
-        : locked
-          ? 'border border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed'
-          : 'border-2 border-slate-300 hover:border-slate-500 bg-slate-50'
-      }`}
-    >
-      {done && <CheckCircle2 className="w-4 h-4" />}
-    </button>
-  );
+  const isStepLocked = (op: DailyOrderOperation, step: DailyOpStepKey) => {
+    switch (step) {
+      case 'order_received': return false;
+      case 'sales_order_generated': return !op.order_received;
+      case 'invoiced': return !op.sales_order_generated;
+      case 'dispatched': return !op.invoiced;
+      case 'pod_sent': return !op.dispatched;
+    }
+  };
+
+  const renderStepMeta = (op: DailyOrderOperation, step: DailyOpStepKey) => {
+    if (step === 'sales_order_generated' && op.sales_order_number) {
+      return (
+        <span className="block font-mono text-[10px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 truncate max-w-[110px]" title={op.sales_order_number}>
+          {op.sales_order_number}
+        </span>
+      );
+    }
+    if (step === 'invoiced' && op.invoice_number) {
+      return (
+        <span className="block font-mono text-[10px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 truncate max-w-[110px]" title={op.invoice_number}>
+          {op.invoice_number}
+        </span>
+      );
+    }
+    const at =
+      step === 'order_received' ? op.order_received_at
+      : step === 'dispatched' ? op.dispatched_at
+      : step === 'pod_sent' ? op.pod_sent_at
+      : null;
+    if (at) {
+      return <span className="block text-[10px] text-slate-400 font-mono">{formatDate(at, { hour: '2-digit', minute: '2-digit' })}</span>;
+    }
+    return null;
+  };
+
+  const renderStepCell = (op: DailyOrderOperation, step: DailyOpStepKey) => {
+    const theme = STEP_THEME[step];
+    const def = ORDER_WORKFLOW_STEPS.find((s) => s.key === step)!;
+    const done = isStepDone(op, step);
+    const locked = isStepLocked(op, step);
+    return (
+      <div className="flex flex-col items-center gap-1.5">
+        <button
+          onClick={() => toggleStepFor(op, step)}
+          disabled={!canUpdate}
+          title={done ? `${def.label} complete — click to revert` : locked ? 'Complete the previous stage first' : `Mark ${def.label} done`}
+          aria-label={done ? `Revert ${step}` : `Complete ${step}`}
+          className={cn(
+            'w-8 h-8 rounded-full inline-flex items-center justify-center transition-all shrink-0',
+            done
+              ? theme.done
+              : locked
+                ? 'bg-slate-100 border border-slate-200 text-slate-300 cursor-not-allowed'
+                : 'bg-white border-2 border-slate-300 text-slate-400 hover:border-teal-500 hover:text-teal-500'
+          )}
+        >
+          {done ? <Check className="w-4 h-4" /> : <span className="w-1.5 h-1.5 rounded-full bg-current" />}
+        </button>
+        {renderStepMeta(op, step)}
+      </div>
+    );
+  };
+
+  const renderStatusCell = (op: DailyOrderOperation) => {
+    const status = STATUS_PILL[op.status] ?? STATUS_PILL.not_started;
+    const doneCount = STEP_ORDER.filter((s) => isStepDone(op, s)).length;
+    const pct = Math.round((doneCount / STEP_ORDER.length) * 100);
+    const pendingStep = getPendingStep(op);
+    return (
+      <div className="flex flex-col items-center gap-1.5">
+        <span className={cn('inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap', status.className)}>
+          <span className={cn('w-1.5 h-1.5 rounded-full', status.dot)} />
+          {status.label}
+        </span>
+        <div className="w-full flex items-center gap-1.5 max-w-[100px]">
+          <div className="flex-1 h-1 rounded-full bg-slate-200 overflow-hidden">
+            <div
+              className={cn('h-full rounded-full transition-all duration-500', isOperationError(op) ? 'bg-rose-500' : 'bg-teal-500')}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <span className="text-[10px] font-bold text-slate-500 tabular-nums">{doneCount}/{STEP_ORDER.length}</span>
+        </div>
+        {pendingStep && (
+          <span className="text-[10px] font-semibold text-slate-400 truncate max-w-full">Next: {pendingStep.shortLabel}</span>
+        )}
+      </div>
+    );
+  };
 
   const renderOrderMatchCell = (op: DailyOrderOperation) => {
     if (op.order_match) {
+      const isDiff = op.order_match === 'DIFFERENT';
       return (
         <button
           onClick={() => handleOpenOrderMatch(op)}
           disabled={!canUpdateOrderMatch}
-          className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md border transition-all ${
-            op.order_match === 'DIFFERENT'
-              ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+          className={cn(
+            'inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all',
+            isDiff
+              ? 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
               : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
-          }`}
+          )}
           title={op.difference_note || 'Order vs invoice match'}
         >
           <Scale className="w-3 h-3 shrink-0" />
-          {op.order_match === 'DIFFERENT' ? 'Different' : 'Same'}
+          {isDiff ? 'Different' : 'Same'}
         </button>
       );
     }
@@ -420,7 +531,7 @@ export const Orders: React.FC = () => {
       <button
         onClick={() => handleOpenOrderMatch(op)}
         disabled={!canUpdateOrderMatch}
-        className="text-[10px] font-semibold px-2 py-1 rounded-md border border-dashed border-slate-300 text-slate-400 hover:text-brand-700 hover:border-brand-400 bg-transparent transition-all"
+        className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-dashed border-slate-300 text-slate-400 hover:text-teal-700 hover:border-teal-400 transition-all"
         title="Set order match"
       >
         Set Match
@@ -432,14 +543,14 @@ export const Orders: React.FC = () => {
     const kind = getExceptionKind(op);
     if (kind === 'error') {
       return (
-        <div className="space-y-1">
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md border bg-rose-50 text-rose-800 border-rose-300">
+        <div className="space-y-1.5">
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
             <AlertTriangle className="w-3 h-3 text-rose-600 shrink-0" /> Error
           </span>
           {op.error_query && (
             <button
               onClick={() => navigate(`/queries/${op.error_query!.id}`)}
-              className="text-[9px] font-bold text-rose-700 hover:underline block truncate max-w-[130px]"
+              className="text-[10px] font-bold text-rose-700 hover:underline block truncate max-w-[120px]"
               title={`Open ${op.error_query.query_number}`}
             >
               {op.error_query.query_number}
@@ -450,13 +561,13 @@ export const Orders: React.FC = () => {
     }
     if (kind === 'different') {
       return (
-        <div className="space-y-1">
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md border bg-amber-50 text-amber-800 border-amber-300">
+        <div className="space-y-1.5">
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
             <AlertTriangle className="w-3 h-3 text-amber-600 shrink-0" /> Different
           </span>
           {op.invoice_updated && (
-            <span className="block text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5 truncate max-w-[130px]">
-              Invoice Updated
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 truncate max-w-[120px]">
+              <Check className="w-3 h-3 shrink-0" /> Invoice Updated
             </span>
           )}
         </div>
@@ -464,8 +575,8 @@ export const Orders: React.FC = () => {
     }
     if (kind === 'invoice_updated') {
       return (
-        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md border bg-emerald-50 text-emerald-800 border-emerald-200">
-          Invoice Updated
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <Check className="w-3 h-3 shrink-0" /> Invoice Updated
         </span>
       );
     }
@@ -473,7 +584,7 @@ export const Orders: React.FC = () => {
       return (
         <button
           onClick={() => setActiveErrorModalOp(op)}
-          className="text-[10px] font-semibold px-2 py-1 rounded-md border border-dashed border-slate-300 text-slate-400 hover:text-rose-600 hover:border-rose-300 transition-all"
+          className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-dashed border-slate-300 text-slate-400 hover:text-rose-600 hover:border-rose-300 transition-all"
           title="Report an operational error"
         >
           Report
@@ -486,7 +597,7 @@ export const Orders: React.FC = () => {
   const renderLastUpdatedCell = (op: DailyOrderOperation) => {
     const name = op.updated_by_profile?.full_name || '—';
     return (
-      <div className="text-[10px] leading-tight">
+      <div className="text-[11px] leading-tight">
         <span className="font-bold text-slate-700 block truncate">{timeAgo(op.updated_at) || '—'}</span>
         <span className="text-slate-400 block truncate" title={name}>by {name}</span>
       </div>
@@ -501,188 +612,183 @@ export const Orders: React.FC = () => {
         title="Orders"
         description="Route-based daily order operations — live operational control center"
         badges={[
-          <span
+          <Badge
             key="area"
-            className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border ${
-              effectiveArea === 'KELOWNA'
-                ? 'bg-teal-50 text-teal-700 border-teal-300'
-                : effectiveArea === 'OUTSIDE_KELOWNA'
-                ? 'bg-purple-50 text-purple-700 border-purple-300'
-                : 'bg-slate-100 text-slate-600 border-slate-200'
-            }`}
-          >
-            <ShieldCheck className="w-3 h-3" />
-            {areaLabel}
-          </span>,
-          <span
+            badge={{
+              subtle:
+                effectiveArea === 'KELOWNA'
+                  ? 'bg-teal-50 text-teal-800 ring-teal-200'
+                  : effectiveArea === 'OUTSIDE_KELOWNA'
+                    ? 'bg-purple-50 text-purple-800 ring-purple-200'
+                    : 'bg-[#E9EFF5] text-[#52606D] ring-[#D9E2EC]',
+              solid:
+                effectiveArea === 'KELOWNA'
+                  ? 'bg-teal-500 text-white'
+                  : effectiveArea === 'OUTSIDE_KELOWNA'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-[#829AB1] text-white',
+              dot:
+                effectiveArea === 'KELOWNA'
+                  ? 'bg-teal-500'
+                  : effectiveArea === 'OUTSIDE_KELOWNA'
+                    ? 'bg-purple-500'
+                    : 'bg-[#829AB1]',
+              label: areaLabel,
+            }}
+          />,
+          <Badge
             key="sync"
-            className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border ${
-              syncState === 'live'
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                : syncState === 'polling'
-                ? 'bg-amber-50 text-amber-700 border-amber-300'
-                : 'bg-slate-100 text-slate-500 border-slate-200'
-            }`}
-            title={syncState === 'live' ? 'Live realtime sync' : syncState === 'polling' ? 'Auto-refresh via polling fallback' : 'Local only — Supabase sync unavailable'}
-          >
-            {syncState === 'live' ? <Wifi className="w-3 h-3" /> : syncState === 'polling' ? <RefreshCw className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-            {syncState === 'live' ? 'Live Sync' : syncState === 'polling' ? 'Auto-Refresh' : 'Local Only'}
-          </span>,
+            dot
+            badge={{
+              subtle:
+                syncState === 'live'
+                  ? 'bg-emerald-50 text-emerald-800 ring-emerald-200'
+                  : syncState === 'polling'
+                    ? 'bg-amber-50 text-amber-800 ring-amber-200'
+                    : 'bg-[#E9EFF5] text-[#52606D] ring-[#D9E2EC]',
+              solid:
+                syncState === 'live'
+                  ? 'bg-emerald-500 text-white'
+                  : syncState === 'polling'
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-[#829AB1] text-white',
+              dot:
+                syncState === 'live'
+                  ? 'bg-emerald-500'
+                  : syncState === 'polling'
+                    ? 'bg-amber-500'
+                    : 'bg-[#829AB1]',
+              label: syncState === 'live' ? 'Live Sync' : syncState === 'polling' ? 'Auto-Refresh' : 'Local Only',
+            }}
+          />,
         ]}
-        actions={
-          <Button size="sm" variant="outline" onClick={handleToday} icon={<CalendarIcon className="w-4 h-4" />}>
-            Back to Today
-          </Button>
-        }
       />
 
-      {/* Operational Day Bar */}
-      <Card className="p-4 border-l-4 border-l-teal-500">
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="w-14 h-14 bg-brand-50 text-brand-700 rounded-xl flex items-center justify-center shrink-0">
-              <CalendarIcon className="w-6 h-6" />
+      {/* Date & Area Control */}
+      <Card className="p-4">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 bg-teal-50 text-teal-700 rounded-[10px] flex items-center justify-center shrink-0">
+                <CalendarIcon className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[11px] font-extrabold uppercase tracking-widest text-teal-700 block">
+                  {isToday ? 'Today' : isTomorrow ? 'Tomorrow' : formatDate(selectedDateStr)}
+                </span>
+                <h2 className="text-lg font-black text-slate-900 tracking-tight leading-tight truncate">
+                  {formatDate(selectedDateStr, { weekday: 'long', month: 'long', day: 'numeric' })}
+                </h2>
+                <p className="text-xs text-slate-500 flex items-center gap-1.5 flex-wrap">
+                  <MapPin className="w-3 h-3 text-slate-400" />
+                  {activeRoutes.length > 0
+                    ? `${activeRoutes.length} route${activeRoutes.length > 1 ? 's' : ''} · ${activeRoutes.slice(0, 4).join(', ')}${activeRoutes.length > 4 ? '…' : ''}`
+                    : 'No active routes scheduled'}
+                  <span className="text-slate-300">·</span>
+                  <span>{formatWeekdayTitle(weekday)}</span>
+                  <span className="text-slate-300">·</span>
+                  <span className={cn('inline-flex items-center gap-1 font-semibold', syncState === 'live' ? 'text-emerald-600' : syncState === 'polling' ? 'text-amber-600' : 'text-slate-400')}>
+                    {syncState === 'live' ? <Wifi className="w-3 h-3" /> : syncState === 'polling' ? <Clock className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                    {syncState === 'live' ? 'Live Sync' : syncState === 'polling' ? 'Auto-Refresh' : 'Local Only'}
+                  </span>
+                </p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-brand-600 block">
-                {isToday ? 'Today' : isTomorrow ? 'Tomorrow' : formatDate(selectedDateStr)}
-              </span>
-              <h2 className="text-xl font-black text-slate-900 tracking-tight leading-tight">
-                {formatDate(selectedDateStr, { weekday: 'long', month: 'long', day: 'numeric' })}
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                <MapPin className="w-3 h-3 text-slate-400" />
-                {activeRoutes.length > 0
-                  ? `${activeRoutes.length} active route${activeRoutes.length > 1 ? 's' : ''}: ${activeRoutes.slice(0, 4).join(', ')}${activeRoutes.length > 4 ? '…' : ''}`
-                  : 'No active routes scheduled'}
-                <span className="text-slate-300">·</span>
-                <span>{formatWeekdayTitle(weekday)}</span>
-              </p>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" variant="outline" onClick={handlePreviousDay} icon={<ChevronLeft className="w-4 h-4" />}>
+                Prev
+              </Button>
+              <Input
+                type="date"
+                value={selectedDateStr}
+                onChange={(e) => e.target.value && setSelectedDateStr(e.target.value)}
+                className="w-36"
+                aria-label="Select operational date"
+              />
+              <Button size="sm" variant="outline" onClick={handleNextDay} icon={<ChevronRight className="w-4 h-4" />}>
+                Next
+              </Button>
+              <Button size="sm" variant="secondary" onClick={handleToday} icon={<CalendarClock className="w-4 h-4" />}>
+                Today
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleTomorrow} icon={<CalendarClock className="w-4 h-4" />}>
+                Tomorrow
+              </Button>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="outline" onClick={handlePreviousDay} icon={<ChevronLeft className="w-4 h-4" />}>
-              Prev
-            </Button>
-            <Input
-              type="date"
-              value={selectedDateStr}
-              onChange={(e) => e.target.value && setSelectedDateStr(e.target.value)}
-              className="w-36 text-xs"
-              aria-label="Select operational date"
-            />
-            <Button size="sm" variant="outline" onClick={handleNextDay} icon={<ChevronRight className="w-4 h-4" />}>
-              Next
-            </Button>
-            <Button size="sm" variant="secondary" onClick={handleTomorrow} icon={<CalendarClock className="w-4 h-4" />}>
-              Tomorrow
-            </Button>
-            {upcomingDates.length > 0 && (
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Upcoming:</span>
-                {upcomingDates.map((d) => (
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#E3E8EE]">
+            <div className="flex items-center gap-1.5">
+              {isAdmin ? (
+                <Tabs
+                  tabs={AREA_TABS.map((a) => ({ value: a.value, label: a.label }))}
+                  active={effectiveArea}
+                  onChange={(v) => { if (isAdmin) setSelectedArea(v); }}
+                  size="sm"
+                />
+              ) : (
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 bg-teal-50 px-2.5 py-1 rounded-full">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  {areaLabel}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Upcoming:</span>
+              {upcomingDates.length > 0 ? (
+                upcomingDates.map((d) => (
                   <button
                     key={d.date}
                     onClick={() => setSelectedDateStr(d.date)}
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md border transition-all ${
+                    className={cn(
+                      'text-[11px] font-bold px-2.5 py-1 rounded-full border transition-all',
                       selectedDateStr === d.date
-                        ? 'bg-brand-600 text-white border-brand-600'
-                        : 'bg-white text-slate-600 border-slate-200 hover:border-brand-400 hover:text-brand-700'
-                    }`}
+                        ? 'bg-teal-600 text-white border-teal-600'
+                        : 'bg-white text-slate-600 border-[#D9E2EC] hover:border-teal-400 hover:text-teal-700'
+                    )}
                     title={`${d.routes.length} route(s): ${d.routes.join(', ')}`}
                   >
                     {formatDate(d.date, { weekday: 'short', month: 'short', day: 'numeric' })}
                   </button>
-                ))}
-              </div>
-            )}
+                ))
+              ) : (
+                <span className="text-xs text-slate-400">No upcoming routes</span>
+              )}
+            </div>
           </div>
         </div>
       </Card>
 
-      {/* Operational Area Panels */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-bold">
-          {isAdmin ? (
-            <>
-              <button
-                onClick={() => setSelectedArea('ALL')}
-                className={`px-3.5 py-1.5 rounded-lg transition-all ${effectiveArea === 'ALL' ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-900'}`}
-                title="View all operational areas"
-              >
-                All Areas
-              </button>
-              <button
-                onClick={() => setSelectedArea('KELOWNA')}
-                className={`px-3.5 py-1.5 rounded-lg transition-all ${effectiveArea === 'KELOWNA' ? 'bg-white text-teal-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-900'}`}
-              >
-                Kelowna
-              </button>
-              <button
-                onClick={() => setSelectedArea('OUTSIDE_KELOWNA')}
-                className={`px-3.5 py-1.5 rounded-lg transition-all ${effectiveArea === 'OUTSIDE_KELOWNA' ? 'bg-white text-purple-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:text-slate-900'}`}
-              >
-                Outside Kelowna
-              </button>
-            </>
-          ) : (
-            <button
-              className="px-3.5 py-1.5 rounded-lg bg-white text-brand-700 shadow-sm ring-1 ring-slate-200"
-              title={`Locked to your assigned area: ${areaLabel}`}
-            >
-              <ShieldCheck className="w-3 h-3 inline mr-1" />
-              {areaLabel}
-            </button>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-          <Filter className="w-3.5 h-3.5 text-slate-400" />
-          <span>{visibleOperations.length} of {baseOperations.length} orders match current filters</span>
-        </div>
-      </div>
-
       {/* KPI Dashboard */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-8 gap-3">
-        <StatCard title="Orders Today" value={metrics.total} icon={<Inbox className="w-4 h-4" />} accent="brand" description={`${metrics.pending} pending · ${metrics.completed} completed`} />
-        <StatCard title="Order Received" value={metrics.received} icon={<ClipboardList className="w-4 h-4" />} accent="navy" description={`${metrics.total - metrics.received} not received`} />
-        <StatCard title="Sales Orders" value={metrics.salesOrders} icon={<FileText className="w-4 h-4" />} accent="violet" description={`${metrics.salesOrders - metrics.invoiced} awaiting invoice`} />
-        <StatCard title="Invoiced" value={metrics.invoiced} icon={<FileText className="w-4 h-4" />} accent="teal" description={`${metrics.invoiced - metrics.dispatched} awaiting dispatch`} />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+        <StatCard title="Orders Today" value={metrics.total} icon={<Inbox className="w-4 h-4" />} accent="brand" description={`${metrics.pending} pending · ${metrics.completed} done`} />
+        <StatCard title="Order Received" value={metrics.received} icon={<ClipboardList className="w-4 h-4" />} accent="navy" description={`${metrics.total - metrics.received} to receive`} />
+        <StatCard title="Sales Orders" value={metrics.salesOrders} icon={<FileText className="w-4 h-4" />} accent="violet" description={`${metrics.salesOrders - metrics.invoiced} to invoice`} />
+        <StatCard title="Invoiced" value={metrics.invoiced} icon={<ReceiptText className="w-4 h-4" />} accent="teal" description={`${metrics.invoiced - metrics.dispatched} to dispatch`} />
         <StatCard title="Dispatched" value={metrics.dispatched} icon={<Truck className="w-4 h-4" />} accent="green" description={`${metrics.podPending} POD pending`} />
         <StatCard title="POD Pending" value={metrics.podPending} icon={<Send className="w-4 h-4" />} accent="amber" description="Dispatched, POD not sent" />
         <StatCard title="Exceptions" value={metrics.exceptions} icon={<AlertCircle className="w-4 h-4" />} accent="red" description={`${metrics.errors} errors · ${metrics.different} different`} />
-        <StatCard title="Different Orders" value={metrics.different} icon={<Scale className="w-4 h-4" />} accent="amber" description="Order vs invoice mismatch" />
       </div>
 
-      {/* Today's Route Summary + Route Selection */}
+      {/* Route Summary + Selection */}
       {activeRoutes.length > 0 ? (
-        <Card className="p-5 bg-[#102A43] text-white shadow-card border border-[#243B53]">
+        <Card className="crm-card-dark p-5">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-            <div className="space-y-3 lg:min-w-[260px]">
-              <div>
+            <div className="flex items-center gap-4 lg:min-w-[300px]">
+              <div className="w-10 h-10 rounded-[10px] bg-white/10 border border-white/10 flex items-center justify-center text-teal-400 shrink-0">
+                <PackageCheck className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
                 <span className="text-[10px] text-teal-400 font-extrabold uppercase tracking-widest block">Delivery Area</span>
-                <span className="text-lg font-extrabold text-white mt-0.5 block">{areaLabel}</span>
-              </div>
-              <div className="flex items-center gap-6 text-xs">
-                <div>
-                  <span className="text-[#9FB3C8] block text-[10px] uppercase font-bold tracking-wider">Customers</span>
-                  <span className="text-lg font-extrabold text-white block">{metrics.total}</span>
+                <span className="text-base font-extrabold text-white mt-0.5 block truncate">{areaLabel}</span>
+                <div className="flex items-center gap-2 mt-2 max-w-[220px]">
+                  <div className="flex-1 bg-white/10 rounded-full h-1.5 overflow-hidden">
+                    <div className="bg-teal-400 h-full transition-all duration-500" style={{ width: `${metrics.progress}%` }} />
+                  </div>
+                  <span className="font-mono font-extrabold text-teal-400 text-[11px]">{metrics.progress}%</span>
                 </div>
-                <div>
-                  <span className="text-[#9FB3C8] block text-[10px] uppercase font-bold tracking-wider">Completed</span>
-                  <span className="text-lg font-extrabold text-teal-400 block">{metrics.completed}</span>
-                </div>
-                <div>
-                  <span className="text-[#9FB3C8] block text-[10px] uppercase font-bold tracking-wider">Pending</span>
-                  <span className="text-lg font-extrabold text-amber-400 block">{metrics.pending}</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 max-w-xs">
-                <div className="flex-1 bg-[#243B53] rounded-full h-2.5 overflow-hidden border border-[#334E68]">
-                  <div className="bg-teal-500 h-full transition-all duration-500" style={{ width: `${metrics.progress}%` }} />
-                </div>
-                <span className="font-mono font-extrabold text-teal-400 text-xs">{metrics.progress}%</span>
               </div>
             </div>
 
@@ -691,11 +797,12 @@ export const Orders: React.FC = () => {
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setSelectedRoute('')}
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                  className={cn(
+                    'px-3 py-1.5 rounded-full border text-xs font-bold transition-all',
                     selectedRoute === ''
                       ? 'bg-teal-500 text-white border-teal-400'
-                      : 'bg-[#243B53]/80 text-[#BCCCDC] border-[#334E68] hover:bg-[#334E68]'
-                  }`}
+                      : 'bg-white/5 text-[#BCCCDC] border-[#334E68] hover:bg-white/10'
+                  )}
                 >
                   All Routes
                 </button>
@@ -703,11 +810,12 @@ export const Orders: React.FC = () => {
                   <button
                     key={rt}
                     onClick={() => setSelectedRoute(rt)}
-                    className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                    className={cn(
+                      'px-3 py-1.5 rounded-full border text-xs font-bold transition-all',
                       selectedRoute === rt
                         ? 'bg-teal-500 text-white border-teal-400'
-                        : 'bg-[#243B53]/80 text-[#BCCCDC] border-[#334E68] hover:bg-[#334E68]'
-                    }`}
+                        : 'bg-white/5 text-[#BCCCDC] border-[#334E68] hover:bg-white/10'
+                    )}
                   >
                     {rt}
                   </button>
@@ -728,27 +836,13 @@ export const Orders: React.FC = () => {
       <TableToolbar>
         <div className="flex flex-col gap-4">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-bold overflow-x-auto">
-              {QUICK_FILTERS.map((f) => (
-                <button
-                  key={f.value}
-                  onClick={() => setQuickFilter(f.value)}
-                  className={`px-3 py-1.5 rounded-lg whitespace-nowrap transition-all inline-flex items-center gap-1.5 ${
-                    quickFilter === f.value
-                      ? f.value === 'exceptions'
-                        ? 'bg-white text-rose-700 shadow-sm ring-1 ring-slate-200'
-                        : f.value === 'different'
-                        ? 'bg-white text-amber-700 shadow-sm ring-1 ring-slate-200'
-                        : 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200'
-                      : 'text-slate-500 hover:text-slate-900'
-                  }`}
-                >
-                  {f.label}
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-200/70 text-slate-600">
-                    {metrics.quickCounts[f.value] ?? 0}
-                  </span>
-                </button>
-              ))}
+            <div className="overflow-x-auto pb-1">
+              <Tabs
+                tabs={QUICK_FILTERS.map((f) => ({ value: f.value, label: f.label, count: metrics.quickCounts[f.value] ?? 0 }))}
+                active={quickFilter}
+                onChange={(v) => setQuickFilter(v)}
+                size="sm"
+              />
             </div>
 
             <div className="relative flex-1 lg:max-w-md">
@@ -765,39 +859,39 @@ export const Orders: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="text-xs w-auto min-w-[150px]" aria-label="Order status filter">
+            <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="min-w-[150px]" aria-label="Order status filter">
               <option value="all">All Statuses</option>
               <option value="not_started">Not Started</option>
               <option value="order_received">Order Received</option>
               <option value="sales_order_generated">Sales Order</option>
               <option value="invoiced">Invoiced</option>
               <option value="dispatched">Dispatched</option>
-              <option value="completed">✓ Completed</option>
-              <option value="error">⚠ Error</option>
+              <option value="completed">Completed</option>
+              <option value="error">Error</option>
             </Select>
 
-            <Select value={orderMatchFilter} onChange={(e) => setOrderMatchFilter(e.target.value as 'all' | 'SAME' | 'DIFFERENT' | 'unset')} className="text-xs w-auto min-w-[150px]" aria-label="Order match filter">
+            <Select value={orderMatchFilter} onChange={(e) => setOrderMatchFilter(e.target.value as 'all' | 'SAME' | 'DIFFERENT' | 'unset')} className="min-w-[150px]" aria-label="Order match filter">
               <option value="all">All Matches</option>
               <option value="SAME">Same</option>
               <option value="DIFFERENT">Different</option>
               <option value="unset">Not Set</option>
             </Select>
 
-            <Select value={exceptionFilter} onChange={(e) => setExceptionFilter(e.target.value as 'all' | 'error' | 'different' | 'invoice_updated')} className="text-xs w-auto min-w-[150px]" aria-label="Exception filter">
+            <Select value={exceptionFilter} onChange={(e) => setExceptionFilter(e.target.value as 'all' | 'error' | 'different' | 'invoice_updated')} className="min-w-[150px]" aria-label="Exception filter">
               <option value="all">All Exceptions</option>
               <option value="error">Errors</option>
               <option value="different">Order Differences</option>
               <option value="invoice_updated">Invoice Updated</option>
             </Select>
 
-            <Select value={assignedUserId} onChange={(e) => setAssignedUserId(e.target.value)} className="text-xs w-auto min-w-[150px]" aria-label="Assigned user filter">
+            <Select value={assignedUserId} onChange={(e) => setAssignedUserId(e.target.value)} className="min-w-[150px]" aria-label="Assigned user filter">
               <option value="all">All Users</option>
               {allUsers.map((u) => (
                 <option key={u.id} value={u.id}>{u.full_name}</option>
               ))}
             </Select>
 
-            <Select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className="text-xs w-auto min-w-[150px]" aria-label="Sort orders">
+            <Select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className="min-w-[150px]" aria-label="Sort orders">
               <option value="name">Sort by Customer</option>
               <option value="route">Sort by Route</option>
               <option value="status">Sort by Status</option>
@@ -811,143 +905,101 @@ export const Orders: React.FC = () => {
       <Card flush>
         {visibleOperations.length > 0 ? (
           <>
-            <Table minWidth={1490}>
+            <Table minWidth={1380}>
               <THead>
                 <Tr hover={false}>
-                  <Th width={260} className="sticky left-0 bg-[#F5F7FA] z-10 border-r border-slate-200">Customer</Th>
-                  <Th width={100}>City</Th>
-                  <Th width={110}>Route</Th>
-                  <Th width={96} align="center">Received</Th>
-                  <Th width={150} align="center">Sales Order</Th>
-                  <Th width={150} align="center">Invoiced</Th>
-                  <Th width={132} align="center">Order Match</Th>
-                  <Th width={96} align="center">Dispatched</Th>
-                  <Th width={96} align="center">POD Sent</Th>
-                  <Th width={150}>Exception</Th>
-                  <Th width={150}>Last Updated</Th>
+                  <Th width={220} className="sticky left-0 bg-[#F5F7FA] z-10 border-r border-slate-200">Customer</Th>
+                  <Th width={90}>City</Th>
+                  <Th width={90}>Route</Th>
+                  <Th width={120}>Status</Th>
+                  <Th width={90} align="center">Received</Th>
+                  <Th width={120} align="center">Sales Order</Th>
+                  <Th width={120} align="center">Invoiced</Th>
+                  <Th width={110} align="center">Order Match</Th>
+                  <Th width={90} align="center">Dispatched</Th>
+                  <Th width={90} align="center">POD Sent</Th>
+                  <Th width={120}>Exception</Th>
+                  <Th width={120}>Last Updated</Th>
                 </Tr>
               </THead>
               <TBody>
-                {pagedOperations.map((op) => {
-                  const isError = isOperationError(op);
-                  const isCompleted = isOperationCompleted(op);
-                  return (
-                    <Tr key={op.id} className={isError ? 'bg-rose-50/40' : isCompleted ? 'bg-emerald-50/30' : ''}>
-                      {/* Customer */}
-                      <Td width={260} className="sticky left-0 bg-white z-10 border-r border-slate-200">
-                        <div className="flex items-start gap-2">
-                          <button
-                            onClick={() => setActiveDetailOp(op)}
-                            className="min-w-0 flex-1 text-left group"
-                            title="Open order details"
-                          >
-                            <span className="font-bold text-slate-900 group-hover:text-brand-600 transition-colors text-xs block w-full truncate">
+                {pagedOperations.map((op) => (
+                  <Tr key={op.id} className="group">
+                    {/* Customer */}
+                    <Td width={220} className="sticky left-0 bg-white z-10 border-r border-slate-200 group-hover:bg-[#F5F7FA]">
+                      <div className="flex items-center gap-2.5">
+                        <button
+                          onClick={() => setActiveDetailOp(op)}
+                          className="flex items-center gap-2.5 min-w-0 flex-1 text-left group/cell"
+                          title="Open order details"
+                        >
+                          <Avatar name={op.customer?.company_name || 'Customer'} size="sm" className="shrink-0" />
+                          <span className="min-w-0">
+                            <span className="font-bold text-slate-900 group-hover/cell:text-teal-700 transition-colors text-xs block w-full truncate">
                               {op.customer?.company_name || 'Customer'}
                             </span>
-                            <span className="text-[10px] text-slate-400 font-mono block truncate">{op.customer?.customer_code}</span>
-                            <span className="text-[10px] text-slate-500 block truncate">
-                              {op.customer?.phone || op.customer?.whatsapp_number || '—'}
-                            </span>
-                          </button>
-                          <button
-                            onClick={() => navigate(`/customers/${op.customer_id}`)}
-                            className="p-1 text-slate-300 hover:text-brand-600 hover:bg-brand-50 rounded-md transition-all shrink-0"
-                            title="Open customer profile"
-                            aria-label="Open customer profile"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </Td>
-
-                      {/* City */}
-                      <Td width={100}>
-                        <span className="text-xs font-semibold text-slate-600 block truncate" title={op.customer?.city || ''}>
-                          {op.customer?.city || '—'}
-                        </span>
-                      </Td>
-
-                      {/* Route */}
-                      <Td width={110}>
-                        <span className="text-[10px] font-bold text-brand-700 bg-brand-50 border border-brand-100 rounded px-1.5 py-0.5 block truncate text-center" title={op.route}>
-                          {op.route}
-                        </span>
-                      </Td>
-
-                      {/* Step 1: Order Received */}
-                      <Td className="text-center">
-                        {renderWorkflowCheck(op, 'order_received', op.order_received, false, 'bg-sky-600 text-white shadow-sm')}
-                        {op.order_received_at && (
-                          <span className="block text-[9px] text-slate-400 font-mono mt-0.5">
-                            {formatDate(op.order_received_at, { hour: '2-digit', minute: '2-digit' })}
+                            <span className="text-[10px] text-slate-400 font-mono block truncate">{op.customer?.customer_code || '—'}</span>
                           </span>
-                        )}
-                      </Td>
+                        </button>
+                        <button
+                          onClick={() => navigate(`/customers/${op.customer_id}`)}
+                          className="p-1 text-slate-300 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-all shrink-0"
+                          title="Open customer profile"
+                          aria-label="Open customer profile"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </Td>
 
-                      {/* Step 2: Sales Order + SO # */}
-                      <Td className="text-center">
-                        {renderWorkflowCheck(op, 'sales_order_generated', op.sales_order_generated, !op.order_received, 'bg-indigo-600 text-white shadow-sm')}
-                        {op.sales_order_number && (
-                          <span className="block font-mono text-[10px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 mt-0.5 truncate max-w-full" title={op.sales_order_number}>
-                            {op.sales_order_number}
-                          </span>
-                        )}
-                      </Td>
+                    {/* City */}
+                    <Td width={90}>
+                      <span className="text-xs font-semibold text-slate-600 block truncate" title={op.customer?.city || ''}>
+                        {op.customer?.city || '—'}
+                      </span>
+                    </Td>
 
-                      {/* Step 3: Invoiced + Invoice # */}
-                      <Td className="text-center">
-                        {renderWorkflowCheck(op, 'invoiced', op.invoiced, !op.sales_order_generated, 'bg-purple-600 text-white shadow-sm')}
-                        {op.invoice_number && (
-                          <span className="block font-mono text-[10px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 mt-0.5 truncate max-w-full" title={op.invoice_number}>
-                            {op.invoice_number}
-                          </span>
-                        )}
-                      </Td>
+                    {/* Route */}
+                    <Td width={90}>
+                      <span className="inline-block text-[10px] font-bold text-navy-800 bg-navy-50 border border-navy-100 rounded px-1.5 py-0.5 truncate max-w-full" title={op.route}>
+                        {op.route}
+                      </span>
+                    </Td>
 
-                      {/* Order Match */}
-                      <Td className="text-center">
-                        <div className="space-y-1">
-                          {renderOrderMatchCell(op)}
-                          {op.order_match === 'DIFFERENT' && op.invoice_updated && (
-                            <span className="block text-[9px] font-bold text-emerald-700 truncate max-w-full" title="Invoice has been updated">
-                              Invoice Updated
-                            </span>
-                          )}
-                        </div>
-                      </Td>
+                    {/* Status + Progress */}
+                    <Td width={120}>
+                      {renderStatusCell(op)}
+                    </Td>
 
-                      {/* Step 4: Dispatched */}
-                      <Td className="text-center">
-                        {renderWorkflowCheck(op, 'dispatched', op.dispatched, !op.invoiced, 'bg-emerald-600 text-white shadow-sm')}
-                        {op.dispatched_at && (
-                          <span className="block text-[9px] text-slate-400 font-mono mt-0.5">
-                            {formatDate(op.dispatched_at, { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        )}
-                      </Td>
+                    {/* Step 1: Order Received */}
+                    <Td width={90} className="text-center">{renderStepCell(op, 'order_received')}</Td>
 
-                      {/* Step 5: POD Sent */}
-                      <Td className="text-center">
-                        {renderWorkflowCheck(op, 'pod_sent', op.pod_sent, !op.dispatched, 'bg-cyan-600 text-white shadow-sm')}
-                        {op.pod_sent_at && (
-                          <span className="block text-[9px] text-slate-400 font-mono mt-0.5">
-                            {formatDate(op.pod_sent_at, { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        )}
-                      </Td>
+                    {/* Step 2: Sales Order + SO # */}
+                    <Td width={120} className="text-center">{renderStepCell(op, 'sales_order_generated')}</Td>
 
-                      {/* Exception */}
-                      <Td width={150}>
-                        {renderExceptionCell(op)}
-                      </Td>
+                    {/* Step 3: Invoiced + Invoice # */}
+                    <Td width={120} className="text-center">{renderStepCell(op, 'invoiced')}</Td>
 
-                      {/* Last Updated */}
-                      <Td width={150}>
-                        {renderLastUpdatedCell(op)}
-                      </Td>
-                    </Tr>
-                  );
-                })}
+                    {/* Order Match */}
+                    <Td width={110} className="text-center">{renderOrderMatchCell(op)}</Td>
+
+                    {/* Step 4: Dispatched */}
+                    <Td width={90} className="text-center">{renderStepCell(op, 'dispatched')}</Td>
+
+                    {/* Step 5: POD Sent */}
+                    <Td width={90} className="text-center">{renderStepCell(op, 'pod_sent')}</Td>
+
+                    {/* Exception */}
+                    <Td width={120}>
+                      {renderExceptionCell(op)}
+                    </Td>
+
+                    {/* Last Updated */}
+                    <Td width={120}>
+                      {renderLastUpdatedCell(op)}
+                    </Td>
+                  </Tr>
+                ))}
               </TBody>
             </Table>
             <Pagination

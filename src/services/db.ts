@@ -3201,10 +3201,14 @@ class LocalDatabaseService {
 
       const users = this.getUsers();
       const queries = this.getQueries();
+      const targetDateStr = options.date ? options.date.substring(0, 10) : '';
 
       // Ensure operation record exists for each customer for date & route
       const resultOps: DailyOrderOperation[] = customers.map(cust => {
-        let opIndex = updatedOpsList.findIndex(o => o.customer_id === cust.id && o.operation_date === options.date);
+        let opIndex = updatedOpsList.findIndex(o => {
+          const opDateStr = o.operation_date ? o.operation_date.substring(0, 10) : '';
+          return o.customer_id === cust.id && opDateStr === targetDateStr;
+        });
         let op: DailyOrderOperation;
 
         if (opIndex >= 0) {
@@ -3216,7 +3220,7 @@ class LocalDatabaseService {
           op = {
             id: crypto.randomUUID(),
             customer_id: cust.id,
-            operation_date: options.date,
+            operation_date: targetDateStr || options.date,
             route: routeForCustomer(cust),
             order_received: false,
             sales_order_generated: false,
@@ -3319,6 +3323,49 @@ class LocalDatabaseService {
     }
   }
 
+  private syncDailyOrderOperationToSupabase(op: DailyOrderOperation): void {
+  if (!supabase) return;
+  const cleanRow = {
+    id: op.id,
+    customer_id: op.customer_id,
+    operation_date: op.operation_date ? op.operation_date.substring(0, 10) : null,
+    route: op.route,
+    order_received: Boolean(op.order_received),
+    order_received_at: op.order_received_at || null,
+    order_received_by: op.order_received_by || null,
+    sales_order_generated: Boolean(op.sales_order_generated),
+    sales_order_number: op.sales_order_number || null,
+    sales_order_generated_at: op.sales_order_generated_at || null,
+    sales_order_generated_by: op.sales_order_generated_by || null,
+    invoiced: Boolean(op.invoiced),
+    invoice_number: op.invoice_number || null,
+    invoiced_at: op.invoiced_at || null,
+    invoiced_by: op.invoiced_by || null,
+    dispatched: Boolean(op.dispatched),
+    dispatched_at: op.dispatched_at || null,
+    dispatched_by: op.dispatched_by || null,
+    pod_sent: Boolean(op.pod_sent),
+    pod_sent_at: op.pod_sent_at || null,
+    pod_sent_by: op.pod_sent_by || null,
+    order_match: op.order_match || null,
+    difference_note: op.difference_note || null,
+    invoice_updated: Boolean(op.invoice_updated),
+    error_flag: Boolean(op.error_flag),
+    exception_status: op.exception_status || 'NONE',
+    exception_note: op.exception_note || null,
+    error_query_id: op.error_query_id || null,
+    operational_area: op.operational_area || 'OUTSIDE_KELOWNA',
+    status: op.status,
+    created_at: op.created_at || new Date().toISOString(),
+    updated_at: op.updated_at || new Date().toISOString(),
+    updated_by: op.updated_by || null,
+  };
+
+  supabase.from('daily_order_operations').upsert(cleanRow, { onConflict: 'id' }).then(({ error }) => {
+    if (error) console.error('[Supabase] direct daily_order_operations write error:', error.message);
+  });
+}
+
   public updateDailyOrderOperationStep(
     id: string,
     step: 'order_received' | 'sales_order_generated' | 'invoiced' | 'dispatched' | 'pod_sent',
@@ -3402,6 +3449,7 @@ class LocalDatabaseService {
       updated.updated_by = userId;
       opsList[index] = updated;
       storageSet(this.dailyOrderOperationsKey, JSON.stringify(opsList));
+      this.syncDailyOrderOperationToSupabase(updated);
 
       // Log history
       this.logDailyOperationHistory({
@@ -3529,6 +3577,7 @@ class LocalDatabaseService {
       updated.updated_by = userId;
       opsList[index] = updated;
       storageSet(this.dailyOrderOperationsKey, JSON.stringify(opsList));
+      this.syncDailyOrderOperationToSupabase(updated);
 
       this.logDailyOperationHistory({
         operation_id: id,
@@ -3674,6 +3723,7 @@ class LocalDatabaseService {
 
       opsList[index] = updated;
       storageSet(this.dailyOrderOperationsKey, JSON.stringify(opsList));
+      this.syncDailyOrderOperationToSupabase(updated);
 
       this.logDailyOperationHistory({
         operation_id: id,
@@ -3731,6 +3781,7 @@ class LocalDatabaseService {
 
       opsList[index] = updated;
       storageSet(this.dailyOrderOperationsKey, JSON.stringify(opsList));
+      this.syncDailyOrderOperationToSupabase(updated);
 
       this.logDailyOperationHistory({
         operation_id: id,
@@ -3800,6 +3851,7 @@ class LocalDatabaseService {
       updated.updated_by = userId;
       opsList[index] = updated;
       storageSet(this.dailyOrderOperationsKey, JSON.stringify(opsList));
+      this.syncDailyOrderOperationToSupabase(updated);
 
       this.logDailyOperationHistory({
         operation_id: id,

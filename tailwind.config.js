@@ -92,9 +92,11 @@ export default {
       },
       borderRadius: {
         card: '12px',
+        panel: '16px',
         btn: '8px',
         input: '8px',
         '2xs': '6px',
+        pill: '9999px',
       },
       boxShadow: {
         xs: '0 1px 2px 0 rgb(16 42 67 / 0.04)',
@@ -105,6 +107,16 @@ export default {
         popover: '0 10px 25px -5px rgb(16 42 67 / 0.12), 0 4px 6px -2px rgb(16 42 67 / 0.04)',
         overlay: '0 20px 40px -15px rgb(16 42 67 / 0.25)',                                       // Layer 3
         'ring-teal': '0 0 0 3px rgb(0 166 166 / 0.2)',
+        // Soft 3D depth accents
+        'lift': '0 10px 24px -8px rgb(16 42 67 / 0.16), 0 4px 10px -4px rgb(16 42 67 / 0.08)',    // Interactive hover lift
+        'inset-top': 'inset 0 1px 0 0 rgb(255 255 255 / 0.9)',
+        'glow-teal': '0 0 0 1px rgb(0 166 166 / 0.25), 0 6px 18px -6px rgb(0 166 166 / 0.35)',
+      },
+      backgroundImage: {
+        'gradient-radial-teal': 'radial-gradient(1200px 420px at 72% -12%, rgb(0 166 166 / 0.05), transparent 62%)',
+        'gradient-navy-panel': 'linear-gradient(160deg, #16335C 0%, #102A43 55%, #0C2340 100%)',
+        'gradient-teal-primary': 'linear-gradient(135deg, #00B3B3 0%, #008C8C 100%)',
+        'gradient-text-shimmer': 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0) 100%)',
       },
       keyframes: {
         'fade-in': {
@@ -135,6 +147,14 @@ export default {
           from: { transform: 'translateY(100%)' },
           to: { transform: 'translateY(0)' },
         },
+        shimmer: {
+          from: { transform: 'translateX(-100%)' },
+          to: { transform: 'translateX(100%)' },
+        },
+        'pulse-soft': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.55' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 0.15s ease-out both',
@@ -144,6 +164,8 @@ export default {
         'drawer-in-right': 'drawer-in-right 0.22s cubic-bezier(0.16, 1, 0.3, 1) both',
         'drawer-in-left': 'drawer-in-left 0.22s cubic-bezier(0.16, 1, 0.3, 1) both',
         'drawer-in-bottom': 'drawer-in-bottom 0.22s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'shimmer': 'shimmer 1.6s ease-in-out infinite',
+        'pulse-soft': 'pulse-soft 2.4s ease-in-out infinite',
       },
     },
   },

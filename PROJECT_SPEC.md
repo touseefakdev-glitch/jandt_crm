@@ -345,24 +345,33 @@ Strict server-side and permission engine RBAC check (`PermissionsService.canPerf
 
 ## Professional Design System & Visual Hierarchy
 
-The application follows a curated, operational visual identity designed for high data density, clarity, and speed on desktop displays.
+The application follows a curated, operational visual identity designed for high data density, clarity, and speed on desktop displays. Full documentation lives in `DESIGN_SYSTEM.md`.
+
+### Premium Soft-3D Design Language (2026 UI Renovation)
+- **Depth-first "Soft 3D" surfaces**: layered hierarchy `Background → Surface → Card → Elevated → Overlay`, achieved purely with CSS shadows, hairline borders, gradient highlights, and inset top highlights — no WebGL or animation libraries.
+- **Full-width 1920px fluid layout**: `.content-width` spans `100%` (max `1920px`) with comfortable padding; main content automatically consumes space beside the `240px`/`72px` collapsible sidebar. **No page-level horizontal scrolling.** Oversized tables scroll internally in their own `crm-table-scroll` wrapper only.
+- **Glass header**: sticky 56px header with `backdrop-blur`, hairline border, and soft shadow; holds sync state, notifications, profile, and global context.
+- **Operations-first dashboard**: operational KPI row (Orders Today / Pending / Support Queries / Dispatched), Order Activity feed, Workflow Quick Status funnel, active-ticket table, and secondary catalog/customer metrics.
+- **Reusable primitives**: `WorkflowStepper` (horizontal 5-stage progress rail with done/current/pending/error states), premium `StatCard` (KPI + hover lift + optional trend), `Button`, `Card`, `Badge`, `Tabs`, `Table`, `Modal` (16px radius + blur backdrop), `Drawer`, `Toast` (gradient accent bar), `Skeleton` (shimmer sweep), `Pagination`, `TableToolbar`, `EmptyState`, `ConfirmDialog`.
 
 ### Design Tokens & Palette
 - **Deep Navy (`#102A43`)**: Primary structural color for app shell, navigation sidebar, and primary operations cards.
 - **Electric Teal (`#00A6A6`)**: Primary action accent, focus rings, and active navigation indicator (`▌ Daily Operations`).
-- **Warm Amber (`#F2B84B`)**: Pending statuses, warnings, and attention banners.
-- **Success Green (`#2E8B57`)**: Completed states, positive operational milestones, and available product badges.
+- **Warm Amber (`#D99C2E`)**: Pending statuses, warnings, and attention banners.
+- **Success Green (`#1E8A57`)**: Completed states, positive operational milestones, and available product badges.
 - **Error Red (`#D64545`)**: Critical warnings, customer operational error badges, and destructive actions.
-- **Surfaces & Layout**: `#F5F7FA` main background, `#FFFFFF` cards, `#E9EFF5` subtle containers, `#D9E2EC` crisp borders, `#172B4D` primary text, `#52606D` secondary text.
-- **Border Radii**: Cards `12px`, Buttons `8px`, Inputs `8px`, Badges `9999px`.
+- **Surfaces & Layout**: `#F4F7FB` main background (with radial teal/navy tints), `#FFFFFF` cards, `#E9EFF5` subtle containers, `#DCE4EF` crisp borders, `#132A4A` primary text, `#52606D` secondary text.
+- **Border Radii**: Cards `12px`, Buttons/Inputs `8px`, Modals/Panels `16px`, Badges pill.
+- **Shadows**: layered 3D depth stack (`card` → `elevated` → `popover` → `overlay`) plus `lift`, `glow-teal`, and `inset-top` accent tokens.
+- **Typography**: Inter (300–800), clear hierarchy (page/section/card title, table header, body, secondary, caption).
 
 ### Enterprise Component Library
-- **Data Table System**: The `Table` primitive renders its own horizontal-scroll wrapper (`crm-table-scroll`) and supports `minWidth`, `stickyHeader`, and per-column `width` (px), `align`, `truncate` (ellipsis + native `title` tooltip), and `maxWidth`. Explicit column widths + truncation are applied on every data table in the app (all pages), eliminating text collisions and horizontal overflow.
+- **Data Table System**: The `Table` primitive renders its own horizontal-scroll wrapper (`crm-table-scroll`) and supports `minWidth`, `stickyHeader`, and per-column `width` (px), `align`, `truncate` (ellipsis + native `title` tooltip), and `maxWidth`. Explicit column widths + truncation are applied on every data table in the app (all pages), eliminating text collisions and horizontal overflow. All primary tables fit the 1920px workspace: Orders (1380px), Queries (1300px), Customers (1320px), Products (1260px), OutOfStock (1330px).
 - **Card System**: `Card` with `flush` (edge-to-edge tables), `elevated`, and `hoverable` variants; `CardHeader` (title/subtitle/actions/icon) and `CardBody`.
 - **Toolbar System**: `TableToolbar` standardizes search inputs, filter tabs, select grids, and clear-filters actions across all list pages.
-- **Supporting Primitives**: `Tooltip`, `Checkbox`, `Drawer`, `ErrorState`, `DataTable`, `Skeleton` loading placeholders, upgraded `Button` (iconOnly/sizes), `PageHeader`, `Modal`, `EmptyState` (with actions), `StatCard`.
-- **App Shell**: `AppShell` + `Sidebar` (brand header, active-route indicator, section groups, shift footer, mobile drawer, collapsed rail) and `Header` (global search, notifications, profile).
-- **Page Coverage**: All pages render on the design system — Customers, Products, Orders, OutOfStock, Queries, Notifications, Dashboard, WhatsApp Conversations, WhatsApp Monitor, all tabular admin pages, and detail pages (Customer, Product, Order, Query, ShiftHandover).
+- **Supporting Primitives**: `Tooltip`, `Checkbox`, `Drawer`, `ErrorState`, `DataTable`, `Skeleton` loading placeholders, upgraded `Button` (iconOnly/sizes), `PageHeader`, `Modal`, `EmptyState` (with actions), `StatCard`, `WorkflowStepper`, `ConfirmDialog`.
+- **App Shell**: `AppShell` + `Sidebar` (premium brand header, active-route gradient + teal indicator, section groups, shift footer, mobile drawer, collapsed rail) and `Header` (glass effect, global sync/connection pill, notifications, profile).
+- **Page Coverage**: All pages render on the design system — Customers, Products, Orders, OutOfStock, Queries, Notifications, Dashboard, all tabular admin pages, and detail pages (Customer, Product, Order, Query, ShiftHandover).
 
 ---
 

@@ -69,8 +69,8 @@ export const AdminLayout: React.FC = () => {
         }
       />
 
-      <div className="bg-white rounded-xl p-2 border border-slate-200 shadow-sm overflow-x-auto">
-        <div className="flex items-center space-x-1 min-w-max">
+      <div className="bg-white rounded-card p-2 border border-[#DCE4EF] shadow-xs">
+        <div className="flex flex-wrap items-center gap-1">
           {adminNavTabs.map((tab) => {
             const Icon = tab.icon;
             const active = isTabActive(tab.path, tab.exact);
@@ -79,11 +79,11 @@ export const AdminLayout: React.FC = () => {
                 key={tab.path}
                 to={tab.path}
                 className={cn(
-                  'px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5',
-                  active ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  'px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5',
+                  active ? 'bg-gradient-navy-panel text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 )}
               >
-                <Icon className={cn('w-3.5 h-3.5', active ? 'text-sky-400' : 'text-slate-400')} />
+                <Icon className={cn('w-3.5 h-3.5', active ? 'text-teal-400' : 'text-slate-400')} />
                 <span>{tab.label}</span>
               </NavLink>
             );

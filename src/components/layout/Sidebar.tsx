@@ -11,7 +11,6 @@ import {
   AlertTriangle,
   Bell,
   ArrowLeftRight,
-  ShieldAlert,
   MapPin,
   UsersRound,
   Upload,
@@ -78,7 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, mobileOpen, onMobil
             'flex items-center text-xs font-semibold transition-all relative group select-none',
             collapsed ? 'justify-center px-0 py-2.5 mx-auto w-10 rounded-btn' : 'px-3 py-2 rounded-btn mx-2',
             isActive
-              ? 'bg-teal-500/15 text-white font-bold'
+              ? 'bg-gradient-to-r from-teal-500/20 to-teal-500/5 text-white font-bold shadow-inset-top'
               : 'text-[#9FB3C8] hover:bg-white/5 hover:text-white'
           )
         }
@@ -87,9 +86,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, mobileOpen, onMobil
           <>
             {/* Active Left Indicator Bar */}
             {isActive && !collapsed && (
-              <span className="absolute left-0 top-1 bottom-1 w-1 bg-teal-500 rounded-r-full" />
+              <span className="absolute left-0 top-1 bottom-1 w-1 bg-gradient-to-b from-teal-400 to-teal-600 rounded-r-full" />
             )}
-            <Icon className={cn('w-4 h-4 shrink-0 transition-colors', isActive ? 'text-teal-400' : 'text-[#829AB1] group-hover:text-white')} />
+            <Icon
+              className={cn(
+                'w-4 h-4 shrink-0 transition-colors',
+                isActive ? 'text-teal-400 drop-shadow-[0_1px_2px_rgba(0,166,166,0.5)]' : 'text-[#829AB1] group-hover:text-white'
+              )}
+            />
             {!collapsed && (
               <>
                 <span className="ml-3 flex-1 truncate">{item.label}</span>
@@ -107,21 +111,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, mobileOpen, onMobil
   };
 
   const renderSectionLabel = (label: string) => (
-    <div className="px-5 mb-2 text-2xs font-extrabold uppercase tracking-widest text-[#627D98]">
-      {label}
-    </div>
+    <div className="px-5 mb-2 text-2xs font-extrabold uppercase tracking-widest text-[#627D98]">{label}</div>
   );
 
   const renderContent = () => (
-    <div className={cn('flex flex-col h-full bg-[#102A43] text-white', collapsed ? 'w-[72px]' : 'w-64')}>
+    <div className={cn('flex flex-col h-full bg-gradient-navy-panel text-white', collapsed ? 'w-[72px]' : 'w-60')}>
       {/* Sidebar Brand Header */}
-      <div className={cn('h-16 flex items-center border-b border-[#243B53] px-4', collapsed ? 'justify-center' : 'justify-start space-x-3')}>
-        <div className="w-8 h-8 rounded-btn bg-teal-500 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+      <div
+        className={cn(
+          'h-16 flex items-center border-b border-[#1E3A5F]/70 px-4 shrink-0 bg-[#0C2340]/40',
+          collapsed ? 'justify-center' : 'justify-start space-x-3'
+        )}
+      >
+        <div className="w-9 h-9 rounded-btn bg-gradient-teal-primary text-white flex items-center justify-center font-bold shadow-glow-teal shrink-0">
           <ShieldCheck className="w-5 h-5 text-white" />
         </div>
         {!collapsed && (
-          <div>
-            <span className="font-extrabold text-sm tracking-tight text-white block leading-tight">J&T SUPPLIES</span>
+          <div className="min-w-0">
+            <span className="font-extrabold text-sm tracking-tight text-white block leading-tight truncate">J&T SUPPLIES</span>
             <span className="text-2xs font-bold text-[#829AB1] uppercase tracking-wider block">CRM Portal</span>
           </div>
         )}
@@ -144,7 +151,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, mobileOpen, onMobil
       </div>
 
       {/* Active Shift Footer */}
-      <div className={cn('border-t border-[#243B53] bg-[#091A2B]/60 text-xs text-[#9FB3C8]', collapsed ? 'p-3 text-center' : 'p-4')}>
+      <div
+        className={cn(
+          'border-t border-[#1E3A5F]/70 bg-[#0C2340]/50 text-xs text-[#9FB3C8] shrink-0',
+          collapsed ? 'p-3 text-center' : 'p-4'
+        )}
+      >
         <div className={cn('flex items-center justify-between mb-1', collapsed && 'justify-center')}>
           {!collapsed && <span className="font-bold text-xs text-white">Active Shift Session</span>}
           <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse shrink-0" />
@@ -152,8 +164,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, mobileOpen, onMobil
         {!collapsed &&
           (user.team ? (
             <div>
-              <p className="text-white font-semibold text-xs">{user.team.name}</p>
-              <p className="text-2xs text-[#829AB1] font-mono mt-0.5">{user.team.shift_info}</p>
+              <p className="text-white font-semibold text-xs truncate">{user.team.name}</p>
+              <p className="text-2xs text-[#829AB1] font-mono mt-0.5 truncate">{user.team.shift_info}</p>
             </div>
           ) : (
             <p className="text-[#627D98] italic text-[11px]">No team assigned</p>
@@ -168,14 +180,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, mobileOpen, onMobil
       {mobileOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
           <div className="absolute inset-0 bg-[#091A2B]/60 backdrop-blur-[2px] animate-fade-in" onClick={onMobileClose} aria-hidden="true" />
-          <aside className="absolute inset-y-0 left-0 w-64 bg-[#102A43] text-white shadow-overlay">
+          <aside className="absolute inset-y-0 left-0 w-60 bg-[#102A43] text-white shadow-overlay">
             <div className="h-full">{renderContent()}</div>
           </aside>
         </div>
       )}
 
       {/* Desktop sidebar */}
-      <aside className={cn('hidden md:flex flex-col bg-[#102A43] text-white shrink-0 transition-[width] duration-150 ease-in-out border-r border-[#243B53] shadow-card z-30', collapsed ? 'w-[72px]' : 'w-64')}>
+      <aside
+        className={cn(
+          'hidden md:flex flex-col bg-gradient-navy-panel text-white shrink-0 transition-[width] duration-150 ease-in-out border-r border-[#1E3A5F]/70 shadow-card z-30',
+          collapsed ? 'w-[72px]' : 'w-60'
+        )}
+      >
         {renderContent()}
       </aside>
     </>

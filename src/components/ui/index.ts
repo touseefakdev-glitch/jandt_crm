@@ -36,3 +36,5 @@ export type { DrawerProps } from './Drawer';
 export { DataTable } from './DataTable';
 export type { DataTableColumn, DataTableProps } from './DataTable';
 export { TableToolbar } from './TableToolbar';
+export { WorkflowStepper } from './WorkflowStepper';
+export type { WorkflowStepperProps, WorkflowStepperStep, WorkflowStepState } from './WorkflowStepper';

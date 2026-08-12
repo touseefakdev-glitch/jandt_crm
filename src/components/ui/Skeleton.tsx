@@ -1,13 +1,19 @@
 import React from 'react';
 import { cn } from '../../utils/cn';
 
+/**
+ * Premium skeleton loader with a soft shimmer sweep — reads as "loading"
+ * without flashing empty content.
+ */
 export const Skeleton: React.FC<{ className?: string }> = ({ className }) => (
-  <div className={cn('animate-pulse rounded-[6px] bg-[#E9EFF5]', className)} />
+  <div className={cn('relative overflow-hidden rounded-[6px] bg-[#E9EFF5]', className)} aria-hidden="true">
+    <div className="absolute inset-0 animate-shimmer bg-gradient-text-shimmer" />
+  </div>
 );
 
 export const SkeletonTable: React.FC<{ rows?: number; cols?: number; className?: string }> = ({ rows = 5, cols = 5, className }) => (
-  <div className={cn('bg-white rounded-card border border-[#D9E2EC] shadow-card overflow-hidden', className)}>
-    <div className="px-5 py-4 border-b border-[#D9E2EC] flex items-center justify-between">
+  <div className={cn('bg-white rounded-card border border-[#DCE4EF] shadow-card overflow-hidden', className)}>
+    <div className="px-5 py-4 border-b border-[#DCE4EF] flex items-center justify-between">
       <Skeleton className="h-5 w-48" />
       <Skeleton className="h-8 w-28" />
     </div>
@@ -24,7 +30,7 @@ export const SkeletonTable: React.FC<{ rows?: number; cols?: number; className?:
 );
 
 export const SkeletonCard: React.FC<{ className?: string }> = ({ className }) => (
-  <div className={cn('bg-white p-5 rounded-card border border-[#D9E2EC] shadow-card space-y-3', className)}>
+  <div className={cn('bg-white p-5 rounded-card border border-[#DCE4EF] shadow-card space-y-3', className)}>
     <div className="flex items-center justify-between">
       <Skeleton className="h-4 w-40" />
       <Skeleton className="h-8 w-8 rounded-lg" />
@@ -37,7 +43,7 @@ export const SkeletonCard: React.FC<{ className?: string }> = ({ className }) =>
 export const SkeletonKpiGrid: React.FC<{ count?: number }> = ({ count = 4 }) => (
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     {Array.from({ length: count }).map((_, i) => (
-      <div key={i} className="bg-white p-4 rounded-card border border-[#D9E2EC] shadow-card space-y-3">
+      <div key={i} className="bg-white p-4 rounded-card border border-[#DCE4EF] shadow-card space-y-3">
         <div className="flex items-center justify-between">
           <Skeleton className="h-3.5 w-24" />
           <Skeleton className="h-8 w-8 rounded-lg" />
@@ -50,7 +56,7 @@ export const SkeletonKpiGrid: React.FC<{ count?: number }> = ({ count = 4 }) => 
 );
 
 export const SkeletonList: React.FC<{ items?: number; className?: string }> = ({ items = 5, className }) => (
-  <div className={cn('bg-white rounded-card border border-[#D9E2EC] shadow-card divide-y divide-[#E9EFF5]', className)}>
+  <div className={cn('bg-white rounded-card border border-[#DCE4EF] shadow-card divide-y divide-[#E9EFF5]', className)}>
     {Array.from({ length: items }).map((_, i) => (
       <div key={i} className="px-5 py-4 flex items-center gap-3">
         <Skeleton className="h-10 w-10 rounded-full" />
@@ -66,7 +72,7 @@ export const SkeletonList: React.FC<{ items?: number; className?: string }> = ({
 
 export const PageSkeleton: React.FC = () => (
   <div className="space-y-5 lg:space-y-6">
-    <div className="bg-white p-5 rounded-card border border-[#D9E2EC] shadow-card flex items-center gap-4">
+    <div className="bg-white p-5 rounded-card border border-[#DCE4EF] shadow-card flex items-center gap-4">
       <Skeleton className="h-10 w-10 rounded-lg" />
       <div className="flex-1 space-y-2">
         <Skeleton className="h-5 w-64" />

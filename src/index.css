@@ -3,35 +3,42 @@
 @tailwind utilities;
 
 /* ============================================================
-   J&T Supplies CRM — Design System
+   J&T Supplies CRM — Premium Design System
+   Soft 3D / Depth-first enterprise operations UI.
    Tokens, primitives and layout rules shared by every page.
    ============================================================ */
 
 @layer base {
   :root {
     /* Color Tokens */
-    --color-bg: #F5F7FA;
+    --color-bg: #F4F7FB;
+    --color-bg-deep: #EEF3F9;
     --color-surface: #FFFFFF;
     --color-surface-muted: #E9EFF5;
-    --color-border: #D9E2EC;
-    --color-border-strong: #BCCCDC;
-    --color-text-primary: #172B4D;
+    --color-surface-muted-2: #F1F5FA;
+    --color-border: #DCE4EF;
+    --color-border-strong: #C4D0E0;
+    --color-text-primary: #132A4A;
     --color-text-secondary: #52606D;
-    --color-text-muted: #829AB1;
+    --color-text-muted: #7B8CA4;
     --color-primary: #00A6A6;
     --color-primary-strong: #008C8C;
+    --color-primary-soft: #E0F5F5;
     --color-secondary: #102A43;
-    --color-success: #2E8B57;
-    --color-warning: #F2B84B;
+    --color-secondary-soft: #0C2340;
+    --color-success: #1E8A57;
+    --color-warning: #D99C2E;
     --color-error: #D64545;
     --color-info: #0E7490;
 
-    /* 3D Layer Shadows (subtle, functional) */
-    --shadow-layer-1: 0 1px 3px 0 rgb(16 42 67 / 0.06), 0 1px 2px -1px rgb(16 42 67 / 0.04);
-    --shadow-layer-2: 0 8px 20px -6px rgb(16 42 67 / 0.10), 0 3px 6px -4px rgb(16 42 67 / 0.05);
-    --shadow-layer-3: 0 20px 40px -15px rgb(16 42 67 / 0.25);
+    /* 3D Layer Shadows — subtle, functional depth stack */
+    --shadow-layer-1: 0 1px 2px 0 rgb(16 42 67 / 0.05), 0 1px 3px 0 rgb(16 42 67 / 0.04);
+    --shadow-layer-2: 0 2px 6px -2px rgb(16 42 67 / 0.06), 0 6px 16px -6px rgb(16 42 67 / 0.08);
+    --shadow-layer-3: 0 4px 12px -4px rgb(16 42 67 / 0.10), 0 14px 32px -10px rgb(16 42 67 / 0.14);
+    --shadow-layer-4: 0 10px 28px -8px rgb(16 42 67 / 0.16), 0 28px 56px -16px rgb(16 42 67 / 0.22);
+    --shadow-inset-card: inset 0 1px 0 0 rgb(255 255 255 / 0.9);
 
-    /* Spacing */
+    /* Spacing (4px base scale) */
     --space-1: 4px;
     --space-2: 8px;
     --space-3: 12px;
@@ -45,48 +52,68 @@
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 16px;
+    --radius-pill: 9999px;
 
     /* Font sizes */
     --font-size-caption: 0.75rem;
     --font-size-body: 0.875rem;
     --font-size-base: 1rem;
     --font-size-h3: 1.125rem;
-    --font-size-h2: 1.5rem;
-    --font-size-h1: 1.875rem;
+    --font-size-h2: 1.375rem;
+    --font-size-h1: 1.625rem;
   }
 
-  * {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
     border-color: var(--color-border);
   }
 
   html {
     -webkit-text-size-adjust: 100%;
+    height: 100%;
   }
 
   body {
-    @apply bg-[#F5F7FA] text-[#172B4D] font-sans antialiased selection:bg-teal-500 selection:text-white;
+    @apply font-sans antialiased;
+    color: var(--color-text-primary);
+    background-color: var(--color-bg);
+    background-image:
+      radial-gradient(1200px 420px at 72% -12%, rgb(0 166 166 / 0.05), transparent 62%),
+      radial-gradient(900px 380px at 12% -8%, rgb(16 42 67 / 0.05), transparent 60%);
+    background-attachment: fixed;
+    min-height: 100%;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    text-rendering: optimizeLegibility;
   }
 
   /* Consistent, visible focus ring across the entire app */
   :focus-visible {
-    outline: 2px solid rgb(0 166 166 / 0.6);
-    outline-offset: 1px;
+    outline: 2px solid rgb(0 166 166 / 0.65);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 
   button:focus:not(:focus-visible) {
     outline: none;
   }
+
+  ::selection {
+    background: rgb(0 166 166 / 0.18);
+    color: var(--color-secondary);
+  }
 }
 
 @layer components {
   /* ============================================================
-     Container System
-     Mobile: small padding · Tablet: medium · Desktop: large.
-     Wide screens clamp to a controlled max width.
+     Fluid Container System
+     Full-viewport width by default. Comfortable padding scale.
+     No narrow centered cap that wastes 1920px screens.
      ============================================================ */
   .content-width {
-    @apply w-full mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+    @apply w-full mx-auto px-4 sm:px-6 xl:px-8;
+    max-width: 1920px;
   }
 
   .page-stack {
@@ -94,46 +121,66 @@
   }
 
   /* ============================================================
-     Card System — Layer 1 / Layer 2 elevation
+     Card System — layered 3D surface hierarchy
+     Background < Surface < Card < Elevated < Overlay
      ============================================================ */
   .crm-card {
-    @apply bg-white rounded-card border border-[#D9E2EC] shadow-card;
+    @apply bg-white rounded-card border border-[#DCE4EF] shadow-card;
+    box-shadow: var(--shadow-layer-1), var(--shadow-inset-card);
   }
 
   .crm-card-elevated {
-    @apply bg-white rounded-card border border-[#D9E2EC] shadow-elevated;
+    @apply bg-white rounded-card border border-[#DCE4EF] shadow-elevated;
+    box-shadow: var(--shadow-layer-2), var(--shadow-inset-card);
   }
 
   .crm-card-hover {
-    @apply transition-shadow duration-150 hover:shadow-card-hover;
+    transition: box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease;
+  }
+
+  .crm-card-hover:hover {
+    box-shadow: var(--shadow-layer-3), var(--shadow-inset-card);
+    border-color: var(--color-border-strong);
   }
 
   .crm-card-flat {
-    @apply bg-white rounded-card border border-[#D9E2EC];
+    @apply bg-white rounded-card border border-[#DCE4EF];
   }
 
   /* Dark structural panel (deep navy surfaces) */
   .crm-card-dark {
-    @apply bg-[#102A43] rounded-card border border-[#243B53] shadow-card text-white;
+    @apply rounded-card shadow-card text-white;
+    background-image: linear-gradient(160deg, #16335C 0%, #102A43 55%, #0C2340 100%);
+    border: 1px solid #1E3A5F;
+    box-shadow: var(--shadow-layer-2), inset 0 1px 0 0 rgb(255 255 255 / 0.06);
+  }
+
+  /* ============================================================
+     Glass / Frosted Surface
+     ============================================================ */
+  .crm-glass {
+    background-color: rgb(255 255 255 / 0.78);
+    backdrop-filter: blur(10px) saturate(1.4);
+    -webkit-backdrop-filter: blur(10px) saturate(1.4);
   }
 
   /* ============================================================
      Typography Primitives
      ============================================================ */
   .crm-page-title {
-    @apply text-xl lg:text-2xl font-extrabold text-[#172B4D] tracking-tight leading-tight;
+    @apply text-xl xl:text-2xl font-extrabold text-[#132A4A] tracking-tight leading-tight;
   }
 
   .crm-section-title {
-    @apply text-sm font-bold text-[#172B4D] tracking-tight;
+    @apply text-sm font-bold text-[#132A4A] tracking-tight;
   }
 
   .crm-card-title {
-    @apply text-sm font-bold text-[#172B4D] tracking-tight;
+    @apply text-sm font-bold text-[#132A4A] tracking-tight;
   }
 
   .crm-label {
-    @apply block text-xs font-bold uppercase tracking-wider text-[#52606D] mb-1.5;
+    @apply block text-2xs font-bold uppercase tracking-wider text-[#52606D] mb-1.5;
   }
 
   .crm-muted {
@@ -148,7 +195,7 @@
      Form Primitives
      ============================================================ */
   .crm-input {
-    @apply w-full px-3.5 py-2 text-sm text-[#172B4D] placeholder-[#829AB1] bg-white border border-[#D9E2EC] rounded-input shadow-xs transition-all duration-150 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 disabled:bg-[#E9EFF5] disabled:text-[#829AB1] disabled:cursor-not-allowed;
+    @apply w-full px-3.5 py-2 text-sm text-[#132A4A] placeholder-[#7B8CA4] bg-white border border-[#DCE4EF] rounded-input shadow-xs transition-all duration-150 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 disabled:bg-[#E9EFF5] disabled:text-[#7B8CA4] disabled:cursor-not-allowed;
   }
 
   .crm-input-error {
@@ -160,7 +207,7 @@
   }
 
   .crm-input-hint {
-    @apply mt-1.5 text-xs text-[#829AB1];
+    @apply mt-1.5 text-xs text-[#7B8CA4];
   }
 
   .crm-input-error-text {
@@ -169,20 +216,20 @@
 
   /* ============================================================
      Table System — the single enterprise table base.
-     Cells: vertical-align middle, consistent padding.
-     Long text: truncate + tooltip, never visual collision.
+     Fixed layout friendly, truncation-safe, no visual collisions.
      ============================================================ */
   .crm-table-scroll {
     @apply overflow-x-auto;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
   }
 
   .crm-table-th {
-    @apply px-4 py-3 text-left text-2xs font-bold uppercase tracking-wider text-[#52606D] bg-[#F5F7FA] border-b border-[#D9E2EC] whitespace-nowrap select-none align-middle;
+    @apply px-4 py-3 text-left text-2xs font-bold uppercase tracking-wider text-[#52606D] bg-[#F4F7FB] border-b border-[#DCE4EF] whitespace-nowrap select-none align-middle;
   }
 
   .crm-table-td {
-    @apply px-4 py-3 text-sm text-[#172B4D] align-middle whitespace-nowrap border-b border-[#E9EFF5];
+    @apply px-4 py-3 text-sm text-[#132A4A] align-middle whitespace-nowrap border-b border-[#E9EFF5];
   }
 
   /* Truncation helpers — safe for any column */
@@ -194,7 +241,7 @@
      Checkbox Primitives
      ============================================================ */
   .crm-checkbox {
-    @apply w-5 h-5 rounded-[4px] border-2 border-[#D9E2EC] bg-white flex items-center justify-center transition-all duration-150 cursor-pointer disabled:cursor-not-allowed disabled:bg-[#E9EFF5] disabled:border-[#D9E2EC] disabled:opacity-60;
+    @apply w-5 h-5 rounded-[4px] border-2 border-[#DCE4EF] bg-white flex items-center justify-center transition-all duration-150 cursor-pointer disabled:cursor-not-allowed disabled:bg-[#E9EFF5] disabled:border-[#DCE4EF] disabled:opacity-60;
   }
 
   .crm-checkbox-hover {
@@ -220,16 +267,16 @@
      Data Table Toolbar
      ============================================================ */
   .crm-toolbar {
-    @apply bg-white rounded-card border border-[#D9E2EC] shadow-card p-4;
+    @apply bg-white rounded-card border border-[#DCE4EF] shadow-card p-4;
   }
 }
 
 /* ============================================================
-   Operational Scrollbar Styling
+   Premium Scrollbar Styling
    ============================================================ */
 ::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 9px;
+  height: 9px;
 }
 
 ::-webkit-scrollbar-track {
@@ -237,12 +284,13 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #BCCCDC;
-  border-radius: 4px;
+  background: #C4D0E0;
+  border-radius: 5px;
+  border: 2px solid var(--color-bg);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #829AB1;
+  background: #9FB3C8;
 }
 
 /* Sticky table header base (used with .sticky .top-0 utility) */

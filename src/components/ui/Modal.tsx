@@ -85,7 +85,7 @@ export const Modal: React.FC<ModalProps> = ({
   return createPortal(
     <div className="fixed inset-0 z-[70] flex items-stretch sm:items-center justify-center sm:p-6 overflow-y-auto">
       <div
-        className="fixed inset-0 bg-slate-950/50 backdrop-blur-[2px] animate-fade-in"
+        className="fixed inset-0 bg-slate-950/45 backdrop-blur-[3px] animate-fade-in"
         onClick={closeOnBackdrop ? onClose : undefined}
         aria-hidden="true"
       />
@@ -95,8 +95,8 @@ export const Modal: React.FC<ModalProps> = ({
         aria-modal="true"
         aria-label={typeof title === 'string' ? title : undefined}
         className={cn(
-          'relative w-full bg-white shadow-overlay border border-[#D9E2EC] animate-scale-in sm:my-auto',
-          'rounded-none sm:rounded-[12px]',
+          'relative w-full bg-white shadow-overlay border border-[#DCE4EF] animate-scale-in sm:my-auto overflow-hidden',
+          'rounded-none sm:rounded-panel',
           'max-h-full sm:max-h-[calc(100vh-3rem)]',
           'flex flex-col',
           sizeClasses[size],
@@ -104,11 +104,11 @@ export const Modal: React.FC<ModalProps> = ({
         )}
       >
         {(title || icon) && (
-          <div className="flex items-start justify-between gap-4 px-5 sm:px-6 pt-4 pb-3.5 border-b border-[#D9E2EC] shrink-0">
+          <div className="flex items-start justify-between gap-4 px-5 sm:px-6 pt-4 pb-3.5 border-b border-[#DCE4EF] shrink-0 bg-gradient-to-b from-[#FBFCFE] to-white">
             <div className="flex items-start gap-3 min-w-0">
-              {icon && <div className="w-9 h-9 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">{icon}</div>}
+              {icon && <div className="w-9 h-9 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center shrink-0 shadow-xs">{icon}</div>}
               <div className="min-w-0">
-                <h2 className="text-base font-bold text-[#172B4D] tracking-tight leading-snug">{title}</h2>
+                <h2 className="text-base font-bold text-[#132A4A] tracking-tight leading-snug">{title}</h2>
                 {subtitle && <p className="mt-0.5 text-xs text-[#52606D]">{subtitle}</p>}
               </div>
             </div>
@@ -122,7 +122,7 @@ export const Modal: React.FC<ModalProps> = ({
           </div>
         )}
         <div className="flex-1 min-h-0 px-5 sm:px-6 py-5 overflow-y-auto">{children}</div>
-        {footer && <div className="px-5 sm:px-6 py-3.5 border-t border-[#D9E2EC] bg-[#F5F7FA] rounded-b-none sm:rounded-b-[12px] flex items-center justify-end gap-2.5 shrink-0">{footer}</div>}
+        {footer && <div className="px-5 sm:px-6 py-3.5 border-t border-[#DCE4EF] bg-[#F4F7FB] rounded-b-none sm:rounded-b-panel flex items-center justify-end gap-2.5 shrink-0">{footer}</div>}
       </div>
     </div>,
     document.body

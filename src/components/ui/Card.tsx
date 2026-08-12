@@ -25,7 +25,7 @@ export const Card: React.FC<CardProps> = ({ className, elevated, hoverable, flus
 export const CardHeader: React.FC<
   React.HTMLAttributes<HTMLDivElement> & { title?: React.ReactNode; subtitle?: React.ReactNode; actions?: React.ReactNode; icon?: React.ReactNode }
 > = ({ title, subtitle, actions, icon, className, children, ...props }) => (
-  <div className={cn('px-5 py-3.5 border-b border-[#D9E2EC] flex items-center justify-between gap-4', className)} {...props}>
+  <div className={cn('px-5 py-3.5 border-b border-[#DCE4EF] flex items-center justify-between gap-4 bg-gradient-to-b from-[#FBFCFE] to-white', className)} {...props}>
     <div className="flex items-center gap-2.5 min-w-0">
       {icon && <span className="text-teal-600 shrink-0">{icon}</span>}
       <div className="min-w-0">

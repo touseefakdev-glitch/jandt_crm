@@ -21,8 +21,9 @@ import {
   DailyOpStepKey,
   getExceptionKind,
   getPendingStep,
+  isStepDone,
 } from '../../utils/orderWorkflow';
-import { Drawer, Button } from '../ui';
+import { Drawer, Button, WorkflowStepper, WorkflowStepperStep } from '../ui';
 
 interface OrderDetailDrawerProps {
   op: DailyOrderOperation | null;
@@ -79,6 +80,19 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
   const pendingStep = getPendingStep(op);
   const updatedBy = op.updated_by_profile?.full_name || '—';
 
+  const stateFor = (step: DailyOpStepKey): WorkflowStepperStep['state'] => {
+    if (isStepDone(op, step)) return 'done';
+    if (pendingStep?.key === step) return 'current';
+    return 'pending';
+  };
+
+  const stepperSteps: WorkflowStepperStep[] = ORDER_WORKFLOW_STEPS.map((s) => ({
+    key: s.key,
+    label: s.shortLabel,
+    color: stepColors[s.key].done.replace(' text-white', ''),
+    state: op.exception_status === 'ERROR' ? 'error' : stateFor(s.key),
+  }));
+
   return (
     <Drawer
       isOpen={!!op}
@@ -110,6 +124,11 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
             </span>
             <span className="text-[11px] text-slate-500 block mt-0.5">{op.customer?.city || '—'}</span>
           </div>
+        </div>
+
+        {/* Workflow Stepper */}
+        <div className="p-3 rounded-xl border border-[#DCE4EF] bg-gradient-to-b from-[#FBFCFE] to-white shadow-xs">
+          <WorkflowStepper steps={stepperSteps} />
         </div>
 
         {/* Workflow Checklist */}

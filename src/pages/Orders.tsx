@@ -908,7 +908,7 @@ export const Orders: React.FC = () => {
             <Table minWidth={1380}>
               <THead>
                 <Tr hover={false}>
-                  <Th width={220} className="sticky left-0 bg-[#F5F7FA] z-10 border-r border-slate-200">Customer</Th>
+                  <Th width={220} className="sticky left-0 bg-[#F4F7FB] z-10 border-r border-slate-200">Customer</Th>
                   <Th width={90}>City</Th>
                   <Th width={90}>Route</Th>
                   <Th width={120}>Status</Th>
@@ -926,7 +926,7 @@ export const Orders: React.FC = () => {
                 {pagedOperations.map((op) => (
                   <Tr key={op.id} className="group">
                     {/* Customer */}
-                    <Td width={220} className="sticky left-0 bg-white z-10 border-r border-slate-200 group-hover:bg-[#F5F7FA]">
+                    <Td width={220} className="sticky left-0 bg-white z-10 border-r border-slate-200 group-hover:bg-[#F4F7FB]">
                       <div className="flex items-center gap-2.5">
                         <button
                           onClick={() => setActiveDetailOp(op)}

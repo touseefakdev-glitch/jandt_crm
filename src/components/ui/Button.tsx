@@ -13,10 +13,10 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const variantStyles: Record<NonNullable<ButtonProps['variant']>, string> = {
-  primary: 'bg-teal-500 text-white hover:bg-teal-600 focus-visible:ring-teal-500/40 shadow-xs active:bg-teal-700 disabled:hover:bg-teal-500',
+  primary: 'bg-gradient-teal-primary text-white hover:brightness-110 focus-visible:ring-teal-500/40 shadow-xs active:brightness-95 disabled:hover:brightness-100',
   secondary: 'bg-navy-900 text-white hover:bg-navy-800 focus-visible:ring-navy-500/40 shadow-xs active:bg-navy-950 disabled:hover:bg-navy-900',
-  outline: 'bg-white text-[#172B4D] border border-[#D9E2EC] hover:bg-[#F5F7FA] hover:border-[#BCCCDC] focus-visible:ring-teal-500/30',
-  ghost: 'bg-transparent text-[#52606D] hover:bg-[#E9EFF5] hover:text-[#172B4D] focus-visible:ring-teal-500/30',
+  outline: 'bg-white text-[#132A4A] border border-[#DCE4EF] hover:bg-[#F4F7FB] hover:border-[#BCCCDC] focus-visible:ring-teal-500/30 shadow-xs',
+  ghost: 'bg-transparent text-[#52606D] hover:bg-[#E9EFF5] hover:text-[#132A4A] focus-visible:ring-teal-500/30',
   danger: 'bg-red-500 text-white hover:bg-red-600 focus-visible:ring-red-500/40 shadow-xs active:bg-red-700 disabled:hover:bg-red-500',
   success: 'bg-green-500 text-white hover:bg-green-600 focus-visible:ring-green-500/40 shadow-xs active:bg-green-700 disabled:hover:bg-green-500',
 };
@@ -57,6 +57,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       disabled={disabled || loading}
       className={cn(
         'inline-flex items-center justify-center font-medium transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed select-none whitespace-nowrap',
+        'hover:-translate-y-px active:translate-y-0',
         variantStyles[variant],
         sizeStyles[size],
         iconOnly && iconOnlyStyles[size],

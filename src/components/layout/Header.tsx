@@ -147,8 +147,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileNav, sidebarCollapse
   };
 
   return (
-    <header className="bg-white border-b border-[#D9E2EC] sticky top-0 z-40 shadow-xs">
-      <div className="h-14 px-3 sm:px-5 lg:px-6 flex items-center justify-between gap-3">
+    <header className="crm-glass border-b border-[#DCE4EF] sticky top-0 z-40 shadow-xs bg-white/75">
+      <div className="h-14 px-3 sm:px-5 xl:px-6 flex items-center justify-between gap-3">
         {/* Left: menu + brand */}
         <div className="flex items-center gap-2 min-w-0">
           <button onClick={onOpenMobileNav} aria-label="Open navigation" className="md:hidden p-2 -ml-1 text-[#52606D] hover:text-[#172B4D] hover:bg-[#E9EFF5] rounded-[8px] transition-colors">

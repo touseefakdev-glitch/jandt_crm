@@ -12,7 +12,7 @@ export interface BadgeProps {
 export const Badge: React.FC<BadgeProps> = ({ badge, variant = 'subtle', dot, className }) => (
   <span
     className={cn(
-      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider ring-1 ring-inset',
+      'inline-flex items-center gap-1.5 rounded-pill px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider ring-1 ring-inset shadow-xs whitespace-nowrap',
       variant === 'subtle' ? badge.subtle : badge.solid,
       className
     )}

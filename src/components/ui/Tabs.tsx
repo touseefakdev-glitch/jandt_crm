@@ -11,7 +11,7 @@ export interface TabsProps<T extends string> {
 
 export function Tabs<T extends string>({ tabs, active, onChange, className, size = 'md' }: TabsProps<T>) {
   return (
-    <div className={cn('inline-flex items-center gap-1 bg-[#E9EFF5] p-1 rounded-[8px] border border-[#D9E2EC]', className)}>
+    <div className={cn('inline-flex items-center gap-1 bg-[#E9EFF5] p-1 rounded-[8px] border border-[#DCE4EF] shadow-inset-top', className)}>
       {tabs.map((tab) => {
         const isActive = tab.value === active;
         return (
@@ -22,7 +22,7 @@ export function Tabs<T extends string>({ tabs, active, onChange, className, size
             className={cn(
               'inline-flex items-center gap-1.5 rounded-[6px] font-bold transition-all whitespace-nowrap select-none',
               size === 'md' ? 'px-3.5 py-1.5 text-xs' : 'px-3 py-1 text-xs',
-              isActive ? 'bg-white text-teal-700 shadow-xs ring-1 ring-[#D9E2EC]' : 'text-[#52606D] hover:text-[#172B4D]'
+              isActive ? 'bg-white text-teal-700 shadow-xs ring-1 ring-[#DCE4EF]' : 'text-[#52606D] hover:text-[#132A4A]'
             )}
           >
             {tab.label}

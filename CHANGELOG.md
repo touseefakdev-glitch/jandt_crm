@@ -5,6 +5,19 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.31.0] - 2026-08-12
+
+### Changed
+- **Premium CRM UI/UX Renovation — Soft 3D / Depth-first design for 1920×1080 desktops.**
+  - **Full-width fluid layout**: `AppShell` content now spans the full viewport (max 1920px) beside the sidebar instead of being capped at `max-w-7xl`. Main content automatically consumes the workspace; **no page-level horizontal scrolling** at 1920px. Oversized tables scroll inside their own `crm-table-scroll` wrapper only.
+  - **Design tokens**: refined palette (deep navy `#102A43`, electric teal `#00A6A6`, surfaces `#F4F7FB`/`#FFFFFF`/`#DCE4EF` borders, text `#132A4A`), layered shadow stack (`card` → `elevated` → `popover` → `overlay` + `lift`/`glow-teal`/`inset-top`), `panel` radius (16px), Inter 800 weight, radial-tinted premium page background, and a `shimmer` skeleton animation.
+  - **App shell**: sidebar narrowed to `240px` expanded / `72px` collapsed with a navy-gradient brand header, gradient active-route tint + teal indicator; sticky 56px **glass header** (`backdrop-blur`).
+  - **Reusable primitives**: new `WorkflowStepper` (horizontal 5-stage progress rail with done/current/pending/error states) wired into the Order Detail drawer; premium `StatCard` (KPI with hover lift, gradient accent bar, optional trend indicator); elevated `Button` (teal gradient primary, hover lift), `Card` header gradient, `Modal`/`Drawer` (16px radius, blur backdrop, gradient headers), `Toast` (gradient accent bar), `Skeleton` (shimmer sweep), `Tabs`, `Pagination` (gradient active page), `Badge`, `PageHeader` (decorative gradient glow).
+  - **Dashboard redesign**: operations-first control center — operational KPI row (Orders Today / Pending / Support Queries / Dispatched), Order Activity feed, Workflow Quick Status funnel with per-stage progress, active-support-ticket table, and secondary catalog/customer/notification metrics. Daily-order metrics are derived read-only from the existing local store (`getDailyOrderOperations`).
+  - **Admin nav**: admin tab bar now wraps (no internal horizontal scroll) with navy-gradient active pills.
+  - **Documentation**: added `DESIGN_SYSTEM.md`; updated `PROJECT_SPEC.md` with the new UI/UX architecture and design tokens.
+- **No business logic, database, auth, Supabase, routes, orders workflow, queries workflow, or permissions changed** — strictly visual/UX/layout/component work.
+
 ## [1.30.0] - 2026-08-12
 
 ### Changed

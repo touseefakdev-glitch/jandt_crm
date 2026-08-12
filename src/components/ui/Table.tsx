@@ -23,7 +23,7 @@ export const Table: React.FC<TableProps> = ({ className, wrapperClassName, stick
     <table
       style={minWidth ? { minWidth } : undefined}
       className={cn(
-        'w-full text-left text-sm text-[#172B4D] border-separate border-spacing-0',
+        'w-full text-left text-sm text-[#132A4A] border-separate border-spacing-0',
         stickyHeader && 'sticky-table-head',
         className
       )}
@@ -35,7 +35,7 @@ export const Table: React.FC<TableProps> = ({ className, wrapperClassName, stick
 );
 
 export const THead: React.FC<React.HTMLAttributes<HTMLTableSectionElement>> = ({ className, ...props }) => (
-  <thead className={cn('bg-[#F5F7FA]', className)} {...props} />
+  <thead className={cn('bg-[#F4F7FB]', className)} {...props} />
 );
 
 export const TBody: React.FC<React.HTMLAttributes<HTMLTableSectionElement>> = ({ className, ...props }) => (
@@ -43,7 +43,7 @@ export const TBody: React.FC<React.HTMLAttributes<HTMLTableSectionElement>> = ({
 );
 
 export const Tr: React.FC<React.HTMLAttributes<HTMLTableRowElement> & { hover?: boolean }> = ({ className, hover = true, ...props }) => (
-  <tr className={cn(hover && 'hover:bg-[#F5F7FA] transition-colors', className)} {...props} />
+  <tr className={cn(hover && 'hover:bg-[#F4F7FB] transition-colors', className)} {...props} />
 );
 
 export interface ThProps extends React.ThHTMLAttributes<HTMLTableCellElement> {

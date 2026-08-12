@@ -89,7 +89,7 @@ export const Drawer: React.FC<DrawerProps> = ({
   return createPortal(
     <div className="fixed inset-0 z-[75]" role="presentation">
       <div
-        className="fixed inset-0 bg-[#091A2B]/50 backdrop-blur-[2px] animate-fade-in"
+        className="fixed inset-0 bg-[#091A2B]/45 backdrop-blur-[3px] animate-fade-in"
         onClick={closeOnBackdrop ? onClose : undefined}
         aria-hidden="true"
       />
@@ -99,7 +99,7 @@ export const Drawer: React.FC<DrawerProps> = ({
         aria-modal="true"
         aria-label={typeof title === 'string' ? title : undefined}
         className={cn(
-          'fixed flex flex-col bg-white shadow-overlay border-[#D9E2EC]',
+          'fixed flex flex-col bg-white shadow-overlay border-[#DCE4EF]',
           placement === 'right' && 'inset-y-0 right-0 h-full border-l animate-drawer-in-right',
           placement === 'left' && 'inset-y-0 left-0 h-full border-r animate-drawer-in-left',
           placement === 'bottom' && 'inset-x-0 bottom-0 max-h-[85vh] border-t rounded-t-card animate-drawer-in-bottom',
@@ -108,11 +108,11 @@ export const Drawer: React.FC<DrawerProps> = ({
         )}
       >
         {(title || icon) && (
-          <div className="flex items-start justify-between gap-4 px-5 py-4 border-b border-[#D9E2EC] shrink-0">
+          <div className="flex items-start justify-between gap-4 px-5 py-4 border-b border-[#DCE4EF] shrink-0 bg-gradient-to-b from-[#FBFCFE] to-white">
             <div className="flex items-start gap-3 min-w-0">
-              {icon && <div className="w-9 h-9 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">{icon}</div>}
+              {icon && <div className="w-9 h-9 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center shrink-0 shadow-xs">{icon}</div>}
               <div className="min-w-0">
-                <h2 className="text-base font-bold text-[#172B4D] tracking-tight leading-snug">{title}</h2>
+                <h2 className="text-base font-bold text-[#132A4A] tracking-tight leading-snug">{title}</h2>
                 {subtitle && <p className="mt-0.5 text-xs text-[#52606D]">{subtitle}</p>}
               </div>
             </div>

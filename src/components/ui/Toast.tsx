@@ -29,9 +29,9 @@ export const useToast = (): ToastContextValue => {
 };
 
 const iconMap = {
-  success: { Icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', ring: 'ring-emerald-200' },
-  error: { Icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', ring: 'ring-red-200' },
-  info: { Icon: Info, color: 'text-brand-600', bg: 'bg-brand-50', ring: 'ring-brand-200' },
+  success: { Icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50', ring: 'ring-emerald-200', bar: 'from-emerald-400 to-emerald-600' },
+  error: { Icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', ring: 'ring-red-200', bar: 'from-red-400 to-red-600' },
+  info: { Icon: Info, color: 'text-teal-700', bg: 'bg-teal-50', ring: 'ring-teal-200', bar: 'from-teal-400 to-teal-600' },
 };
 
 let toastCounter = 0;
@@ -65,8 +65,9 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             return (
               <div
                 key={t.id}
-                className={cn('flex items-start gap-3 p-4 rounded-xl bg-white ring-1 shadow-popover animate-slide-in-right', meta.ring)}
+                className={cn('relative flex items-start gap-3 p-4 rounded-xl bg-white ring-1 shadow-popover animate-slide-in-right overflow-hidden', meta.ring)}
               >
+                <span className={cn('absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b', meta.bar)} aria-hidden="true" />
                 <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', meta.bg, meta.color)}>
                   <Icon className="w-[18px] h-[18px]" />
                 </div>

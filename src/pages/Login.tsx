@@ -33,20 +33,21 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#102A43] flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-navy-panel flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
       <div className="absolute -top-32 -right-32 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl" aria-hidden="true" />
       <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl" aria-hidden="true" />
+      <div className="absolute top-1/3 left-1/2 w-[600px] h-[600px] -translate-x-1/2 bg-teal-400/[0.04] rounded-full blur-3xl" aria-hidden="true" />
 
       <div className="relative sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div className="mx-auto w-12 h-12 bg-teal-500 rounded-[12px] flex items-center justify-center shadow-lg shadow-black/20 mb-3">
-          <ShieldCheck className="w-6 h-6 text-white" />
+        <div className="mx-auto w-14 h-14 bg-gradient-teal-primary rounded-panel flex items-center justify-center shadow-glow-teal mb-3">
+          <ShieldCheck className="w-7 h-7 text-white" />
         </div>
         <h2 className="text-2xl font-extrabold text-white tracking-tight">J&T SUPPLIES</h2>
         <p className="mt-1 text-xs text-[#829AB1] uppercase tracking-wider font-bold">Internal Operations CRM Portal</p>
       </div>
 
       <div className="relative mt-6 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-6 shadow-overlay rounded-[12px] sm:px-8 border border-[#D9E2EC]">
+        <div className="bg-white py-8 px-6 shadow-overlay rounded-panel sm:px-8 border border-[#DCE4EF]">
           {error && (
             <div className="mb-5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-[8px] text-xs flex items-start gap-2 animate-fade-in">
               <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />

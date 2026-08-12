@@ -27,8 +27,8 @@ import { Drawer, Button } from '../ui';
 interface OrderDetailDrawerProps {
   op: DailyOrderOperation | null;
   onClose: () => void;
-  canUpdateStep: (step: DailyOpStepKey) => boolean;
-  canReportError: boolean;
+  canUpdate: boolean;
+  canRevert: boolean;
   canUpdateOrderMatch: boolean;
   onToggleStep: (op: DailyOrderOperation, step: DailyOpStepKey, stepName: string) => void;
   onOpenOrderMatch: (op: DailyOrderOperation) => void;
@@ -55,8 +55,8 @@ const stepColors: Record<DailyOpStepKey, { done: string; active: string }> = {
 export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
   op,
   onClose,
-  canUpdateStep,
-  canReportError,
+  canUpdate,
+  canRevert,
   canUpdateOrderMatch,
   onToggleStep,
   onOpenOrderMatch,
@@ -130,22 +130,21 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
               const timestamp = op[`${step.key}_at` as keyof DailyOrderOperation] as string | null;
               const refNumber = step.key === 'sales_order_generated' ? op.sales_order_number : step.key === 'invoiced' ? op.invoice_number : null;
               const colors = stepColors[step.key];
-              const stepPermitted = canUpdateStep(step.key);
 
               return (
                 <React.Fragment key={step.key}>
                   <button
                     type="button"
-                    onClick={() => stepPermitted && onToggleStep(op, step.key, step.label)}
-                    disabled={!stepPermitted}
-                    title={stepPermitted ? `Toggle ${step.label}${done && !stepPermitted ? ' (revert requires permission)' : ''}` : 'No permission to update this stage'}
+                    onClick={() => canUpdate && onToggleStep(op, step.key, step.label)}
+                    disabled={!canUpdate}
+                    title={canUpdate ? `Toggle ${step.label}${done && !canRevert ? ' (revert requires permission)' : ''}` : 'No permission to update workflow'}
                     className={`w-full flex items-start gap-3 p-2.5 rounded-lg border text-left transition-all ${
                       done
                         ? 'bg-slate-50 border-slate-200'
                         : isPending
                         ? 'bg-white border-brand-300 ring-1 ring-brand-200 shadow-xs'
                         : 'bg-white border-slate-200 opacity-80'
-                    } ${stepPermitted ? 'hover:border-brand-400' : 'cursor-default'}`}
+                    } ${canUpdate ? 'hover:border-brand-400' : 'cursor-default'}`}
                   >
                     <span className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${done ? colors.done : 'bg-slate-100 text-slate-400'}`}>
                       {done ? <CheckCircle2 className="w-3.5 h-3.5" /> : isPending ? stepIcons[step.key] : <Circle className="w-3 h-3" />}
@@ -155,7 +154,7 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
                         <span className={`text-xs font-bold ${done ? 'text-slate-600' : isPending ? colors.active : 'text-slate-400'}`}>
                           {step.label}
                         </span>
-                        {done && stepPermitted && (
+                        {done && canRevert && (
                           <span className="text-[9px] font-bold text-slate-400 inline-flex items-center gap-1">
                             <RotateCcw className="w-3 h-3" /> Undo
                           </span>
@@ -271,7 +270,7 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
             ) : (
               <p className="text-xs text-slate-400">No exceptions flagged.</p>
             )}
-            {canReportError && exceptionKind !== 'error' && (
+            {canUpdate && exceptionKind !== 'error' && (
               <button
                 type="button"
                 onClick={() => onReportError(op)}

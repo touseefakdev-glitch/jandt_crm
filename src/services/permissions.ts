@@ -1,5 +1,4 @@
 import { UserProfile, UserRole } from '../types';
-import { DailyOpStepKey, ORDER_WORKFLOW_STEPS } from '../utils/orderWorkflow';
 
 export interface PermissionCheckResult {
   allowed: boolean;
@@ -78,41 +77,16 @@ export class PermissionsService {
     return !!user;
   }
 
-  // Which system roles may progress (and revert) each workflow stage.
-  // Sales Agents own the order-entry stages; Support Agents own the dispatch/fulfillment stages.
-  private static readonly DAILY_OPS_STEP_ROLES: Record<DailyOpStepKey, UserRole[]> = {
-    order_received: ['admin', 'sales_agent'],
-    sales_order_generated: ['admin', 'sales_agent'],
-    invoiced: ['admin', 'sales_agent'],
-    dispatched: ['admin', 'support_agent'],
-    pod_sent: ['admin', 'support_agent'],
-  };
-
-  private static stepLabel(step: DailyOpStepKey): string {
-    return ORDER_WORKFLOW_STEPS.find((s) => s.key === step)?.label ?? step;
-  }
-
   public static canUpdateDailyOperations(user: UserProfile | null): PermissionCheckResult {
     if (!user) return { allowed: false, reason: 'Authentication required.' };
-    const canUpdateAnyStep = ORDER_WORKFLOW_STEPS.some((s) => this.DAILY_OPS_STEP_ROLES[s.key].includes(user.role));
-    if (canUpdateAnyStep) return { allowed: true };
-    return { allowed: false, reason: 'You do not have permission to update daily operations.' };
+    if (user.role === 'admin' || user.role === 'sales_agent') return { allowed: true };
+    return { allowed: false, reason: 'Support Agents have read-only access to daily operations.' };
   }
 
   public static canRevertDailyOperations(user: UserProfile | null): PermissionCheckResult {
-    return this.canUpdateDailyOperations(user);
-  }
-
-  public static canUpdateDailyOpStep(user: UserProfile | null, step: DailyOpStepKey): PermissionCheckResult {
     if (!user) return { allowed: false, reason: 'Authentication required.' };
-    if (this.DAILY_OPS_STEP_ROLES[step].includes(user.role)) return { allowed: true };
-    return { allowed: false, reason: `You do not have permission to update the ${this.stepLabel(step)} stage of daily operations.` };
-  }
-
-  public static canRevertDailyOpStep(user: UserProfile | null, step: DailyOpStepKey): PermissionCheckResult {
-    if (!user) return { allowed: false, reason: 'Authentication required.' };
-    if (this.DAILY_OPS_STEP_ROLES[step].includes(user.role)) return { allowed: true };
-    return { allowed: false, reason: `You do not have permission to revert the ${this.stepLabel(step)} stage of daily operations.` };
+    if (user.role === 'admin' || user.role === 'sales_agent') return { allowed: true };
+    return { allowed: false, reason: 'Only Sales Agents and Admins can revert completed workflow steps.' };
   }
 
   public static canUpdateOrderMatch(user: UserProfile | null): PermissionCheckResult {

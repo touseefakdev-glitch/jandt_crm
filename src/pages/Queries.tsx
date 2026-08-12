@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { localDb } from '../services/db';
 import { fetchQueriesPage, fetchQueryWorkspaceStats, QueryWorkspaceStats } from '../services/queryService';
@@ -22,14 +22,11 @@ export const Queries: React.FC = () => {
   const { user, dbVersion } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [searchParams] = useSearchParams();
-  const urlTab = searchParams.get('tab');
-  const urlStatus = searchParams.get('status');
 
-  const [activeTab, setActiveTab] = useState<WorkspaceTab>(urlTab === 'my' || urlTab === 'team' ? urlTab : 'all');
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>('all');
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>(urlStatus && urlStatus !== 'all' ? urlStatus : 'all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [agentFilter, setAgentFilter] = useState<string>('all');
@@ -319,7 +316,6 @@ export const Queries: React.FC = () => {
             <option value="in_progress">In Progress</option>
             <option value="waiting_customer">Waiting for Customer</option>
             <option value="resolved">Resolved</option>
-            <option value="verified">Verified (Awaiting Close)</option>
             <option value="closed">Closed Archive</option>
             <option value="reopened">Reopened</option>
           </Select>

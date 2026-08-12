@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { DailyOrderOperation, DailyOrderOperationStatus, PortalType } from '../types';
 import { localDb } from '../services/db';
@@ -119,13 +119,9 @@ export const Orders: React.FC = () => {
   const { user, dbVersion } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const urlStatus = searchParams.get('status');
-  const urlQuick = searchParams.get('quick');
 
-  const canUpdateStep = (step: DailyOpStepKey) => permissions.canUpdateDailyOpStep(user, step).allowed;
-  const canRevertStep = (step: DailyOpStepKey) => permissions.canRevertDailyOpStep(user, step).allowed;
-  const canUpdateAnyStep = ORDER_WORKFLOW_STEPS.some((s) => canUpdateStep(s.key));
+  const canUpdate = permissions.canUpdateDailyOperations(user).allowed;
+  const canRevert = permissions.canRevertDailyOperations(user).allowed;
   const canUpdateOrderMatch = permissions.canUpdateOrderMatch(user).allowed;
   const isAdmin = user?.role === 'admin';
   const userArea = user?.operational_area || 'BOTH';
@@ -135,8 +131,8 @@ export const Orders: React.FC = () => {
   const [selectedRoute, setSelectedRoute] = useState<string>('');
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [quickFilter, setQuickFilter] = useState<OrdersQuickFilter>(urlQuick === 'different' ? 'different' : 'all');
-  const [statusFilter, setStatusFilter] = useState(urlStatus && urlStatus !== 'all' ? urlStatus : 'all');
+  const [quickFilter, setQuickFilter] = useState<OrdersQuickFilter>('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [orderMatchFilter, setOrderMatchFilter] = useState<'all' | 'SAME' | 'DIFFERENT' | 'unset'>('all');
   const [exceptionFilter, setExceptionFilter] = useState<'all' | 'error' | 'different' | 'invoice_updated'>('all');
   const [assignedUserId, setAssignedUserId] = useState('all');
@@ -285,9 +281,9 @@ export const Orders: React.FC = () => {
   const formatWeekdayTitle = (dayStr: string) => dayStr.charAt(0).toUpperCase() + dayStr.slice(1);
 
   const handleToggleOrderReceived = (op: DailyOrderOperation) => {
-    if (!canUpdateStep('order_received')) { toast({ type: 'error', title: 'Permission Denied', message: 'You do not have permission to update the Order Received stage.' }); return; }
+    if (!canUpdate) { toast({ type: 'error', title: 'Permission Denied', message: 'You do not have permission to update daily operations.' }); return; }
     if (op.order_received) {
-      if (!canRevertStep('order_received')) { toast({ type: 'error', title: 'Permission Denied', message: 'You do not have permission to revert the Order Received stage.' }); return; }
+      if (!canRevert) { toast({ type: 'error', title: 'Permission Denied', message: 'Only Sales Agents and Admins can revert completed steps.' }); return; }
       setActiveUndoModal({ op, step: 'order_received', stepName: 'Order Received' });
     } else {
       try {
@@ -299,9 +295,9 @@ export const Orders: React.FC = () => {
   };
 
   const handleToggleSalesOrderGenerated = (op: DailyOrderOperation) => {
-    if (!canUpdateStep('sales_order_generated')) { toast({ type: 'error', title: 'Permission Denied', message: 'You do not have permission to update the Sales Order stage.' }); return; }
+    if (!canUpdate) { toast({ type: 'error', title: 'Permission Denied', message: 'You do not have permission to update daily operations.' }); return; }
     if (op.sales_order_generated) {
-      if (!canRevertStep('sales_order_generated')) { toast({ type: 'error', title: 'Permission Denied', message: 'You do not have permission to revert the Sales Order stage.' }); return; }
+      if (!canRevert) { toast({ type: 'error', title: 'Permission Denied', message: 'Only Sales Agents and Admins can revert completed steps.' }); return; }
       setActiveUndoModal({ op, step: 'sales_order_generated', stepName: 'Sales Order Generated' });
     } else {
       if (!op.order_received) { toast({ type: 'error', title: 'Dependency Required', message: 'Order Received must be completed before generating a Sales Order.' }); return; }
@@ -310,9 +306,9 @@ export const Orders: React.FC = () => {
   };
 
   const handleToggleInvoiced = (op: DailyOrderOperation) => {
-    if (!canUpdateStep('invoiced')) { toast({ type: 'error', title: 'Permission Denied', message: 'You do not have permission to update the Invoiced stage.' }); return; }
+    if (!canUpdate) { toast({ type: 'error', title: 'Permission Denied', message: 'You do not have permission to update daily operations.' }); return; }
     if (op.invoiced) {
-      if (!canRevertStep('invoiced')) { toast({ type: 'error', title: 'Permission Denied', message: 'You do not have permission to revert the Invoiced stage.' }); return; }
+      if (!canRevert) { toast({ type: 'error', title: 'Permission Denied', message: 'Only Sales Agents and Admins can revert completed steps.' }); return; }
       setActiveUndoModal({ op, step: 'invoiced', stepName: 'Invoiced' });
     } else {
       if (!op.sales_order_generated) { toast({ type: 'error', title: 'Dependency Required', message: 'Sales Order must be generated before Invoicing.' }); return; }
@@ -321,9 +317,9 @@ export const Orders: React.FC = () => {
   };
 
   const handleToggleDispatched = (op: DailyOrderOperation) => {
-    if (!canUpdateStep('dispatched')) { toast({ type: 'error', title: 'Permission Denied', message: 'You do not have permission to update the Dispatched stage.' }); return; }
+    if (!canUpdate) { toast({ type: 'error', title: 'Permission Denied', message: 'You do not have permission to update daily operations.' }); return; }
     if (op.dispatched) {
-      if (!canRevertStep('dispatched')) { toast({ type: 'error', title: 'Permission Denied', message: 'You do not have permission to revert the Dispatched stage.' }); return; }
+      if (!canRevert) { toast({ type: 'error', title: 'Permission Denied', message: 'Only Sales Agents and Admins can revert completed steps.' }); return; }
       setActiveUndoModal({ op, step: 'dispatched', stepName: 'Dispatched' });
     } else {
       if (!op.invoiced) { toast({ type: 'error', title: 'Dependency Required', message: 'Customer must be Invoiced before Dispatch.' }); return; }
@@ -363,9 +359,9 @@ export const Orders: React.FC = () => {
   };
 
   const handleTogglePODSent = (op: DailyOrderOperation) => {
-    if (!canUpdateStep('pod_sent')) { toast({ type: 'error', title: 'Permission Denied', message: 'You do not have permission to update the POD Sent stage.' }); return; }
+    if (!canUpdate) { toast({ type: 'error', title: 'Permission Denied', message: 'You do not have permission to update daily operations.' }); return; }
     if (op.pod_sent) {
-      if (!canRevertStep('pod_sent')) { toast({ type: 'error', title: 'Permission Denied', message: 'You do not have permission to revert the POD Sent stage.' }); return; }
+      if (!canRevert) { toast({ type: 'error', title: 'Permission Denied', message: 'Only Sales Agents and Admins can revert completed steps.' }); return; }
       setActiveUndoModal({ op, step: 'pod_sent', stepName: 'POD Sent' });
     } else {
       if (!op.dispatched) { toast({ type: 'error', title: 'Dependency Required', message: 'Customer must be Dispatched before the POD can be marked as sent.' }); return; }
@@ -461,19 +457,18 @@ export const Orders: React.FC = () => {
     const def = ORDER_WORKFLOW_STEPS.find((s) => s.key === step)!;
     const done = isStepDone(op, step);
     const locked = isStepLocked(op, step);
-    const stepPermitted = canUpdateStep(step);
     return (
       <div className="flex flex-col items-center gap-1.5">
         <button
           onClick={() => toggleStepFor(op, step)}
-          disabled={!stepPermitted}
-          title={done ? `${def.label} complete — click to revert` : locked ? 'Complete the previous stage first' : stepPermitted ? `Mark ${def.label} done` : 'You do not have permission to update this stage'}
+          disabled={!canUpdate}
+          title={done ? `${def.label} complete — click to revert` : locked ? 'Complete the previous stage first' : `Mark ${def.label} done`}
           aria-label={done ? `Revert ${step}` : `Complete ${step}`}
           className={cn(
             'w-8 h-8 rounded-full inline-flex items-center justify-center transition-all shrink-0',
             done
               ? theme.done
-              : locked || !stepPermitted
+              : locked
                 ? 'bg-slate-100 border border-slate-200 text-slate-300 cursor-not-allowed'
                 : 'bg-white border-2 border-slate-300 text-slate-400 hover:border-teal-500 hover:text-teal-500'
           )}
@@ -585,7 +580,7 @@ export const Orders: React.FC = () => {
         </span>
       );
     }
-    if (canUpdateAnyStep) {
+    if (canUpdate) {
       return (
         <button
           onClick={() => setActiveErrorModalOp(op)}
@@ -1083,8 +1078,8 @@ export const Orders: React.FC = () => {
       <OrderDetailDrawer
         op={activeDetailOp}
         onClose={() => setActiveDetailOp(null)}
-        canUpdateStep={canUpdateStep}
-        canReportError={canUpdateAnyStep}
+        canUpdate={canUpdate}
+        canRevert={canRevert}
         canUpdateOrderMatch={canUpdateOrderMatch}
         onToggleStep={(op, step) => handleToggleStepFromDrawer(op, step)}
         onOpenOrderMatch={handleOpenOrderMatch}

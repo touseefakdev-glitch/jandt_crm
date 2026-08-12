@@ -5,17 +5,14 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
-## [1.29.0] - 2026-08-12
+## [1.30.0] - 2026-08-12
 
-### Added
-- **Role-Based Orders & Query Operations UI (Phase 2)**:
-  - **Capability model** (`src/services/access.ts`): granular, role + operational-area derived capabilities (`orders:receive`, `orders:createSalesOrder`, `orders:invoice`, `orders:dispatch`, `orders:sendPod`, `orders:updateOrderMatch`, `queries:view`, `queries:manage`, `queries:verify`, `customers:*`, `products:*`, `admin`) plus area-scoping helpers and a four-eyes `canVerifyQuery`. No usernames are hard-coded anywhere.
-  - **Permission-derived navigation** (`Sidebar.tsx`): sections `Work` / `Operations` / `Queries` / `Administration` built from capabilities, with live queue badges on `Daily Operations` (today's pending, area-scoped) and `Support Queries` (active open count).
-  - **My Work center** (`src/pages/MyWork.tsx`, route `/my-work`, index redirect target): per-user action-queue page whose cards are computed purely from capabilities and link to pre-filtered lists (Orders honors `?status=` / `?quick=different`; Queries honors `?tab=` / `?status=`). Shared component `src/components/work/MyWorkQueues.tsx` also feeds the dashboard's new "My Work — Action Queues" card.
-  - **Query resolution verification**: new `verified` query status (`QUERY_STATUS` enum + `queryStatusBadges` + `QueryStatusModal` + `QueryDetail` actions) completing `OPEN → ASSIGNED → IN_PROGRESS → RESOLVED → VERIFIED → CLOSED`; self-verification is blocked; "Fail Verification" returns the ticket to `IN_PROGRESS`; `verified_at` / `verified_by` recorded and shown in the resolution record. `Queries` page gained a `Verified` status filter.
-  - **Database migration** `database/migrations/05_query_verified_status.sql`: `ALTER TYPE query_status ADD VALUE IF NOT EXISTS 'verified'`, `verified_at` / `verified_by` columns + index; `database/schema.sql` updated.
-  - **Demo accounts**: local seed (`SEED_USERS`) now includes all role-test login accounts — Tauseef (Admin, BOTH), Muzammil (Sales, KELOWNA), Abdul Rehman (Support, BOTH), Sohail (Sales, OUTSIDE_KELOWNA), Aasil (Support, BOTH), plus Phase 2 spec users **Tauseef Ali** (Sales, OUTSIDE_KELOWNA) and **Sukhjeet** (Sales, KELOWNA); Team 2 added to `SEED_TEAMS`; `SEED_DATA_VERSION` bumped to `v5-demo-users` so existing installs re-seed; `database/seed.sql` profiles extended to match.
-  - **Docs**: `PROJECT_SPEC.md` gained a "Role-Based Orders & Query Operations UI (Phase 2)" section.
+### Changed
+- **Rolled back the recent role/permission integration and restored the previous stable CRM behavior.**
+  - Removed the role-based Operations/Queries UI, capability model (`src/services/access.ts`), permission-derived sidebar sections, My Work center (`/my-work` + `MyWorkQueues`), and the query `verified` status flow (four-eyes verification) with its database migration (`05_query_verified_status.sql`).
+  - Removed the role-test demo accounts (Tauseef Ali, Sukhjeet) and Team 2 from local seed data; `database/seed.sql` and `src/services/db.ts` restored to the pre-role account set.
+  - Orders, Queries, Customers, Products, the KELOWNA / OUTSIDE KELOWNA operational areas, the full order workflow (Order Received → Sales Order → Invoiced → Dispatched → POD Sent, Order Match, Exceptions), Supabase Realtime, and the pre-existing performance work are unchanged.
+  - No application data was deleted; database objects added by the role work (the `verified` enum value, `verified_at` / `verified_by` columns) may remain in Supabase temporarily and are unused by the app.
 
 ## [1.28.0] - 2026-08-12
 

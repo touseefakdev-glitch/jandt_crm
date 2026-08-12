@@ -3,7 +3,6 @@ import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { CustomerQuery, QueryStatus, QueryActivity, QueryInternalNote, QueryAttachment } from '../types';
 import { localDb } from '../services/db';
-import { canVerifyQuery } from '../services/access';
 import { QueryFormModal } from '../components/queries/QueryFormModal';
 import { QueryStatusModal } from '../components/queries/QueryStatusModal';
 import { QueryAssignModal } from '../components/queries/QueryAssignModal';
@@ -218,30 +217,12 @@ export const QueryDetail: React.FC = () => {
             )}
 
             {query.status === 'resolved' && (
-              <>
-                {canVerifyQuery(user, query) && (
-                  <Button variant="success" size="sm" icon={<ShieldCheck className="w-3.5 h-3.5" />} onClick={() => setStatusTarget('verified')}>
-                    Verify Resolution
-                  </Button>
-                )}
-                <Button variant="secondary" size="sm" icon={<Lock className="w-3.5 h-3.5" />} onClick={() => setStatusTarget('closed')}>
-                  Close Ticket
-                </Button>
-              </>
+              <Button variant="secondary" size="sm" icon={<Lock className="w-3.5 h-3.5" />} onClick={() => setStatusTarget('closed')}>
+                Close Ticket
+              </Button>
             )}
 
-            {query.status === 'verified' && (
-              <>
-                <Button variant="secondary" size="sm" icon={<RotateCcw className="w-3.5 h-3.5" />} onClick={() => handleStatusSubmit('in_progress')}>
-                  Fail Verification
-                </Button>
-                <Button variant="success" size="sm" icon={<Lock className="w-3.5 h-3.5" />} onClick={() => setStatusTarget('closed')}>
-                  Mark Closed
-                </Button>
-              </>
-            )}
-
-            {(query.status === 'closed' || query.status === 'resolved' || query.status === 'verified') && (
+            {(query.status === 'closed' || query.status === 'resolved') && (
               <Button size="sm" icon={<RotateCcw className="w-3.5 h-3.5" />} onClick={() => setStatusTarget('reopened')}>
                 Reopen Ticket
               </Button>
@@ -288,14 +269,6 @@ export const QueryDetail: React.FC = () => {
                   Resolved on <span className="font-semibold">{formatDateTime(query.resolved_at!)}</span> by{' '}
                   <span className="font-semibold">{query.resolved_by_profile?.full_name || 'Support Agent'}</span>.
                 </div>
-                {query.verified_at && (
-                  <div className="text-xs text-emerald-800 pt-1 border-t border-emerald-100 mt-2">
-                    <span className="inline-flex items-center gap-1 font-bold">
-                      <ShieldCheck className="w-3.5 h-3.5" /> Verified on {formatDateTime(query.verified_at)} by{' '}
-                      {query.verified_by_profile?.full_name || 'Agent'}
-                    </span>
-                  </div>
-                )}
               </div>
             )}
 

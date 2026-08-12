@@ -83,21 +83,9 @@ export const SEED_TEAMS: Team[] = [
     created_at: new Date('2026-01-01').toISOString(),
     updated_at: new Date('2026-01-01').toISOString(),
   },
-  {
-    id: '22222222-2222-2222-2222-222222222222',
-    name: 'Team 2',
-    shift_info: '12 PM – 8 AM',
-    shift_start: '12:00',
-    shift_end: '08:00',
-    is_active: true,
-    created_at: new Date('2026-01-01').toISOString(),
-    updated_at: new Date('2026-01-01').toISOString(),
-  },
 ];
 
-// Initial Demo Accounts Seed Data (Role-Based Operations UI demo accounts).
-// IDs and emails mirror database/seed.sql so local and cloud profiles stay in
-// sync. All accounts are usable for login testing the Phase 2 role experiences.
+// Initial Demo Accounts Seed Data (Single Admin Account)
 export const SEED_USERS: UserProfile[] = [
   {
     id: 'a1111111-1111-1111-1111-111111111111',
@@ -107,78 +95,6 @@ export const SEED_USERS: UserProfile[] = [
     team_id: '11111111-1111-1111-1111-111111111111',
     team: SEED_TEAMS[0],
     operational_area: 'BOTH',
-    is_active: true,
-    created_at: new Date('2026-01-01').toISOString(),
-    updated_at: new Date('2026-01-01').toISOString(),
-  },
-  {
-    id: 'b2222222-2222-2222-2222-222222222222',
-    email: 'muzammil@jtsupplies.com',
-    full_name: 'Muzammil (Sales)',
-    role: 'sales_agent',
-    team_id: '11111111-1111-1111-1111-111111111111',
-    team: SEED_TEAMS[0],
-    operational_area: 'KELOWNA',
-    is_active: true,
-    created_at: new Date('2026-01-01').toISOString(),
-    updated_at: new Date('2026-01-01').toISOString(),
-  },
-  {
-    id: 'c3333333-3333-3333-3333-333333333333',
-    email: 'abdulrehman@jtsupplies.com',
-    full_name: 'Abdul Rehman (Support)',
-    role: 'support_agent',
-    team_id: '22222222-2222-2222-2222-222222222222',
-    team: SEED_TEAMS[1],
-    operational_area: 'BOTH',
-    is_active: true,
-    created_at: new Date('2026-01-01').toISOString(),
-    updated_at: new Date('2026-01-01').toISOString(),
-  },
-  {
-    id: 'd4444444-4444-4444-4444-444444444444',
-    email: 'sohail@jtsupplies.com',
-    full_name: 'Sohail (Sales)',
-    role: 'sales_agent',
-    team_id: '11111111-1111-1111-1111-111111111111',
-    team: SEED_TEAMS[0],
-    operational_area: 'OUTSIDE_KELOWNA',
-    is_active: true,
-    created_at: new Date('2026-01-01').toISOString(),
-    updated_at: new Date('2026-01-01').toISOString(),
-  },
-  {
-    id: 'e5555555-5555-5555-5555-555555555555',
-    email: 'aasil@jtsupplies.com',
-    full_name: 'Aasil (Support)',
-    role: 'support_agent',
-    team_id: '22222222-2222-2222-2222-222222222222',
-    team: SEED_TEAMS[1],
-    operational_area: 'BOTH',
-    is_active: true,
-    created_at: new Date('2026-01-01').toISOString(),
-    updated_at: new Date('2026-01-01').toISOString(),
-  },
-  {
-    id: 'f6666666-6666-6666-6666-666666666666',
-    email: 'tauseefali@jtsupplies.com',
-    full_name: 'Tauseef Ali (Sales)',
-    role: 'sales_agent',
-    team_id: '11111111-1111-1111-1111-111111111111',
-    team: SEED_TEAMS[0],
-    operational_area: 'OUTSIDE_KELOWNA',
-    is_active: true,
-    created_at: new Date('2026-01-01').toISOString(),
-    updated_at: new Date('2026-01-01').toISOString(),
-  },
-  {
-    id: 'a7777777-7777-7777-7777-777777777777',
-    email: 'sukhjeet@jtsupplies.com',
-    full_name: 'Sukhjeet (Sales)',
-    role: 'sales_agent',
-    team_id: '11111111-1111-1111-1111-111111111111',
-    team: SEED_TEAMS[0],
-    operational_area: 'KELOWNA',
     is_active: true,
     created_at: new Date('2026-01-01').toISOString(),
     updated_at: new Date('2026-01-01').toISOString(),
@@ -271,7 +187,7 @@ export const SEED_PRODUCT_HISTORY: ProductAvailabilityHistory[] = [];
 
 // Bump this version string whenever the HTML source data changes.
 // Clean slate version (auto-seeding disabled).
-export const SEED_DATA_VERSION = 'v5-demo-users';
+export const SEED_DATA_VERSION = 'v4-clean-slate';
 export const SEED_SHIFTS: Shift[] = [];
 export const SEED_HANDOVERS: ShiftHandover[] = [];
 export const SEED_HANDOVER_ITEMS: ShiftHandoverItem[] = [];
@@ -828,7 +744,6 @@ class LocalDatabaseService {
         assigned_team: assignedTeamId ? teams.find(t => t.id === assignedTeamId) || null : null,
         created_by_profile: q.created_by ? users.find(u => u.id === q.created_by) || null : null,
         resolved_by_profile: q.resolved_by ? users.find(u => u.id === q.resolved_by) || null : null,
-        verified_by_profile: q.verified_by ? users.find(u => u.id === q.verified_by) || null : null,
         closed_by_profile: q.closed_by ? users.find(u => u.id === q.closed_by) || null : null,
         reopened_by_profile: q.reopened_by ? users.find(u => u.id === q.reopened_by) || null : null,
         attachments: this.getQueryAttachments(q.id),
@@ -1084,9 +999,6 @@ class LocalDatabaseService {
       updated.resolved_at = new Date().toISOString();
       updated.resolved_by = currentUserId;
       updated.resolution = extraData!.resolution!.trim();
-    } else if (targetStatus === 'verified') {
-      updated.verified_at = new Date().toISOString();
-      updated.verified_by = currentUserId;
     } else if (targetStatus === 'closed') {
       updated.closed_at = new Date().toISOString();
       updated.closed_by = currentUserId;

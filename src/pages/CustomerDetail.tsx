@@ -35,6 +35,7 @@ export const CustomerDetail: React.FC = () => {
 
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCreateQueryModalOpen, setIsCreateQueryModalOpen] = useState(false);
@@ -121,8 +122,6 @@ export const CustomerDetail: React.FC = () => {
       </Card>
     );
   }
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleUpdateCustomer = async (data: CustomerFormInput) => {
     if (!user) return;

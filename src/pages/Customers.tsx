@@ -3,6 +3,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Customer, CustomerFormInput, CustomerStatus } from '../types';
 import { localDb } from '../services/db';
+import { fetchCustomersPage } from '../services/queryService';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useServerListQuery } from '../hooks/useServerListQuery';
 import { CustomerFormModal } from '../components/customers/CustomerFormModal';
 import { Badge, Button, Card, ConfirmDialog, EmptyState, Input, PageHeader, Pagination, Table, TableToolbar, Tabs, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
 import { getCustomerStatusBadge } from '../utils/badges';
@@ -12,7 +15,7 @@ import { Users, Plus, Eye, Edit, Power, Building2, XCircle, Upload } from 'lucid
 const ITEMS_PER_PAGE = 10;
 
 export const Customers: React.FC = () => {
-  const { user, hasRole, dbVersion } = useAuth();
+  const { user, hasRole } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -27,17 +30,24 @@ export const Customers: React.FC = () => {
 
   const isAdmin = hasRole('admin');
 
-  const allCustomers = useMemo(() => {
-    return localDb.getCustomers(searchTerm, statusFilter);
-  }, [searchTerm, statusFilter, dbVersion]);
+  const debouncedSearch = useDebouncedValue(searchTerm, 300);
 
-  const totalCustomers = useMemo(() => localDb.getCustomers().length, [dbVersion]);
+  const {
+    data: paginatedCustomers,
+    total: totalCustomers,
+    loading: customersLoading,
+  } = useServerListQuery<Customer>({
+    key: JSON.stringify({ search: debouncedSearch, status: statusFilter, page: currentPage }),
+    fetcher: () =>
+      fetchCustomersPage({ searchTerm: debouncedSearch, status: statusFilter, page: currentPage }),
+    localFallback: () => {
+      const list = localDb.getCustomers(debouncedSearch, statusFilter);
+      const start = (currentPage - 1) * ITEMS_PER_PAGE;
+      return { data: list.slice(start, start + ITEMS_PER_PAGE), total: list.length };
+    },
+  });
 
-  const totalPages = Math.ceil(allCustomers.length / ITEMS_PER_PAGE) || 1;
-  const paginatedCustomers = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return allCustomers.slice(start, start + ITEMS_PER_PAGE);
-  }, [allCustomers, currentPage]);
+  const totalPages = Math.ceil(totalCustomers / ITEMS_PER_PAGE) || 1;
 
   const handleOpenCreateModal = () => {
     setCustomerToEdit(null);
@@ -115,6 +125,11 @@ export const Customers: React.FC = () => {
               icon={<Users className="w-4 h-4 text-slate-400" />}
               className="pl-9"
             />
+            {customersLoading && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-slate-400 animate-pulse">
+                Loading…
+              </span>
+            )}
           </div>
           <Tabs
             tabs={[
@@ -218,11 +233,11 @@ export const Customers: React.FC = () => {
           />
         )}
 
-        {allCustomers.length > 0 && (
+        {totalCustomers > 0 && (
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
-            totalItems={allCustomers.length}
+            totalItems={totalCustomers}
             pageSize={ITEMS_PER_PAGE}
             onPageChange={setCurrentPage}
             itemLabel="customers"

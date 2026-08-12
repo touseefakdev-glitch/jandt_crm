@@ -3,6 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Product, ProductAvailabilityStatus, ProductFormInput } from '../types';
 import { localDb } from '../services/db';
+import { fetchProductsPage, fetchProductTabCounts, ProductTabCounts } from '../services/queryService';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useServerListQuery } from '../hooks/useServerListQuery';
+import { useServerQuery } from '../hooks/useServerQuery';
 import { ProductFormModal } from '../components/products/ProductFormModal';
 import { ProductAvailabilityModal } from '../components/products/ProductAvailabilityModal';
 import { Badge, Button, Card, EmptyState, Input, PageHeader, Pagination, Select, Table, TableToolbar, Tabs, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
@@ -39,29 +43,65 @@ export const Products: React.FC = () => {
   const categories = useMemo(() => localDb.getProductCategories(), [dbVersion]);
   const brands = useMemo(() => localDb.getProductBrands(), [dbVersion]);
 
-  const allProductsCount = useMemo(() => localDb.getProducts().length, [dbVersion]);
-  const outOfStockCount = useMemo(() => localDb.getOutOfStockProducts().length, [dbVersion]);
-  const discontinuedCount = useMemo(() => localDb.getProducts({ availability_status: 'discontinued' }).length, [dbVersion]);
+  const debouncedSearch = useDebouncedValue(searchTerm, 300);
 
-  const filteredProducts = useMemo(() => {
-    let statusToUse = statusFilter;
-    if (activeTab === 'out_of_stock') statusToUse = 'out_of_stock';
-    if (activeTab === 'discontinued') statusToUse = 'discontinued';
+  const { data: productTabCounts } = useServerQuery<ProductTabCounts>({
+    key: 'product-tab-counts',
+    fetcher: () => fetchProductTabCounts(),
+    localFallback: () => {
+      const all = localDb.getProducts();
+      return {
+        all: all.length,
+        outOfStock: localDb.getOutOfStockProducts().length,
+        discontinued: all.filter((p) => p.availability_status === 'discontinued').length,
+      };
+    },
+  });
 
-    return localDb.getProducts({
-      searchTerm,
-      availability_status: statusToUse,
-      category_id: categoryFilter !== 'all' ? categoryFilter : undefined,
-      brand_id: brandFilter !== 'all' ? brandFilter : undefined,
-      activeOnly: activeFilter === 'active',
-    });
-  }, [searchTerm, statusFilter, categoryFilter, brandFilter, activeFilter, activeTab, dbVersion]);
+  const allProductsCount = productTabCounts.all;
+  const outOfStockCount = productTabCounts.outOfStock;
+  const discontinuedCount = productTabCounts.discontinued;
 
-  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1;
-  const paginatedProducts = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredProducts.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredProducts, currentPage]);
+  const { data: paginatedProducts, total: filteredProductCount } = useServerListQuery<Product>({
+    key: JSON.stringify({
+      search: debouncedSearch,
+      status: statusFilter,
+      category: categoryFilter,
+      brand: brandFilter,
+      active: activeFilter,
+      tab: activeTab,
+      page: currentPage,
+    }),
+    fetcher: () => {
+      let statusToUse = statusFilter;
+      if (activeTab === 'out_of_stock') statusToUse = 'out_of_stock';
+      if (activeTab === 'discontinued') statusToUse = 'discontinued';
+      return fetchProductsPage({
+        searchTerm: debouncedSearch,
+        availability_status: statusToUse,
+        category_id: categoryFilter !== 'all' ? categoryFilter : undefined,
+        brand_id: brandFilter !== 'all' ? brandFilter : undefined,
+        activeOnly: activeFilter === 'active',
+        page: currentPage,
+      });
+    },
+    localFallback: () => {
+      let statusToUse = statusFilter;
+      if (activeTab === 'out_of_stock') statusToUse = 'out_of_stock';
+      if (activeTab === 'discontinued') statusToUse = 'discontinued';
+      const list = localDb.getProducts({
+        searchTerm: debouncedSearch,
+        availability_status: statusToUse,
+        category_id: categoryFilter !== 'all' ? categoryFilter : undefined,
+        brand_id: brandFilter !== 'all' ? brandFilter : undefined,
+        activeOnly: activeFilter === 'active',
+      });
+      const start = (currentPage - 1) * ITEMS_PER_PAGE;
+      return { data: list.slice(start, start + ITEMS_PER_PAGE), total: list.length };
+    },
+  });
+
+  const totalPages = Math.ceil(filteredProductCount / ITEMS_PER_PAGE) || 1;
 
   const handleClearFilters = () => {
     setSearchTerm('');
@@ -351,11 +391,11 @@ export const Products: React.FC = () => {
           />
         )}
 
-        {filteredProducts.length > 0 && (
+        {filteredProductCount > 0 && (
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
-            totalItems={filteredProducts.length}
+            totalItems={filteredProductCount}
             pageSize={ITEMS_PER_PAGE}
             onPageChange={setCurrentPage}
             itemLabel="products"

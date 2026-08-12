@@ -1,8 +1,11 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { localDb } from '../services/db';
-import { notificationService } from '../services/notificationService';
+import { fetchQueriesPage, fetchQueryWorkspaceStats, QueryWorkspaceStats } from '../services/queryService';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useServerListQuery } from '../hooks/useServerListQuery';
+import { useServerQuery } from '../hooks/useServerQuery';
 import { CustomerQuery, QueryFormInput } from '../types';
 import { QueryFormModal } from '../components/queries/QueryFormModal';
 import { QueryAssignModal } from '../components/queries/QueryAssignModal';
@@ -20,7 +23,6 @@ export const Queries: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [refreshKey, setRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('all');
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,11 +37,6 @@ export const Queries: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assigningQuery, setAssigningQuery] = useState<CustomerQuery | null>(null);
 
-  useEffect(() => {
-    const unsubscribe = notificationService.subscribe(() => setRefreshKey((prev) => prev + 1));
-    return () => unsubscribe();
-  }, []);
-
   const categories = useMemo(() => localDb.getCategories(), [dbVersion]);
   const agents = useMemo(() => localDb.getUsers(), [dbVersion]);
   const teams = useMemo(() => localDb.getTeams(), [dbVersion]);
@@ -49,65 +46,131 @@ export const Queries: React.FC = () => {
     return teams.find((t) => t.id === user.team_id) || null;
   }, [user, teams]);
 
-  const allQueriesList = useMemo(() => localDb.getQueries(), [refreshKey, dbVersion]);
+  const EMPTY_STATS: QueryWorkspaceStats = {
+    all: 0,
+    my: 0,
+    team: 0,
+    myUrgent: 0,
+    myHigh: 0,
+    myWaiting: 0,
+    myInProgress: 0,
+    myResolved: 0,
+    teamNew: 0,
+    teamAssigned: 0,
+    teamInProgress: 0,
+    teamWaiting: 0,
+    teamUrgent: 0,
+  };
 
-  const filteredQueries = useMemo(() => {
-    let result = allQueriesList;
-    if (activeTab === 'my' && user) {
-      result = result.filter((q) => q.assigned_to === user.id);
-    } else if (activeTab === 'team' && userTeam) {
-      result = result.filter((q) => q.assigned_team_id === userTeam.id);
-    }
+  const debouncedSearch = useDebouncedValue(searchTerm, 300);
 
-    if (statusFilter !== 'all') {
-      if (statusFilter === 'open') {
-        result = result.filter((q) => ['new', 'open', 'assigned'].includes(q.status));
-      } else {
-        result = result.filter((q) => q.status === statusFilter);
+  const { data: workspaceStats } = useServerQuery<QueryWorkspaceStats>({
+    key: JSON.stringify({ ws: activeTab, userId: user?.id, teamId: userTeam?.id }),
+    fetcher: () => (user ? fetchQueryWorkspaceStats(user.id, userTeam?.id) : Promise.resolve(EMPTY_STATS)),
+    localFallback: () => {
+      const all = localDb.getQueries();
+      const mine = user ? all.filter((q) => q.assigned_to === user.id) : [];
+      const teamList = userTeam ? all.filter((q) => q.assigned_team_id === userTeam.id) : [];
+      return {
+        all: all.length,
+        my: mine.length,
+        team: teamList.length,
+        myUrgent: mine.filter((q) => q.priority === 'urgent' && q.status !== 'closed' && q.status !== 'resolved').length,
+        myHigh: mine.filter((q) => q.priority === 'high' && q.status !== 'closed' && q.status !== 'resolved').length,
+        myWaiting: mine.filter((q) => q.status === 'waiting_customer').length,
+        myInProgress: mine.filter((q) => q.status === 'in_progress').length,
+        myResolved: mine.filter((q) => q.status === 'resolved').length,
+        teamNew: teamList.filter((q) => q.status === 'new' || q.status === 'open').length,
+        teamAssigned: teamList.filter((q) => q.status === 'assigned').length,
+        teamInProgress: teamList.filter((q) => q.status === 'in_progress').length,
+        teamWaiting: teamList.filter((q) => q.status === 'waiting_customer').length,
+        teamUrgent: teamList.filter((q) => q.priority === 'urgent' && q.status !== 'closed' && q.status !== 'resolved').length,
+      };
+    },
+  });
+
+  const {
+    data: paginatedQueries,
+    total: filteredQueryCount,
+    loading: queriesLoading,
+  } = useServerListQuery<CustomerQuery>({
+    key: JSON.stringify({
+      search: debouncedSearch,
+      status: statusFilter,
+      priority: priorityFilter,
+      category: categoryFilter,
+      agent: agentFilter,
+      team: teamFilter,
+      tab: activeTab,
+      userId: user?.id,
+      userTeamId: userTeam?.id,
+      page: currentPage,
+    }),
+    fetcher: () =>
+      fetchQueriesPage({
+        searchTerm: debouncedSearch,
+        status: statusFilter,
+        priority: priorityFilter,
+        category_id: categoryFilter,
+        assigned_to: agentFilter,
+        team_id: teamFilter,
+        workspace: activeTab,
+        workspaceTeamId: userTeam?.id,
+        userId: user?.id,
+        page: currentPage,
+      }),
+    localFallback: () => {
+      let result = localDb.getQueries();
+      if (activeTab === 'my' && user) {
+        result = result.filter((q) => q.assigned_to === user.id);
+      } else if (activeTab === 'team' && userTeam) {
+        result = result.filter((q) => q.assigned_team_id === userTeam.id);
       }
-    }
-    if (priorityFilter !== 'all') result = result.filter((q) => q.priority === priorityFilter);
-    if (categoryFilter !== 'all') result = result.filter((q) => q.category_id === categoryFilter);
-    if (agentFilter !== 'all') result = result.filter((q) => q.assigned_to === agentFilter);
-    if (teamFilter !== 'all') result = result.filter((q) => q.assigned_team_id === teamFilter);
 
-    if (searchTerm.trim()) {
-      const s = searchTerm.toLowerCase().trim();
-      result = result.filter(
-        (query) =>
-          query.query_number.toLowerCase().includes(s) ||
-          query.subject.toLowerCase().includes(s) ||
-          query.description.toLowerCase().includes(s) ||
-          (query.customer && (query.customer.company_name.toLowerCase().includes(s) || query.customer.customer_code.toLowerCase().includes(s))) ||
-          (query.order && query.order.order_number.toLowerCase().includes(s)) ||
-          (query.product && query.product.sku.toLowerCase().includes(s)) ||
-          (query.assigned_to_profile && query.assigned_to_profile.full_name.toLowerCase().includes(s))
-      );
-    }
+      if (statusFilter !== 'all') {
+        if (statusFilter === 'open') {
+          result = result.filter((q) => ['new', 'open', 'assigned'].includes(q.status));
+        } else {
+          result = result.filter((q) => q.status === statusFilter);
+        }
+      }
+      if (priorityFilter !== 'all') result = result.filter((q) => q.priority === priorityFilter);
+      if (categoryFilter !== 'all') result = result.filter((q) => q.category_id === categoryFilter);
+      if (agentFilter !== 'all') result = result.filter((q) => q.assigned_to === agentFilter);
+      if (teamFilter !== 'all') result = result.filter((q) => q.assigned_team_id === teamFilter);
 
-    return result;
-  }, [allQueriesList, activeTab, user, userTeam, statusFilter, priorityFilter, categoryFilter, agentFilter, teamFilter, searchTerm]);
+      if (debouncedSearch.trim()) {
+        const s = debouncedSearch.toLowerCase().trim();
+        result = result.filter(
+          (query) =>
+            query.query_number.toLowerCase().includes(s) ||
+            query.subject.toLowerCase().includes(s) ||
+            query.description.toLowerCase().includes(s) ||
+            (query.customer && (query.customer.company_name.toLowerCase().includes(s) || query.customer.customer_code.toLowerCase().includes(s))) ||
+            (query.order && query.order.order_number.toLowerCase().includes(s)) ||
+            (query.product && query.product.sku.toLowerCase().includes(s)) ||
+            (query.assigned_to_profile && query.assigned_to_profile.full_name.toLowerCase().includes(s))
+        );
+      }
 
-  const myQueries = useMemo(() => (user ? allQueriesList.filter((q) => q.assigned_to === user.id) : []), [allQueriesList, user]);
-  const teamQueries = useMemo(() => (userTeam ? allQueriesList.filter((q) => q.assigned_team_id === userTeam.id) : []), [allQueriesList, userTeam]);
+      const start = (currentPage - 1) * ITEMS_PER_PAGE;
+      return { data: result.slice(start, start + ITEMS_PER_PAGE), total: result.length };
+    },
+  });
 
-  const myUrgentCount = myQueries.filter((q) => q.priority === 'urgent' && q.status !== 'closed' && q.status !== 'resolved').length;
-  const myHighCount = myQueries.filter((q) => q.priority === 'high' && q.status !== 'closed' && q.status !== 'resolved').length;
-  const myWaitingCount = myQueries.filter((q) => q.status === 'waiting_customer').length;
-  const myInProgressCount = myQueries.filter((q) => q.status === 'in_progress').length;
-  const myResolvedCount = myQueries.filter((q) => q.status === 'resolved').length;
+  const myUrgentCount = workspaceStats?.myUrgent ?? 0;
+  const myHighCount = workspaceStats?.myHigh ?? 0;
+  const myWaitingCount = workspaceStats?.myWaiting ?? 0;
+  const myInProgressCount = workspaceStats?.myInProgress ?? 0;
+  const myResolvedCount = workspaceStats?.myResolved ?? 0;
 
-  const teamNewCount = teamQueries.filter((q) => q.status === 'new' || q.status === 'open').length;
-  const teamAssignedCount = teamQueries.filter((q) => q.status === 'assigned').length;
-  const teamInProgressCount = teamQueries.filter((q) => q.status === 'in_progress').length;
-  const teamWaitingCount = teamQueries.filter((q) => q.status === 'waiting_customer').length;
-  const teamUrgentCount = teamQueries.filter((q) => q.priority === 'urgent' && q.status !== 'closed' && q.status !== 'resolved').length;
+  const teamNewCount = workspaceStats?.teamNew ?? 0;
+  const teamAssignedCount = workspaceStats?.teamAssigned ?? 0;
+  const teamInProgressCount = workspaceStats?.teamInProgress ?? 0;
+  const teamWaitingCount = workspaceStats?.teamWaiting ?? 0;
+  const teamUrgentCount = workspaceStats?.teamUrgent ?? 0;
 
-  const totalPages = Math.ceil(filteredQueries.length / ITEMS_PER_PAGE) || 1;
-  const paginatedQueries = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredQueries.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredQueries, currentPage]);
+  const totalPages = Math.ceil(filteredQueryCount / ITEMS_PER_PAGE) || 1;
 
   if (!user) return null;
 
@@ -128,7 +191,6 @@ export const Queries: React.FC = () => {
     try {
       const created = localDb.createQuery(data, user.id);
       setIsCreateModalOpen(false);
-      setRefreshKey((prev) => prev + 1);
       toast({ type: 'success', title: 'Support ticket created', message: `${created.query_number} has been created.` });
       navigate(`/queries/${created.id}`);
     } catch {
@@ -142,7 +204,6 @@ export const Queries: React.FC = () => {
     try {
       localDb.assignQuery(queryId, assignedToUserId, user.id);
       setAssigningQuery(null);
-      setRefreshKey((prev) => prev + 1);
       toast({ type: 'success', title: 'Ticket assigned', message: 'Support ticket assignment updated.' });
     } catch {
       toast({ type: 'error', title: 'Assignment failed', message: 'Unable to update the assignment.' });
@@ -187,10 +248,10 @@ export const Queries: React.FC = () => {
             <Tabs
               size="md"
               tabs={[
-                { value: 'all' as const, label: (<span className="flex items-center gap-1.5"><Inbox className="w-3.5 h-3.5" /> All Tickets</span>), count: allQueriesList.length },
-                { value: 'my' as const, label: (<span className="flex items-center gap-1.5"><User className="w-3.5 h-3.5" /> My Queries</span>), count: myQueries.length },
+                { value: 'all' as const, label: (<span className="flex items-center gap-1.5"><Inbox className="w-3.5 h-3.5" /> All Tickets</span>), count: workspaceStats?.all ?? 0 },
+                { value: 'my' as const, label: (<span className="flex items-center gap-1.5"><User className="w-3.5 h-3.5" /> My Queries</span>), count: workspaceStats?.my ?? 0 },
                 ...(userTeam
-                  ? [{ value: 'team' as const, label: (<span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> {userTeam.name}</span>), count: teamQueries.length }]
+                  ? [{ value: 'team' as const, label: (<span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> {userTeam.name}</span>), count: workspaceStats?.team ?? 0 }]
                   : []),
               ]}
               active={activeTab}
@@ -241,6 +302,11 @@ export const Queries: React.FC = () => {
               icon={<Search className="w-4 h-4 text-slate-400" />}
               className="pl-9"
             />
+            {queriesLoading && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-slate-400 animate-pulse">
+                Loading…
+              </span>
+            )}
           </div>
           <Select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}>
             <option value="all">All Ticket Statuses</option>
@@ -383,11 +449,11 @@ export const Queries: React.FC = () => {
           />
         )}
 
-        {filteredQueries.length > 0 && (
+        {filteredQueryCount > 0 && (
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
-            totalItems={filteredQueries.length}
+            totalItems={filteredQueryCount}
             pageSize={ITEMS_PER_PAGE}
             onPageChange={setCurrentPage}
             itemLabel="tickets"

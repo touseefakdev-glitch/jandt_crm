@@ -5,6 +5,24 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.28.0] - 2026-08-12
+
+### Added
+- **Orders Module Realtime Rebuild**:
+  - **Workflow extension**: new `POD Sent` step (after `Dispatched`) and `Order Match` adjudication (`SAME` / `DIFFERENT` with optional `difference_note` + `invoice_updated`) on daily order operations, plus an `Operational Error` path (`exception_status = ERROR`, exception note, `error_query_id` → `customer_queries`).
+  - **Operational areas**: `profiles.operational_area` (`KELOWNA` / `OUTSIDE_KELOWNA` / `BOTH`), per-operation area derived from route schedule portal, area-scoped visibility in the Orders module. Editable in Admin Users (UserFormModal).
+  - **Realtime sync**: new `src/services/realtime.ts` — Postgres Changes subscription on `daily_order_operations` + `daily_order_operation_history` merged into the local store (no feedback loop) with a 30s polling fallback; Orders page shows a live sync badge (`Live Sync` / `Auto-Refresh` / `Local Only`).
+  - **Order Match UI**: `OrderMatchModal` on the Orders table to confirm same/different with invoice-updated flag.
+  - **Orders table**: 12-column layout with `POD Sent` and `Order Match` columns, pagination (25/page), upcoming-date navigation chips, and a `Tomorrow` shortcut.
+  - **Best-effort Supabase auth**: `AuthContext.login` now also calls `supabase.auth.signInWithPassword` so RLS-secured tables work in the cloud.
+  - **Backend**: `getDailyOrderOperations` is operational-area aware; new `updateDailyOrderMatch`, `setDailyOrderException`, `clearDailyOrderException`, `getOperationalDatesForRange`; `updateDailyOrderOperationStep` / `revertDailyOrderOperationStep` extended with `pod_sent`; new audit actions (`daily_operation_pod_sent`, `daily_operation_match_updated`, `daily_operation_exception_flagged`, `daily_operation_exception_cleared`).
+- **Database migration** `database/migrations/04_orders_realtime.sql`: workflow columns + backfills, `update_daily_order_operations_modtime` trigger, RLS on `route_schedules` / `daily_order_operations` / `daily_order_operation_history` with area-scoped policies (legacy anon seed policies dropped), `supabase_realtime` publication, and Orders-module indexes. `database/schema.sql` + `seed.sql` updated (incl. fixed FK `error_query_id` → `customer_queries`).
+
+### Note
+- After applying migration 04, Supabase Auth users must exist for the seeded profile emails (their passwords) — the app logs into Supabase Auth on login; without an authenticated session the migrated tables are read-only to the app.
+
+---
+
 ## [1.27.0] - 2026-08-12
 
 ### Removed

@@ -1,5 +1,8 @@
 export type UserRole = 'admin' | 'sales_agent' | 'support_agent';
 
+/** Operational area a user is assigned to. Admin/BOTH sees all areas. */
+export type OperationalArea = 'KELOWNA' | 'OUTSIDE_KELOWNA' | 'BOTH';
+
 export interface Team {
   id: string;
   name: string;
@@ -19,6 +22,7 @@ export interface UserProfile {
   role: UserRole;
   team_id: string | null;
   team?: Team | null;
+  operational_area?: OperationalArea;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -518,6 +522,10 @@ export type AuditActionType =
   | 'daily_operation_update'
   | 'daily_operation_undo'
   | 'daily_operation_error_query'
+  | 'daily_operation_pod_sent'
+  | 'daily_operation_match_updated'
+  | 'daily_operation_exception_flagged'
+  | 'daily_operation_exception_cleared'
   | 'route_schedule_updated'
   | 'order_forwarded';
 
@@ -591,13 +599,27 @@ export interface DailyOrderOperation {
   dispatched_by?: string | null;
   dispatched_by_profile?: UserProfile | null;
 
+  pod_sent: boolean;
+  pod_sent_at?: string | null;
+  pod_sent_by?: string | null;
+  pod_sent_by_profile?: UserProfile | null;
+
+  order_match?: 'SAME' | 'DIFFERENT' | null;
+  difference_note?: string | null;
+  invoice_updated: boolean;
+
   error_flag: boolean;
+  exception_status: 'NONE' | 'ERROR';
+  exception_note?: string | null;
   error_query_id?: string | null;
   error_query?: CustomerQuery | null;
 
+  operational_area?: 'KELOWNA' | 'OUTSIDE_KELOWNA';
   status: DailyOrderOperationStatus;
   created_at: string;
   updated_at: string;
+  updated_by?: string | null;
+  updated_by_profile?: UserProfile | null;
 }
 
 export interface DailyOrderOperationHistory {
@@ -633,6 +655,7 @@ export interface UserFormInput {
   email: string;
   role: UserRole;
   team_id?: string | null;
+  operational_area?: OperationalArea;
   is_active: boolean;
 }
 

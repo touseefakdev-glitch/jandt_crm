@@ -3,14 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { DailyOrderOperation, DailyOrderOperationHistory, PortalType } from '../types';
 import { localDb } from '../services/db';
+import { subscribeOrdersRealtime } from '../services/realtime';
 import { permissions } from '../services/permissions';
 import { formatDate } from '../utils/format';
 import { SOModal } from '../components/orders/SOModal';
 import { InvoiceModal } from '../components/orders/InvoiceModal';
 import { ReportErrorModal } from '../components/orders/ReportErrorModal';
 import { UndoStepModal } from '../components/orders/UndoStepModal';
+import { OrderMatchModal } from '../components/orders/OrderMatchModal';
 import { 
   Calendar as CalendarIcon, 
+  CalendarClock,
   ChevronLeft, 
   ChevronRight, 
   MapPin, 
@@ -26,19 +29,26 @@ import {
   CheckSquare,
   Clock,
   Send,
-  FileText
+  FileText,
+  Scale,
+  Wifi,
+  WifiOff,
+  RefreshCw,
+  ShieldCheck
 } from 'lucide-react';
-import { Badge, Button, Card, EmptyState, Input, Modal, Select, Table, TableToolbar, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
+import { Badge, Button, Card, EmptyState, Input, Modal, Select, Table, TableToolbar, TBody, Td, Th, THead, Tr, useToast, Pagination } from '../components/ui';
 
 export const Orders: React.FC = () => {
-  const { user } = useAuth();
+  const { user, dbVersion } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   // Permission Checks
   const canUpdate = permissions.canUpdateDailyOperations(user).allowed;
   const canRevert = permissions.canRevertDailyOperations(user).allowed;
+  const canUpdateOrderMatch = permissions.canUpdateOrderMatch(user).allowed;
   const isAdmin = user?.role === 'admin';
+  const userArea = user?.operational_area || 'BOTH';
 
   // Date State (Defaults to today in YYYY-MM-DD)
   const [selectedDateStr, setSelectedDateStr] = useState<string>(
@@ -54,20 +64,40 @@ export const Orders: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState<'name' | 'status' | 'updated_at'>('name');
 
+  // Pagination
+  const PAGE_SIZE = 25;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Realtime / live-sync indicator state
+  const [syncState, setSyncState] = useState<'live' | 'polling' | 'offline'>('offline');
+
   // Active Modals
   const [activeSOModalOp, setActiveSOModalOp] = useState<DailyOrderOperation | null>(null);
   const [activeInvoiceModalOp, setActiveInvoiceModalOp] = useState<DailyOrderOperation | null>(null);
   const [activeErrorModalOp, setActiveErrorModalOp] = useState<DailyOrderOperation | null>(null);
+  const [activeOrderMatchOp, setActiveOrderMatchOp] = useState<DailyOrderOperation | null>(null);
   const [activeUndoModal, setActiveUndoModal] = useState<{
     op: DailyOrderOperation;
-    step: 'order_received' | 'sales_order_generated' | 'invoiced' | 'dispatched';
+    step: 'order_received' | 'sales_order_generated' | 'invoiced' | 'dispatched' | 'pod_sent';
     stepName: string;
   } | null>(null);
 
   const [activeHistoryOp, setActiveHistoryOp] = useState<DailyOrderOperation | null>(null);
   const [historyList, setHistoryList] = useState<DailyOrderOperationHistory[]>([]);
 
-  // Load Operations Data from DB
+  // Subscribe to realtime updates for daily order operations (shared, ref-counted).
+  // When realtime is not deliverable the polling fallback keeps this view fresh.
+  useEffect(() => {
+    const stop = subscribeOrdersRealtime((status) => {
+      if (status === 'live') setSyncState('live');
+      else if (status === 'polling') setSyncState('polling');
+      else setSyncState('offline');
+    });
+    return stop;
+  }, []);
+
+  // Load Operations Data from DB (re-read on any dbVersion bump so remote
+  // realtime/poll merges re-render this page without a manual refresh).
   const { operations, activeRoutes, weekday } = useMemo(() => {
     return localDb.getDailyOrderOperations({
       date: selectedDateStr,
@@ -76,8 +106,28 @@ export const Orders: React.FC = () => {
       searchTerm,
       statusFilter,
       sortBy: sortBy === 'name' ? 'customer_name' : sortBy,
+      operationalArea: userArea === 'BOTH' ? undefined : (userArea as 'KELOWNA' | 'OUTSIDE_KELOWNA'),
     });
-  }, [selectedDateStr, selectedRoute, selectedPortal, searchTerm, statusFilter, sortBy]);
+  }, [selectedDateStr, selectedRoute, selectedPortal, searchTerm, statusFilter, sortBy, dbVersion, userArea]);
+
+  // Reset pagination whenever the dataset filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedDateStr, selectedRoute, selectedPortal, searchTerm, statusFilter, dbVersion]);
+
+  // Upcoming operational dates (with active routes) for quick navigation
+  const upcomingDates = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const end = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    return localDb
+      .getOperationalDatesForRange(todayStr, end)
+      .filter(d => d.date > todayStr)
+      .slice(0, 5);
+  }, [dbVersion]);
+
+  const totalPages = Math.max(1, Math.ceil(operations.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const pagedOperations = operations.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   // Set initial selected route when activeRoutes load/change
   useEffect(() => {
@@ -107,11 +157,17 @@ export const Orders: React.FC = () => {
     setSelectedDateStr(new Date().toISOString().split('T')[0]);
   };
 
+  const handleTomorrow = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    setSelectedDateStr(d.toISOString().split('T')[0]);
+  };
+
   // Route Progress Metrics Calculations
   const metrics = useMemo(() => {
     const total = operations.length;
     const completed = operations.filter(o => o.status === 'completed').length;
-    const errors = operations.filter(o => o.error_flag).length;
+    const errors = operations.filter(o => o.error_flag || o.exception_status === 'ERROR').length;
     const notStarted = operations.filter(o => o.status === 'not_started').length;
     const inProgress = total - completed - errors - notStarted;
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -120,6 +176,8 @@ export const Orders: React.FC = () => {
     const salesOrderCount = operations.filter(o => o.sales_order_generated).length;
     const invoicedCount = operations.filter(o => o.invoiced).length;
     const dispatchedCount = operations.filter(o => o.dispatched).length;
+    const podSentCount = operations.filter(o => o.pod_sent).length;
+    const orderMatchDifferentCount = operations.filter(o => o.order_match === 'DIFFERENT').length;
 
     return {
       total,
@@ -132,6 +190,8 @@ export const Orders: React.FC = () => {
       salesOrderCount,
       invoicedCount,
       dispatchedCount,
+      podSentCount,
+      orderMatchDifferentCount,
     };
   }, [operations]);
 
@@ -256,6 +316,50 @@ export const Orders: React.FC = () => {
     }
   };
 
+  const handleTogglePODSent = (op: DailyOrderOperation) => {
+    if (!canUpdate) {
+      toast({ type: 'error', title: 'Permission Denied', message: 'You do not have permission to update daily operations.' });
+      return;
+    }
+
+    if (op.pod_sent) {
+      if (!canRevert) {
+        toast({ type: 'error', title: 'Permission Denied', message: 'Only Sales Agents and Admins can revert completed steps.' });
+        return;
+      }
+      setActiveUndoModal({ op, step: 'pod_sent', stepName: 'POD Sent' });
+    } else {
+      if (!op.dispatched) {
+        toast({ type: 'error', title: 'Dependency Required', message: 'Customer must be Dispatched before the POD can be marked as sent.' });
+        return;
+      }
+      try {
+        localDb.updateDailyOrderOperationStep(op.id, 'pod_sent', null, user!.id);
+        toast({ type: 'success', title: 'POD Sent', message: `Marked POD as sent for ${op.customer?.company_name}` });
+      } catch (err: any) {
+        toast({ type: 'error', title: 'Action Failed', message: err.message });
+      }
+    }
+  };
+
+  const handleOpenOrderMatch = (op: DailyOrderOperation) => {
+    if (!canUpdateOrderMatch) {
+      toast({ type: 'error', title: 'Permission Denied', message: 'You do not have permission to update order matching.' });
+      return;
+    }
+    setActiveOrderMatchOp(op);
+  };
+
+  const handleConfirmOrderMatch = (match: 'SAME' | 'DIFFERENT', differenceNote: string | null, invoiceUpdated: boolean) => {
+    if (!activeOrderMatchOp) return;
+    try {
+      localDb.updateDailyOrderMatch(activeOrderMatchOp.id, match, differenceNote, invoiceUpdated, user!.id);
+      toast({ type: 'success', title: 'Order Match Saved', message: `Recorded order match as ${match} for ${activeOrderMatchOp.customer?.company_name}` });
+    } catch (err: any) {
+      toast({ type: 'error', title: 'Action Failed', message: err.message });
+    }
+  };
+
   const handleConfirmUndoStep = (reason: string) => {
     if (!activeUndoModal) return;
     try {
@@ -306,31 +410,81 @@ export const Orders: React.FC = () => {
               <span className="text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider bg-brand-100 text-brand-800">
                 {formatWeekdayTitle(weekday)}
               </span>
+              {userArea !== 'BOTH' && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200 capitalize">
+                  <ShieldCheck className="w-3 h-3" />
+                  {userArea === 'KELOWNA' ? 'Kelowna' : 'Outside Kelowna'} Area
+                </span>
+              )}
             </div>
             <span className="text-xs text-slate-500">Route schedule derived automatically from selected date</span>
           </div>
         </div>
 
-        {/* Date Selector Navigation Controls */}
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={handlePreviousDay} icon={<ChevronLeft className="w-4 h-4" />}>
-            Prev Day
-          </Button>
+        <div className="flex flex-col items-end gap-2">
+          {/* Realtime / Live-Sync Indicator */}
+          <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full border ${
+            syncState === 'live'
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+              : syncState === 'polling'
+              ? 'bg-amber-50 text-amber-700 border-amber-300'
+              : 'bg-slate-100 text-slate-500 border-slate-200'
+          }`}>
+            {syncState === 'live' ? <Wifi className="w-3 h-3" /> : syncState === 'polling' ? <RefreshCw className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+            {syncState === 'live' ? 'Live Sync' : syncState === 'polling' ? 'Auto-Refresh' : 'Local Only'}
+          </span>
+          {syncState !== 'live' && (
+            <span className="text-[9px] text-slate-400 max-w-[220px] text-right leading-tight">
+              Multi-browser updates appear automatically via polling fallback. Live push requires Supabase Realtime (see migration 04).
+            </span>
+          )}
 
-          <Input
-            type="date"
-            value={selectedDateStr}
-            onChange={(e) => e.target.value && setSelectedDateStr(e.target.value)}
-            className="w-36 text-xs"
-          />
+          {/* Date Selector Navigation Controls */}
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={handlePreviousDay} icon={<ChevronLeft className="w-4 h-4" />}>
+              Prev Day
+            </Button>
 
-          <Button size="sm" variant="outline" onClick={handleNextDay} icon={<ChevronRight className="w-4 h-4" />}>
-            Next Day
-          </Button>
+            <Input
+              type="date"
+              value={selectedDateStr}
+              onChange={(e) => e.target.value && setSelectedDateStr(e.target.value)}
+              className="w-36 text-xs"
+            />
 
-          <Button size="sm" variant="secondary" onClick={handleToday}>
-            Today
-          </Button>
+            <Button size="sm" variant="outline" onClick={handleNextDay} icon={<ChevronRight className="w-4 h-4" />}>
+              Next Day
+            </Button>
+
+            <Button size="sm" variant="secondary" onClick={handleToday}>
+              Today
+            </Button>
+
+            <Button size="sm" variant="secondary" onClick={handleTomorrow} icon={<CalendarClock className="w-4 h-4" />}>
+              Tomorrow
+            </Button>
+          </div>
+
+          {/* Upcoming Operational Dates Quick Navigation */}
+          {upcomingDates.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap justify-end">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Upcoming:</span>
+              {upcomingDates.map((d) => (
+                <button
+                  key={d.date}
+                  onClick={() => setSelectedDateStr(d.date)}
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md border transition-all ${
+                    selectedDateStr === d.date
+                      ? 'bg-brand-600 text-white border-brand-600'
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-brand-400 hover:text-brand-700'
+                  }`}
+                  title={`${d.routes.length} route(s): ${d.routes.join(', ')}`}
+                >
+                  {formatDate(d.date, { weekday: 'short', month: 'short', day: 'numeric' })}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -421,7 +575,7 @@ export const Orders: React.FC = () => {
             </div>
 
             {/* Stage Bottleneck Summary Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-xs">
               <div className="bg-[#243B53]/80 p-3 rounded-[8px] border border-[#334E68]">
                 <span className="text-[10px] text-[#9FB3C8] uppercase font-bold block">Order Received</span>
                 <span className="text-base font-extrabold text-teal-400 block mt-0.5">{metrics.orderReceivedCount} / {metrics.total}</span>
@@ -437,6 +591,10 @@ export const Orders: React.FC = () => {
               <div className="bg-[#243B53]/80 p-3 rounded-[8px] border border-[#334E68]">
                 <span className="text-[10px] text-[#9FB3C8] uppercase font-bold block">Dispatched</span>
                 <span className="text-base font-extrabold text-green-400 block mt-0.5">{metrics.dispatchedCount} / {metrics.total}</span>
+              </div>
+              <div className="bg-[#243B53]/80 p-3 rounded-[8px] border border-[#334E68]">
+                <span className="text-[10px] text-[#9FB3C8] uppercase font-bold block">POD Sent</span>
+                <span className="text-base font-extrabold text-cyan-300 block mt-0.5">{metrics.podSentCount} / {metrics.total}</span>
               </div>
               <div className="bg-[#243B53]/80 p-3 rounded-[8px] border border-[#334E68]">
                 <span className="text-[10px] text-red-400 uppercase font-bold block">Errors / Tickets</span>
@@ -491,23 +649,26 @@ export const Orders: React.FC = () => {
           {/* Daily Customer Workflow Table */}
           <Card flush>
             {operations.length > 0 ? (
-              <Table minWidth={1100}>
+              <>
+                <Table minWidth={1440}>
                 <THead>
                   <Tr hover={false}>
                     <Th width={288} className="sticky left-0 bg-[#F5F7FA] z-10 border-r border-slate-200">Customer</Th>
-                    <Th width={144} align="center">Order Received</Th>
-                    <Th width={176} align="center">Sales Order Generated</Th>
-                    <Th width={144}>SO #</Th>
-                    <Th width={144} align="center">Invoiced</Th>
-                    <Th width={144}>Invoice #</Th>
-                    <Th width={128} align="center">Dispatched</Th>
+                    <Th width={132} align="center">Order Received</Th>
+                    <Th width={160} align="center">Sales Order Generated</Th>
+                    <Th width={132}>SO #</Th>
+                    <Th width={132} align="center">Invoiced</Th>
+                    <Th width={132}>Invoice #</Th>
+                    <Th width={120} align="center">Dispatched</Th>
+                    <Th width={120} align="center">POD Sent</Th>
+                    <Th width={130} align="center">Order Match</Th>
                     <Th width={160} align="center">Error / Ticket</Th>
                     <Th width={128}>Status</Th>
                     <Th width={80} align="right">Audit</Th>
                   </Tr>
                 </THead>
                 <TBody>
-                  {operations.map((op) => (
+                  {pagedOperations.map((op) => (
                     <Tr key={op.id}>
                       {/* Sticky Customer Info Cell */}
                       <Td width={288} className="sticky left-0 bg-white z-10 border-r border-slate-200">
@@ -637,6 +798,60 @@ export const Orders: React.FC = () => {
                           )}
                         </Td>
 
+                        {/* Step 5: POD Sent Checkbox */}
+                        <Td className="text-center">
+                          <button
+                            onClick={() => handleTogglePODSent(op)}
+                            disabled={!canUpdate}
+                            className={`w-7 h-7 rounded-lg inline-flex items-center justify-center transition-all ${
+                              op.pod_sent
+                                ? 'bg-cyan-600 text-white shadow-sm'
+                                : op.dispatched
+                                ? 'border-2 border-slate-300 hover:border-cyan-500 bg-slate-50'
+                                : 'border border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed'
+                            }`}
+                          >
+                            {op.pod_sent && <Send className="w-3.5 h-3.5" />}
+                          </button>
+                          {op.pod_sent_at && (
+                            <span className="block text-[9px] text-slate-400 font-mono mt-0.5">
+                              {formatDate(op.pod_sent_at, { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          )}
+                        </Td>
+
+                        {/* Order Match: SAME / DIFFERENT */}
+                        <Td className="text-center">
+                          {op.order_match ? (
+                            <button
+                              onClick={() => handleOpenOrderMatch(op)}
+                              disabled={!canUpdateOrderMatch}
+                              className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md border transition-all ${
+                                op.order_match === 'DIFFERENT'
+                                  ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                                  : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                              }`}
+                              title={op.difference_note || undefined}
+                            >
+                              <Scale className="w-3 h-3 shrink-0" />
+                              {op.order_match === 'DIFFERENT' ? 'DIFFERENT' : 'SAME'}
+                              {op.order_match === 'DIFFERENT' && (
+                                <span className={`text-[9px] font-semibold ${op.invoice_updated ? 'text-emerald-700' : 'text-amber-700'}`}>
+                                  {op.invoice_updated ? '(invoice updated)' : '(pending)'}
+                                </span>
+                              )}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleOpenOrderMatch(op)}
+                              disabled={!canUpdateOrderMatch}
+                              className="text-[10px] font-semibold px-2 py-1 rounded-md border border-dashed border-slate-300 text-slate-400 hover:text-brand-700 hover:border-brand-400 bg-transparent transition-all"
+                            >
+                              Set Match
+                            </button>
+                          )}
+                        </Td>
+
                         {/* Error Flag / Customer Query Link */}
                         <Td className="text-center">
                           {op.error_flag && op.error_query ? (
@@ -706,6 +921,15 @@ export const Orders: React.FC = () => {
                     ))}
                   </TBody>
                 </Table>
+                <Pagination
+                  currentPage={safePage}
+                  totalPages={totalPages}
+                  totalItems={operations.length}
+                  pageSize={PAGE_SIZE}
+                  onPageChange={setCurrentPage}
+                  itemLabel="customers"
+                />
+              </>
             ) : (
               <EmptyState
                 icon={<MapPin className="w-7 h-7" />}
@@ -745,6 +969,19 @@ export const Orders: React.FC = () => {
           onClose={() => setActiveErrorModalOp(null)}
           onSubmit={handleConfirmReportError}
           customerName={activeErrorModalOp.customer?.company_name || 'Customer'}
+        />
+      )}
+
+      {/* Modal: Order vs Invoice Match */}
+      {activeOrderMatchOp && (
+        <OrderMatchModal
+          isOpen={!!activeOrderMatchOp}
+          onClose={() => setActiveOrderMatchOp(null)}
+          onSubmit={handleConfirmOrderMatch}
+          customerName={activeOrderMatchOp.customer?.company_name || 'Customer'}
+          currentMatch={activeOrderMatchOp.order_match}
+          differenceNote={activeOrderMatchOp.difference_note}
+          invoiceUpdated={activeOrderMatchOp.invoice_updated}
         />
       )}
 

@@ -64,6 +64,7 @@ import {
   DailyOrderOperationStatus,
   DailyOrderOperation,
   DailyOrderOperationHistory,
+  OperationalArea,
 } from '../types';
 import { notificationService } from './notificationService';
 import { permissions } from './permissions';
@@ -92,6 +93,7 @@ export const SEED_USERS: UserProfile[] = [
     role: 'admin',
     team_id: '11111111-1111-1111-1111-111111111111',
     team: SEED_TEAMS[0],
+    operational_area: 'BOTH',
     is_active: true,
     created_at: new Date('2026-01-01').toISOString(),
     updated_at: new Date('2026-01-01').toISOString(),
@@ -2449,6 +2451,7 @@ class LocalDatabaseService {
       full_name: input.full_name.trim(),
       role: input.role,
       team_id: input.team_id || null,
+      operational_area: input.operational_area || 'BOTH',
       is_active: input.is_active,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -2478,6 +2481,7 @@ class LocalDatabaseService {
     const existing = users[index];
     const roleChanged = input.role && input.role !== existing.role;
     const teamChanged = input.team_id !== undefined && input.team_id !== existing.team_id;
+    const areaChanged = input.operational_area !== undefined && input.operational_area !== existing.operational_area;
 
     const updated: UserProfile = {
       ...existing,
@@ -2485,6 +2489,7 @@ class LocalDatabaseService {
       email: input.email !== undefined ? input.email.toLowerCase().trim() : existing.email,
       role: input.role !== undefined ? input.role : existing.role,
       team_id: input.team_id !== undefined ? input.team_id : existing.team_id,
+      operational_area: input.operational_area !== undefined ? input.operational_area : existing.operational_area,
       is_active: input.is_active !== undefined ? input.is_active : existing.is_active,
     };
 
@@ -2514,6 +2519,19 @@ class LocalDatabaseService {
         summary: `Updated team assignment for ${existing.full_name}`,
         previous_value: existing.team_id || 'None',
         new_value: input.team_id || 'None',
+      });
+    }
+
+    if (areaChanged) {
+      this.logAudit({
+        user_id: currentUserId,
+        action: 'user_updated',
+        entity_type: 'user',
+        entity_id: userId,
+        entity_number: existing.full_name,
+        summary: `Updated operational area for ${existing.full_name} from ${existing.operational_area || 'BOTH'} to ${input.operational_area}`,
+        previous_value: existing.operational_area || 'BOTH',
+        new_value: input.operational_area,
       });
     }
 
@@ -3069,6 +3087,7 @@ class LocalDatabaseService {
     searchTerm?: string;
     statusFilter?: string;
     sortBy?: string;
+    operationalArea?: OperationalArea; // client-side area enforcement (defense in depth)
   }): { operations: DailyOrderOperation[]; activeRoutes: string[]; weekday: DayOfWeek } {
     try {
       const selectedDate = new Date(options.date + 'T12:00:00');
@@ -3080,6 +3099,19 @@ class LocalDatabaseService {
       if (options.portal && options.portal !== 'all') {
         schedules = schedules.filter(s => s.portal === options.portal);
       }
+      if (options.operationalArea && options.operationalArea !== 'BOTH') {
+        schedules = schedules.filter(s =>
+          (s.portal === 'kelowna') === (options.operationalArea === 'KELOWNA')
+        );
+      }
+
+      // Resolve the operational area of a route from its schedule portal
+      const areaForRoute = (route: string): 'KELOWNA' | 'OUTSIDE_KELOWNA' => {
+        const schedule = schedules.find(s =>
+          s.city_or_route.trim().toLowerCase() === route.trim().toLowerCase()
+        );
+        return schedule && schedule.portal === 'kelowna' ? 'KELOWNA' : 'OUTSIDE_KELOWNA';
+      };
 
       const activeRoutes = Array.from(new Set(schedules.map(s => s.city_or_route)));
       const targetRoute = options.route || activeRoutes[0] || '';
@@ -3111,6 +3143,9 @@ class LocalDatabaseService {
 
         if (opIndex >= 0) {
           op = updatedOpsList[opIndex];
+          if (!op.operational_area) {
+            op.operational_area = areaForRoute(op.route);
+          }
         } else {
           op = {
             id: crypto.randomUUID(),
@@ -3121,7 +3156,11 @@ class LocalDatabaseService {
             sales_order_generated: false,
             invoiced: false,
             dispatched: false,
+            pod_sent: false,
             error_flag: false,
+            exception_status: 'NONE',
+            invoice_updated: false,
+            operational_area: areaForRoute(targetRoute),
             status: 'not_started',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -3135,6 +3174,8 @@ class LocalDatabaseService {
         if (op.sales_order_generated_by) op.sales_order_generated_by_profile = users.find(u => u.id === op.sales_order_generated_by) || null;
         if (op.invoiced_by) op.invoiced_by_profile = users.find(u => u.id === op.invoiced_by) || null;
         if (op.dispatched_by) op.dispatched_by_profile = users.find(u => u.id === op.dispatched_by) || null;
+        if (op.pod_sent_by) op.pod_sent_by_profile = users.find(u => u.id === op.pod_sent_by) || null;
+        if (op.updated_by) op.updated_by_profile = users.find(u => u.id === op.updated_by) || null;
         if (op.error_query_id) op.error_query = queries.find(q => q.id === op.error_query_id) || null;
 
         return op;
@@ -3182,7 +3223,7 @@ class LocalDatabaseService {
 
   public updateDailyOrderOperationStep(
     id: string,
-    step: 'order_received' | 'sales_order_generated' | 'invoiced' | 'dispatched',
+    step: 'order_received' | 'sales_order_generated' | 'invoiced' | 'dispatched' | 'pod_sent',
     referenceNumber: string | null,
     userId: string
   ): DailyOrderOperation | null {
@@ -3205,6 +3246,9 @@ class LocalDatabaseService {
       }
       if (step === 'dispatched' && !existing.invoiced) {
         throw new Error('Customer must be Invoiced before Dispatch.');
+      }
+      if (step === 'pod_sent' && !existing.dispatched) {
+        throw new Error('Customer must be Dispatched before the POD can be marked as sent.');
       }
 
       const updated: DailyOrderOperation = { ...existing };
@@ -3233,10 +3277,14 @@ class LocalDatabaseService {
         updated.dispatched = true;
         updated.dispatched_at = now;
         updated.dispatched_by = userId;
+      } else if (step === 'pod_sent') {
+        updated.pod_sent = true;
+        updated.pod_sent_at = now;
+        updated.pod_sent_by = userId;
       }
 
       // Derive status
-      if (updated.error_flag) {
+      if (updated.error_flag || updated.exception_status === 'ERROR') {
         updated.status = 'error';
       } else if (updated.order_received && updated.sales_order_generated && updated.invoiced && updated.dispatched) {
         updated.status = 'completed';
@@ -3253,6 +3301,7 @@ class LocalDatabaseService {
       }
 
       updated.updated_at = now;
+      updated.updated_by = userId;
       opsList[index] = updated;
       storageSet(this.dailyOrderOperationsKey, JSON.stringify(opsList));
 
@@ -3270,7 +3319,7 @@ class LocalDatabaseService {
 
       this.logAudit({
         user_id: userId,
-        action: 'daily_operation_update',
+        action: step === 'pod_sent' ? 'daily_operation_pod_sent' : 'daily_operation_update',
         entity_type: 'daily_order_operation',
         entity_id: id,
         entity_number: updated.sales_order_number || updated.invoice_number || id,
@@ -3287,7 +3336,7 @@ class LocalDatabaseService {
 
   public revertDailyOrderOperationStep(
     id: string,
-    step: 'order_received' | 'sales_order_generated' | 'invoiced' | 'dispatched',
+    step: 'order_received' | 'sales_order_generated' | 'invoiced' | 'dispatched' | 'pod_sent',
     reason: string,
     userId: string
   ): DailyOrderOperation | null {
@@ -3321,6 +3370,9 @@ class LocalDatabaseService {
         updated.dispatched = false;
         updated.dispatched_at = null;
         updated.dispatched_by = null;
+        updated.pod_sent = false;
+        updated.pod_sent_at = null;
+        updated.pod_sent_by = null;
       } else if (step === 'sales_order_generated') {
         updated.sales_order_generated = false;
         updated.sales_order_number = null;
@@ -3333,6 +3385,9 @@ class LocalDatabaseService {
         updated.dispatched = false;
         updated.dispatched_at = null;
         updated.dispatched_by = null;
+        updated.pod_sent = false;
+        updated.pod_sent_at = null;
+        updated.pod_sent_by = null;
       } else if (step === 'invoiced') {
         updated.invoiced = false;
         updated.invoice_number = null;
@@ -3341,14 +3396,24 @@ class LocalDatabaseService {
         updated.dispatched = false;
         updated.dispatched_at = null;
         updated.dispatched_by = null;
+        updated.pod_sent = false;
+        updated.pod_sent_at = null;
+        updated.pod_sent_by = null;
       } else if (step === 'dispatched') {
         updated.dispatched = false;
         updated.dispatched_at = null;
         updated.dispatched_by = null;
+        updated.pod_sent = false;
+        updated.pod_sent_at = null;
+        updated.pod_sent_by = null;
+      } else if (step === 'pod_sent') {
+        updated.pod_sent = false;
+        updated.pod_sent_at = null;
+        updated.pod_sent_by = null;
       }
 
       // Re-derive status
-      if (updated.error_flag) {
+      if (updated.error_flag || updated.exception_status === 'ERROR') {
         updated.status = 'error';
       } else if (updated.dispatched) {
         updated.status = 'dispatched';
@@ -3363,6 +3428,7 @@ class LocalDatabaseService {
       }
 
       updated.updated_at = now;
+      updated.updated_by = userId;
       opsList[index] = updated;
       storageSet(this.dailyOrderOperationsKey, JSON.stringify(opsList));
 
@@ -3431,9 +3497,12 @@ class LocalDatabaseService {
       const updated: DailyOrderOperation = {
         ...existing,
         error_flag: true,
+        exception_status: 'ERROR',
+        exception_note: issueDescription.trim(),
         error_query_id: query.id,
         status: 'error',
         updated_at: now,
+        updated_by: userId,
       };
 
       opsList[index] = updated;
@@ -3465,6 +3534,226 @@ class LocalDatabaseService {
     } catch (err: any) {
       throw new Error(err.message || 'Failed to report daily operation error.');
     }
+  }
+
+  /**
+   * Records the order-vs-invoice match for a daily operation. When the order
+   * does not match the invoice (DIFFERENT), a difference note is mandatory and
+   * the invoice is flagged as needing to be updated.
+   */
+  public updateDailyOrderMatch(
+    id: string,
+    match: 'SAME' | 'DIFFERENT',
+    differenceNote: string | null,
+    invoiceUpdated: boolean,
+    userId: string
+  ): DailyOrderOperation | null {
+    try {
+      if (match === 'DIFFERENT' && (!differenceNote || !differenceNote.trim())) {
+        throw new Error('A difference note is required when the order does not match the invoice.');
+      }
+
+      const opsData = storageGet(this.dailyOrderOperationsKey);
+      const opsList: DailyOrderOperation[] = opsData ? JSON.parse(opsData) : [];
+      const index = opsList.findIndex(o => o.id === id);
+      if (index === -1) return null;
+
+      const existing = opsList[index];
+      const now = new Date().toISOString();
+      const previousMatch = existing.order_match || 'None';
+
+      const updated: DailyOrderOperation = {
+        ...existing,
+        order_match: match,
+        difference_note: match === 'DIFFERENT' ? differenceNote!.trim() : null,
+        invoice_updated: match === 'DIFFERENT' ? invoiceUpdated : existing.invoice_updated,
+        updated_at: now,
+        updated_by: userId,
+      };
+
+      opsList[index] = updated;
+      storageSet(this.dailyOrderOperationsKey, JSON.stringify(opsList));
+
+      this.logDailyOperationHistory({
+        operation_id: id,
+        customer_id: updated.customer_id,
+        action: `Order match updated: ${match}`,
+        previous_state: previousMatch,
+        new_state: match,
+        reason: match === 'DIFFERENT' ? differenceNote!.trim() : null,
+        user_id: userId,
+        timestamp: now,
+      });
+
+      this.logAudit({
+        user_id: userId,
+        action: 'daily_operation_match_updated',
+        entity_type: 'daily_order_operation',
+        entity_id: id,
+        entity_number: updated.sales_order_number || updated.invoice_number || id,
+        summary: `Updated order match to ${match}${match === 'DIFFERENT' ? ` — ${differenceNote!.trim()}` : ''}`,
+        previous_value: previousMatch,
+        new_value: match,
+      });
+
+      return updated;
+    } catch (err: any) {
+      throw new Error(err.message || 'Failed to update daily order match.');
+    }
+  }
+
+  /** Flags an operation with a structured exception (ERROR). A note is required. */
+  public setDailyOrderException(id: string, note: string, userId: string): DailyOrderOperation | null {
+    try {
+      if (!note || !note.trim()) {
+        throw new Error('An exception note is required.');
+      }
+
+      const opsData = storageGet(this.dailyOrderOperationsKey);
+      const opsList: DailyOrderOperation[] = opsData ? JSON.parse(opsData) : [];
+      const index = opsList.findIndex(o => o.id === id);
+      if (index === -1) return null;
+
+      const existing = opsList[index];
+      const now = new Date().toISOString();
+      const previousState = existing.status;
+
+      const updated: DailyOrderOperation = {
+        ...existing,
+        exception_status: 'ERROR',
+        exception_note: note.trim(),
+        error_flag: true,
+        status: 'error',
+        updated_at: now,
+        updated_by: userId,
+      };
+
+      opsList[index] = updated;
+      storageSet(this.dailyOrderOperationsKey, JSON.stringify(opsList));
+
+      this.logDailyOperationHistory({
+        operation_id: id,
+        customer_id: updated.customer_id,
+        action: 'Exception flagged',
+        previous_state: previousState,
+        new_state: 'error',
+        reason: note.trim(),
+        user_id: userId,
+        timestamp: now,
+      });
+
+      this.logAudit({
+        user_id: userId,
+        action: 'daily_operation_exception_flagged',
+        entity_type: 'daily_order_operation',
+        entity_id: id,
+        summary: `Flagged exception: ${note.trim()}`,
+        previous_value: previousState,
+        new_value: 'error',
+      });
+
+      return updated;
+    } catch (err: any) {
+      throw new Error(err.message || 'Failed to flag daily operation exception.');
+    }
+  }
+
+  /** Clears a structured exception and re-derives the workflow status. */
+  public clearDailyOrderException(id: string, reason: string, userId: string): DailyOrderOperation | null {
+    try {
+      if (!reason || !reason.trim()) {
+        throw new Error('A reason is required to clear an exception.');
+      }
+
+      const opsData = storageGet(this.dailyOrderOperationsKey);
+      const opsList: DailyOrderOperation[] = opsData ? JSON.parse(opsData) : [];
+      const index = opsList.findIndex(o => o.id === id);
+      if (index === -1) return null;
+
+      const existing = opsList[index];
+      const now = new Date().toISOString();
+      const previousState = existing.status;
+
+      const updated: DailyOrderOperation = {
+        ...existing,
+        exception_status: 'NONE',
+        exception_note: null,
+        error_flag: false,
+      };
+
+      if (updated.order_received && updated.sales_order_generated && updated.invoiced && updated.dispatched) {
+        updated.status = 'completed';
+      } else if (updated.dispatched) {
+        updated.status = 'dispatched';
+      } else if (updated.invoiced) {
+        updated.status = 'invoiced';
+      } else if (updated.sales_order_generated) {
+        updated.status = 'sales_order_generated';
+      } else if (updated.order_received) {
+        updated.status = 'order_received';
+      } else {
+        updated.status = 'not_started';
+      }
+
+      updated.updated_at = now;
+      updated.updated_by = userId;
+      opsList[index] = updated;
+      storageSet(this.dailyOrderOperationsKey, JSON.stringify(opsList));
+
+      this.logDailyOperationHistory({
+        operation_id: id,
+        customer_id: updated.customer_id,
+        action: 'Exception cleared',
+        previous_state: previousState,
+        new_state: updated.status,
+        reason: reason.trim(),
+        user_id: userId,
+        timestamp: now,
+      });
+
+      this.logAudit({
+        user_id: userId,
+        action: 'daily_operation_exception_cleared',
+        entity_type: 'daily_order_operation',
+        entity_id: id,
+        summary: `Cleared exception for reason: ${reason.trim()}`,
+        previous_value: previousState,
+        new_value: updated.status,
+      });
+
+      return updated;
+    } catch (err: any) {
+      throw new Error(err.message || 'Failed to clear daily operation exception.');
+    }
+  }
+
+  /**
+   * Returns the operational dates between startDate and endDate that have at
+   * least one active route schedule — used for the Today / Tomorrow / Upcoming
+   * navigation on the Orders page.
+   */
+  public getOperationalDatesForRange(startDate: string, endDate: string): Array<{ date: string; weekday: DayOfWeek; routes: string[] }> {
+    const dayNames: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const schedules = this.getRouteSchedules().filter(s => s.active);
+    const results: Array<{ date: string; weekday: DayOfWeek; routes: string[] }> = [];
+
+    const cursor = new Date(startDate + 'T12:00:00');
+    const end = new Date(endDate + 'T12:00:00');
+    if (isNaN(cursor.getTime()) || isNaN(end.getTime())) return results;
+
+    while (cursor.getTime() <= end.getTime()) {
+      const dateStr = cursor.toISOString().slice(0, 10);
+      const weekday = dayNames[cursor.getDay()];
+      const routes = Array.from(new Set(
+        schedules.filter(s => s.day_of_week === weekday).map(s => s.city_or_route)
+      ));
+      if (routes.length > 0) {
+        results.push({ date: dateStr, weekday, routes });
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return results;
   }
 
   public getDailyOrderOperationHistory(operationId: string): DailyOrderOperationHistory[] {

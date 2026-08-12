@@ -62,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, []);
 
-  const login = async (email: string, _password?: string): Promise<boolean> => {
+  const login = async (email: string, password?: string): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
     try {
@@ -83,6 +83,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setUser(localUser);
       localStorage.setItem(SESSION_KEY, JSON.stringify({ userId: localUser.id }));
+
+      // Best-effort Supabase Auth session so RLS-scoped realtime + server sync
+      // work when the project has Auth users for these emails. Any failure is
+      // silent — the local-first experience continues regardless.
+      if (supabase) {
+        void supabase.auth
+          .signInWithPassword({ email: localUser.email, password: password || '' })
+          .then(({ error }) => {
+            if (error) {
+              console.debug('[Auth] Supabase session not established:', error.message);
+            }
+          })
+          .catch(() => {});
+      }
+
       return true;
     } catch (err: any) {
       setError(err.message || 'An unexpected authentication error occurred.');

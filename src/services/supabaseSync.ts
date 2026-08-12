@@ -50,6 +50,11 @@ export const TABLE_MAP: Record<string, string> = {
   jt_crm_customer_product_history: 'customer_product_history',
   jt_crm_system_settings:    'system_settings',
   jt_crm_audit_logs:         'audit_logs',
+
+  // Level 7: Orders module — route schedules & daily order operations
+  jt_crm_route_schedules:            'route_schedules',
+  jt_crm_daily_order_operations:     'daily_order_operations',
+  jt_crm_daily_order_operation_history: 'daily_order_operation_history',
 };
 
 
@@ -358,7 +363,7 @@ function sanitizeRow(table: string, row: Record<string, unknown>): Record<string
   if (table === 'notifications') delete clean['user_id'];
 
   // Convert empty string UUID foreign keys to null so PostgreSQL UUID fields do not fail
-  ['assigned_to', 'assigned_team_id', 'created_by', 'resolved_by', 'closed_by', 'reopened_by', 'customer_id', 'order_id', 'product_id', 'category_id', 'performed_by', 'author_id', 'uploaded_by', 'team_id', 'user_id', 'brand_id'].forEach((field) => {
+  ['assigned_to', 'assigned_team_id', 'created_by', 'resolved_by', 'closed_by', 'reopened_by', 'customer_id', 'order_id', 'product_id', 'category_id', 'performed_by', 'author_id', 'uploaded_by', 'team_id', 'user_id', 'brand_id', 'order_received_by', 'sales_order_generated_by', 'invoiced_by', 'dispatched_by', 'pod_sent_by', 'updated_by', 'error_query_id', 'operation_id'].forEach((field) => {
     if (clean[field] === '') {
       clean[field] = null;
     }

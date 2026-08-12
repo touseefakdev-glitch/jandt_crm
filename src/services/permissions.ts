@@ -89,6 +89,12 @@ export class PermissionsService {
     return { allowed: false, reason: 'Only Sales Agents and Admins can revert completed workflow steps.' };
   }
 
+  public static canUpdateOrderMatch(user: UserProfile | null): PermissionCheckResult {
+    if (!user) return { allowed: false, reason: 'Authentication required.' };
+    if (user.role === 'admin' || user.role === 'sales_agent') return { allowed: true };
+    return { allowed: false, reason: 'Support Agents have read-only access to order matching.' };
+  }
+
   public static canManageRouteSchedules(user: UserProfile | null): PermissionCheckResult {
     if (!user) return { allowed: false, reason: 'Authentication required.' };
     if (user.role === 'admin') return { allowed: true };

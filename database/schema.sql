@@ -88,9 +88,12 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     full_name VARCHAR(255) NOT NULL,
     role user_role NOT NULL DEFAULT 'sales_agent',
     team_id UUID REFERENCES public.teams(id) ON DELETE SET NULL,
+    operational_area VARCHAR(20) NOT NULL DEFAULT 'BOTH', -- KELOWNA | OUTSIDE_KELOWNA | BOTH
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT profiles_operational_area_check
+        CHECK (operational_area IN ('KELOWNA', 'OUTSIDE_KELOWNA', 'BOTH'))
 );
 
 -- Shifts Table
@@ -603,13 +606,32 @@ CREATE TABLE IF NOT EXISTS public.daily_order_operations (
     dispatched_at TIMESTAMPTZ,
     dispatched_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
     
-    error_flag BOOLEAN NOT NULL DEFAULT FALSE,
-    error_query_id UUID REFERENCES public.queries(id) ON DELETE SET NULL,
+    pod_sent BOOLEAN NOT NULL DEFAULT FALSE,
+    pod_sent_at TIMESTAMPTZ,
+    pod_sent_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
     
+    order_match VARCHAR(10),
+    difference_note TEXT,
+    invoice_updated BOOLEAN NOT NULL DEFAULT FALSE,
+    
+    error_flag BOOLEAN NOT NULL DEFAULT FALSE,
+    exception_status VARCHAR(10) NOT NULL DEFAULT 'NONE',
+    exception_note TEXT,
+    error_query_id UUID REFERENCES public.customer_queries(id) ON DELETE SET NULL,
+    
+    operational_area VARCHAR(20) NOT NULL DEFAULT 'OUTSIDE_KELOWNA',
     status VARCHAR(50) NOT NULL DEFAULT 'not_started',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT unique_customer_operation_date UNIQUE (customer_id, operation_date)
+    updated_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    
+    CONSTRAINT unique_customer_operation_date UNIQUE (customer_id, operation_date),
+    CONSTRAINT daily_order_operations_order_match_check
+        CHECK (order_match IN ('SAME', 'DIFFERENT')),
+    CONSTRAINT daily_order_operations_exception_status_check
+        CHECK (exception_status IN ('NONE', 'ERROR')),
+    CONSTRAINT daily_order_operations_operational_area_check
+        CHECK (operational_area IN ('KELOWNA', 'OUTSIDE_KELOWNA'))
 );
 
 -- Daily Order Operation History Audit Table

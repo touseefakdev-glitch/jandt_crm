@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserProfile, UserRole, UserFormInput, Team } from '../../types';
+import { UserProfile, UserRole, UserFormInput, Team, OperationalArea } from '../../types';
 import { localDb } from '../../services/db';
 import { UserPlus, ShieldCheck, Mail, Users, Lock } from 'lucide-react';
 import { Modal } from '../ui/Modal';
@@ -26,6 +26,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<UserRole>('support_agent');
   const [teamId, setTeamId] = useState('');
+  const [operationalArea, setOperationalArea] = useState<OperationalArea>('BOTH');
   const [isActive, setIsActive] = useState(true);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -39,12 +40,14 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
       setEmail(userToEdit.email);
       setRole(userToEdit.role);
       setTeamId(userToEdit.team_id || '');
+      setOperationalArea(userToEdit.operational_area || 'BOTH');
       setIsActive(userToEdit.is_active);
     } else {
       setFullName('');
       setEmail('');
       setRole('support_agent');
       setTeamId(teams[0]?.id || '');
+      setOperationalArea('BOTH');
       setIsActive(true);
     }
     setErrors({});
@@ -78,6 +81,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
       email: email.toLowerCase().trim(),
       role,
       team_id: teamId || null,
+      operational_area: operationalArea,
       is_active: isActive,
     });
   };
@@ -165,6 +169,23 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
             ))}
           </Select>
         </div>
+
+        <Select
+          label={
+            <>
+              Operational Area <span className="text-slate-400">(orders access scope)</span>
+            </>
+          }
+          value={operationalArea}
+          onChange={(e) => setOperationalArea(e.target.value as OperationalArea)}
+        >
+          <option value="BOTH">All Areas (Admin / Supervisor)</option>
+          <option value="KELOWNA">Kelowna Only</option>
+          <option value="OUTSIDE_KELOWNA">Outside Kelowna Only</option>
+        </Select>
+        <p className="text-[10px] text-slate-400 -mt-2">
+          Agents scoped to an area only see and process daily order operations for routes in their area. Admins see all areas.
+        </p>
 
         <div className="flex items-center gap-2.5 pt-1">
           <input

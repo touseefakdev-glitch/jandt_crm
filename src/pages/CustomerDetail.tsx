@@ -325,7 +325,7 @@ export const CustomerDetail: React.FC = () => {
             title={`Customer Daily Route Operations History (${customerDailyOps.length})`}
           />
           {customerDailyOps.length > 0 ? (
-            <Table minWidth={1010}>
+            <Table minWidth={1250}>
               <THead>
                 <Tr hover={false}>
                   <Th width={140}>Operation Date</Th>
@@ -334,6 +334,8 @@ export const CustomerDetail: React.FC = () => {
                   <Th width={130}>SO #</Th>
                   <Th width={130}>Invoice #</Th>
                   <Th width={120} align="center">Dispatched</Th>
+                  <Th width={110} align="center">POD Sent</Th>
+                  <Th width={120} align="center">Order Match</Th>
                   <Th width={150}>Operational Status</Th>
                 </Tr>
               </THead>
@@ -359,6 +361,24 @@ export const CustomerDetail: React.FC = () => {
                       <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${op.dispatched ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-400'}`}>
                         {op.dispatched ? '✓ Yes' : 'No'}
                       </span>
+                    </Td>
+                    <Td width={110} align="center">
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${op.pod_sent ? 'bg-cyan-100 text-cyan-800' : 'bg-slate-100 text-slate-400'}`}>
+                        {op.pod_sent ? '✓ Yes' : 'No'}
+                      </span>
+                    </Td>
+                    <Td width={120} align="center">
+                      {op.order_match ? (
+                        <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                          op.order_match === 'DIFFERENT'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-emerald-100 text-emerald-800'
+                        }`} title={op.difference_note || undefined}>
+                          {op.order_match}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-300 font-semibold">—</span>
+                      )}
                     </Td>
                     <Td width={150}>
                       <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${

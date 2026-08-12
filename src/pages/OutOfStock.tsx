@@ -1,13 +1,19 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Product, ProductAvailabilityStatus } from '../types';
 import { localDb } from '../services/db';
+import { fetchOutOfStockPage, fetchProductTabCounts, ProductTabCounts } from '../services/queryService';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useServerListQuery } from '../hooks/useServerListQuery';
+import { useServerQuery } from '../hooks/useServerQuery';
 import { ProductAvailabilityModal } from '../components/products/ProductAvailabilityModal';
-import { Badge, Button, Card, EmptyState, Input, Table, TableToolbar, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
+import { Badge, Button, Card, EmptyState, Input, Pagination, Table, TableToolbar, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
 import { getProductAvailabilityBadge } from '../utils/badges';
 import { formatDate } from '../utils/format';
 import { AlertTriangle, Search, RotateCcw, Calendar, Package, CheckCircle2, ArrowRight } from 'lucide-react';
+
+const ITEMS_PER_PAGE = 10;
 
 export const OutOfStock: React.FC = () => {
   const { user, hasRole } = useAuth();
@@ -16,22 +22,47 @@ export const OutOfStock: React.FC = () => {
   const isAdmin = hasRole('admin');
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [availabilityModalProduct, setAvailabilityModalProduct] = useState<Product | null>(null);
 
-  const outOfStockProducts = useMemo(() => {
-    let list = localDb.getOutOfStockProducts();
-    if (searchTerm.trim()) {
-      const qStr = searchTerm.toLowerCase().trim();
-      list = list.filter((p) =>
-        p.sku.toLowerCase().includes(qStr) ||
-        p.product_name.toLowerCase().includes(qStr) ||
-        (p.category && p.category.name.toLowerCase().includes(qStr)) ||
-        (p.brand && p.brand.name.toLowerCase().includes(qStr)) ||
-        (p.availability_notes && p.availability_notes.toLowerCase().includes(qStr))
-      );
-    }
-    return list;
-  }, [searchTerm]);
+  const debouncedSearch = useDebouncedValue(searchTerm, 300);
+
+  const { data: tabCounts } = useServerQuery<ProductTabCounts>({
+    key: JSON.stringify({ nc: 'out-of-stock-counts' }),
+    fetcher: fetchProductTabCounts,
+    localFallback: () => {
+      const all = localDb.getProducts();
+      return {
+        all: all.length,
+        outOfStock: all.filter((p) => p.availability_status === 'out_of_stock').length,
+        discontinued: all.filter((p) => p.availability_status === 'discontinued').length,
+      };
+    },
+  });
+
+  const {
+    data: outOfStockProducts,
+    total: outOfStockTotal,
+    loading: productsLoading,
+  } = useServerListQuery<Product>({
+    key: JSON.stringify({ search: debouncedSearch, page: currentPage }),
+    fetcher: () => fetchOutOfStockPage({ searchTerm: debouncedSearch, page: currentPage }),
+    localFallback: () => {
+      let list = localDb.getOutOfStockProducts();
+      if (debouncedSearch.trim()) {
+        const qStr = debouncedSearch.toLowerCase().trim();
+        list = list.filter((p) =>
+          p.sku.toLowerCase().includes(qStr) ||
+          p.product_name.toLowerCase().includes(qStr) ||
+          (p.category && p.category.name.toLowerCase().includes(qStr)) ||
+          (p.brand && p.brand.name.toLowerCase().includes(qStr)) ||
+          (p.availability_notes && p.availability_notes.toLowerCase().includes(qStr))
+        );
+      }
+      const start = (currentPage - 1) * ITEMS_PER_PAGE;
+      return { data: list.slice(start, start + ITEMS_PER_PAGE), total: list.length };
+    },
+  });
 
   const handleRestoreAvailability = (
     targetStatus: ProductAvailabilityStatus,
@@ -79,20 +110,30 @@ export const OutOfStock: React.FC = () => {
 
         <div className="bg-white/10 px-4 py-2 rounded-lg border border-white/20 font-mono text-xs font-bold text-white flex items-center gap-2">
           <span>Currently Out of Stock:</span>
-          <span className="text-base bg-white text-red-700 px-2.5 py-0.5 rounded-md">{outOfStockProducts.length} Items</span>
+          <span className="text-base bg-white text-red-700 px-2.5 py-0.5 rounded-md">{tabCounts?.outOfStock ?? outOfStockTotal} Items</span>
         </div>
       </div>
 
       <TableToolbar>
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          <Input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search unavailable SKU, Name, Reason..."
-            icon={<Search className="w-4 h-4 text-slate-400" />}
-            className="pl-9 w-full sm:w-80"
-          />
+          <div className="relative flex-1 max-w-xl">
+            <Input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Search unavailable SKU, Name, Reason..."
+              icon={<Search className="w-4 h-4 text-slate-400" />}
+              className="pl-9"
+            />
+            {productsLoading && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-slate-400 animate-pulse">
+                Loading…
+              </span>
+            )}
+          </div>
 
           <Link
             to="/products"
@@ -180,6 +221,17 @@ export const OutOfStock: React.FC = () => {
                 </Button>
               </Link>
             }
+          />
+        )}
+
+        {outOfStockTotal > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(outOfStockTotal / ITEMS_PER_PAGE) || 1}
+            totalItems={outOfStockTotal}
+            pageSize={ITEMS_PER_PAGE}
+            onPageChange={setCurrentPage}
+            itemLabel="products"
           />
         )}
       </Card>

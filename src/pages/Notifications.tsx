@@ -1,8 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { localDb } from '../services/db';
-import { notificationService } from '../services/notificationService';
+import { fetchNotificationsPage, fetchNotificationCounts } from '../services/queryService';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useServerListQuery } from '../hooks/useServerListQuery';
+import { useServerQuery } from '../hooks/useServerQuery';
 import { CRMNotification } from '../types';
 import { Badge, Button, Card, EmptyState, Input, PageHeader, Pagination, Select, TableToolbar, Tabs } from '../components/ui';
 import { getNotificationPriorityBadge } from '../utils/badges';
@@ -30,50 +33,68 @@ export const Notifications: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [refreshKey, setRefreshKey] = useState(0);
-
   const [activeTab, setActiveTab] = useState<NotificationsTab>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  useEffect(() => {
-    const unsubscribe = notificationService.subscribe(() => {
-      setRefreshKey((prev) => prev + 1);
-    });
-    return () => unsubscribe();
-  }, []);
+  const debouncedSearch = useDebouncedValue(searchTerm, 300);
 
-  const filteredNotifications = useMemo(() => {
-    if (!user) return [];
-    return localDb
-      .getNotifications(user.id, {
+  const { data: tabCounts } = useServerQuery<{ all: number; unread: number }>({
+    key: JSON.stringify({ nc: 'notifications', userId: user?.id }),
+    fetcher: () => (user ? fetchNotificationCounts(user.id) : Promise.resolve({ all: 0, unread: 0 })),
+    localFallback: () => {
+      if (!user) return { all: 0, unread: 0 };
+      const all = localDb.getNotifications(user.id);
+      return { all: all.length, unread: all.filter((n) => !n.is_read).length };
+    },
+  });
+
+  const {
+    data: paginatedNotifications,
+    total: filteredNotificationCount,
+    loading: notificationsLoading,
+  } = useServerListQuery<CRMNotification>({
+    key: JSON.stringify({
+      tab: activeTab,
+      priority: priorityFilter,
+      category: categoryFilter,
+      search: debouncedSearch,
+      page: currentPage,
+      userId: user?.id,
+    }),
+    fetcher: () =>
+      fetchNotificationsPage({
+        userId: user!.id,
         unreadOnly: activeTab === 'unread',
-        priority: priorityFilter !== 'all' ? priorityFilter : undefined,
-        entityType: categoryFilter !== 'all' ? categoryFilter : undefined,
-        searchTerm,
-      })
-      .filter((n) => activeTab !== 'read' || n.is_read);
-  }, [user, activeTab, priorityFilter, categoryFilter, searchTerm, refreshKey]);
-
-  const totalUnread = useMemo(() => {
-    if (!user) return 0;
-    return localDb.getUnreadNotificationsCount(user.id);
-  }, [user, refreshKey]);
-
-  const totalAll = useMemo(() => {
-    if (!user) return 0;
-    return localDb.getNotifications(user.id).length;
-  }, [user, refreshKey]);
-
-  const totalPages = Math.ceil(filteredNotifications.length / ITEMS_PER_PAGE) || 1;
-  const paginatedNotifications = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredNotifications.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredNotifications, currentPage]);
+        isRead: activeTab === 'read' ? true : undefined,
+        priority: priorityFilter,
+        entityType: categoryFilter,
+        searchTerm: debouncedSearch,
+        page: currentPage,
+      }),
+    localFallback: () => {
+      if (!user) return { data: [], total: 0 };
+      let list = localDb
+        .getNotifications(user.id, {
+          unreadOnly: activeTab === 'unread',
+          priority: priorityFilter !== 'all' ? priorityFilter : undefined,
+          entityType: categoryFilter !== 'all' ? categoryFilter : undefined,
+          searchTerm: debouncedSearch,
+        })
+        .filter((n) => activeTab !== 'read' || n.is_read);
+      const start = (currentPage - 1) * ITEMS_PER_PAGE;
+      return { data: list.slice(start, start + ITEMS_PER_PAGE), total: list.length };
+    },
+  });
 
   if (!user) return null;
+
+  const totalUnread = tabCounts?.unread ?? 0;
+  const totalAll = tabCounts?.all ?? 0;
+
+  const totalPages = Math.ceil(filteredNotificationCount / ITEMS_PER_PAGE) || 1;
 
   const handleClearFilters = () => {
     setActiveTab('all');
@@ -89,24 +110,20 @@ export const Notifications: React.FC = () => {
   const handleMarkAsRead = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     localDb.markNotificationAsRead(id);
-    setRefreshKey((prev) => prev + 1);
   };
 
   const handleMarkAsUnread = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     localDb.markNotificationAsUnread(id);
-    setRefreshKey((prev) => prev + 1);
   };
 
   const handleMarkAllAsRead = () => {
     localDb.markAllNotificationsAsRead(user.id);
-    setRefreshKey((prev) => prev + 1);
   };
 
   const handleNavigateTarget = (linkPath?: string | null, id?: string) => {
     if (id) {
       localDb.markNotificationAsRead(id);
-      setRefreshKey((prev) => prev + 1);
     }
     if (linkPath) {
       navigate(linkPath);
@@ -180,6 +197,9 @@ export const Notifications: React.FC = () => {
             icon={<Search className="w-4 h-4 text-slate-400" />}
             className="pl-9"
           />
+          {notificationsLoading && (
+            <span className="text-[11px] font-semibold text-slate-400 animate-pulse">Loading…</span>
+          )}
 
           <Select
             value={priorityFilter}
@@ -309,11 +329,11 @@ export const Notifications: React.FC = () => {
           />
         )}
 
-        {filteredNotifications.length > 0 && (
+        {filteredNotificationCount > 0 && (
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
-            totalItems={filteredNotifications.length}
+            totalItems={filteredNotificationCount}
             pageSize={ITEMS_PER_PAGE}
             onPageChange={setCurrentPage}
             itemLabel="notifications"

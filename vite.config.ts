@@ -15,4 +15,17 @@ export default defineConfig({
     port: 3000,
     host: true,
   },
+  build: {
+    // Split the heavyweight vendors into their own long-cacheable chunks so the
+    // initial page only loads what it needs and vendor upgrades don't bust the
+    // application cache. Route chunks are created automatically via React.lazy.
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'supabase': ['@supabase/supabase-js'],
+        },
+      },
+    },
+  },
 });

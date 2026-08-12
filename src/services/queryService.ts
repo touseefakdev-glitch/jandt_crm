@@ -389,6 +389,8 @@ const NOTIFICATION_SELECT_COLUMNS = [
 export interface FetchNotificationsParams {
   userId: string;
   unreadOnly?: boolean;
+  /** Explicit read-state filter — `true` selects read notifications. */
+  isRead?: boolean;
   priority?: string;
   entityType?: string;
   searchTerm?: string;
@@ -403,6 +405,7 @@ export async function fetchNotificationsPage(
   const {
     userId,
     unreadOnly,
+    isRead,
     priority,
     entityType,
     searchTerm = '',
@@ -418,6 +421,7 @@ export async function fetchNotificationsPage(
     .eq('recipient_user_id', userId);
 
   if (unreadOnly) query = query.eq('is_read', false);
+  else if (isRead === true) query = query.eq('is_read', true);
   if (priority && priority !== 'all') query = query.eq('priority', priority);
   if (entityType && entityType !== 'all') query = query.eq('entity_type', entityType);
   if (searchTerm.trim()) {
@@ -633,6 +637,20 @@ export async function fetchUnreadNotificationCounts(
     ),
   ]);
   return { unread, urgent };
+}
+
+export interface NotificationTabCounts {
+  all: number;
+  unread: number;
+}
+
+export async function fetchNotificationCounts(userId: string): Promise<NotificationTabCounts> {
+  throwIfServerUnavailable();
+  const [all, unread] = await Promise.all([
+    countWhere('notifications', (q) => q.eq('recipient_user_id', userId)),
+    countWhere('notifications', (q) => q.eq('recipient_user_id', userId).eq('is_read', false)),
+  ]);
+  return { all, unread };
 }
 
 export interface ProductTabCounts {

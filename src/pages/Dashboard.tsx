@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { localDb } from '../services/db';
 import { notificationService } from '../services/notificationService';
+import { fetchDashboardStats, DashboardStats } from '../services/queryService';
+import { useServerQuery } from '../hooks/useServerQuery';
 import { getNotificationPriorityBadge, getQueryPriorityBadge, getQueryStatusBadge, getRoleBadge } from '../utils/badges';
 import { Avatar, Badge, Card, CardBody, CardHeader, EmptyState, StatCard, Table, TBody, Td, Th, THead, Tr } from '../components/ui';
 import {
@@ -20,6 +22,21 @@ import {
   Store,
 } from 'lucide-react';
 
+const EMPTY_STATS: DashboardStats = {
+  totalCustomers: 0,
+  activeCustomers: 0,
+  totalProducts: 0,
+  activeProducts: 0,
+  outOfStock: 0,
+  discontinued: 0,
+  totalQueries: 0,
+  openQueries: 0,
+  urgentQueries: 0,
+  myOpenQueries: 0,
+  unreadNotifications: 0,
+  urgentNotifications: 0,
+};
+
 export const Dashboard: React.FC = () => {
   const { user, dbVersion } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
@@ -29,24 +46,35 @@ export const Dashboard: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  const allQueries = useMemo(() => localDb.getQueries(), [dbVersion]);
-  const allCustomers = useMemo(() => localDb.getCustomers(), [dbVersion]);
-  const allProducts = useMemo(() => localDb.getProducts(), [dbVersion]);
-  const outOfStockProducts = useMemo(() => localDb.getOutOfStockProducts(), [dbVersion]);
+  const { data: stats } = useServerQuery<DashboardStats>({
+    key: JSON.stringify({ nc: 'dashboard-stats', userId: user?.id }),
+    fetcher: () => (user ? fetchDashboardStats(user.id) : Promise.resolve(EMPTY_STATS)),
+    localFallback: () => {
+      const allQueries = localDb.getQueries();
+      const allCustomers = localDb.getCustomers();
+      const allProducts = localDb.getProducts();
+      const activeProducts = allProducts.filter((p) => p.is_active).length;
+      const activeCustomers = allCustomers.filter((c) => c.status === 'active').length;
+      return {
+        totalCustomers: allCustomers.length,
+        activeCustomers,
+        totalProducts: allProducts.length,
+        activeProducts,
+        outOfStock: allProducts.filter((p) => p.availability_status === 'out_of_stock').length,
+        discontinued: allProducts.filter((p) => p.availability_status === 'discontinued').length,
+        totalQueries: allQueries.length,
+        openQueries: allQueries.filter((q) => ['new', 'open', 'assigned', 'in_progress', 'reopened'].includes(q.status)).length,
+        urgentQueries: allQueries.filter((q) => q.priority === 'urgent' && q.status !== 'closed' && q.status !== 'resolved').length,
+        myOpenQueries: user ? allQueries.filter((q) => q.assigned_to === user.id && q.status !== 'closed' && q.status !== 'resolved').length : 0,
+        unreadNotifications: user ? localDb.getUnreadNotificationsCount(user.id) : 0,
+        urgentNotifications: user ? localDb.getUrgentNotificationsCount(user.id) : 0,
+      };
+    },
+  });
 
   const userNotifications = useMemo(() => {
     if (!user) return [];
     return localDb.getNotifications(user.id);
-  }, [user, refreshKey, dbVersion]);
-
-  const unreadCount = useMemo(() => {
-    if (!user) return 0;
-    return localDb.getUnreadNotificationsCount(user.id);
-  }, [user, refreshKey, dbVersion]);
-
-  const urgentCount = useMemo(() => {
-    if (!user) return 0;
-    return localDb.getUrgentNotificationsCount(user.id);
   }, [user, refreshKey, dbVersion]);
 
   const userTeam = useMemo(() => {
@@ -71,19 +99,31 @@ export const Dashboard: React.FC = () => {
   const todayFormatted = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const roleBadge = getRoleBadge(user.role);
 
-  const openQueriesCount = allQueries.filter((q) => ['new', 'open', 'assigned', 'in_progress', 'reopened'].includes(q.status)).length;
-  const urgentQueriesCount = allQueries.filter((q) => q.priority === 'urgent' && q.status !== 'closed' && q.status !== 'resolved').length;
-  const myOpenQueriesCount = allQueries.filter((q) => q.assigned_to === user.id && q.status !== 'closed' && q.status !== 'resolved').length;
+  const openQueriesCount = stats?.openQueries ?? 0;
+  const urgentQueriesCount = stats?.urgentQueries ?? 0;
+  const myOpenQueriesCount = stats?.myOpenQueries ?? 0;
+  const activeProductsCount = stats?.activeProducts ?? 0;
+  const activeCustomersCount = stats?.activeCustomers ?? 0;
+  const outOfStockCount = stats?.outOfStock ?? 0;
+  const discontinuedCount = stats?.discontinued ?? 0;
+  const unreadCount = stats?.unreadNotifications ?? 0;
+  const urgentCount = stats?.urgentNotifications ?? 0;
 
-  const activeProductsCount = allProducts.filter((p) => p.is_active).length;
-  const activeCustomersCount = allCustomers.filter((c) => c.status === 'active').length;
-
-  const queriesRequiringAttention = allQueries.filter((q) => q.status !== 'closed' && q.status !== 'resolved').slice(0, 5);
+  // Small list views keep reading from the local cache — they only render a
+  // handful of rows, so the cost is bounded.
+  const queriesRequiringAttention = useMemo(
+    () => localDb.getQueries().filter((q) => q.status !== 'closed' && q.status !== 'resolved').slice(0, 5),
+    [dbVersion, refreshKey]
+  );
 
   // Recent customers (last 5 added)
-  const recentCustomers = [...allCustomers]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 5);
+  const recentCustomers = useMemo(
+    () =>
+      [...localDb.getCustomers()]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 5),
+    [dbVersion, refreshKey]
+  );
 
   return (
     <div className="space-y-6">
@@ -217,7 +257,7 @@ export const Dashboard: React.FC = () => {
         />
         <StatCard
           title="Out of Stock Items"
-          value={outOfStockProducts.length}
+          value={outOfStockCount}
           description={`${activeProductsCount} products active in catalog`}
           icon={<AlertTriangle className="w-5 h-5" />}
           accent="red"
@@ -274,11 +314,11 @@ export const Dashboard: React.FC = () => {
               <div className="text-[11px] font-bold text-emerald-600 mt-1 uppercase tracking-wide">Active Products</div>
             </div>
             <div className="p-4 bg-red-50 rounded-xl border border-red-200 text-center">
-              <div className="text-2xl font-extrabold text-red-700">{outOfStockProducts.length}</div>
+              <div className="text-2xl font-extrabold text-red-700">{outOfStockCount}</div>
               <div className="text-[11px] font-bold text-red-600 mt-1 uppercase tracking-wide">Out of Stock</div>
             </div>
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-center">
-              <div className="text-2xl font-extrabold text-slate-800">{allProducts.filter((p) => p.availability_status === 'discontinued').length}</div>
+              <div className="text-2xl font-extrabold text-slate-800">{discontinuedCount}</div>
               <div className="text-[11px] font-bold text-slate-500 mt-1 uppercase tracking-wide">Discontinued</div>
             </div>
             <div className="p-4 bg-teal-50 rounded-xl border border-teal-200 text-center">

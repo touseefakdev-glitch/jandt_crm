@@ -39,7 +39,6 @@ import {
   parseCustomerHTML, 
   analyzeAndBuildPreview 
 } from '../../utils/htmlDataParser';
-import { SEED_HTML_PRODUCTS, SEED_HTML_CUSTOMERS } from '../../data/seedHtmlData';
 import { localDb } from '../../services/db';
 import { HTMLImportPreview } from '../../types';
 import { Avatar, Badge, Pill, Button, Card, CardBody, CardHeader, Modal, Table, TBody, Td, Th, THead, Tr, useToast } from '../../components/ui';
@@ -100,11 +99,12 @@ export const AdminImport: React.FC = () => {
     setCurrentStep('upload');
   };
 
-  const handleLoadDesktopHTML = () => {
+  const handleLoadDesktopHTML = async () => {
     setIsHTMLMode(true);
     setImportType('html_business_data');
     setIsParsing(true);
     try {
+      const { SEED_HTML_PRODUCTS, SEED_HTML_CUSTOMERS } = await import('../../data/seedHtmlData');
       const preview = analyzeAndBuildPreview(SEED_HTML_PRODUCTS, SEED_HTML_CUSTOMERS);
       setHtmlPreview(preview);
       setActivePreviewTab('html_products');
@@ -138,6 +138,7 @@ export const AdminImport: React.FC = () => {
         const customers = parseCustomerHTML(text);
 
         // If uploading only one file, combine with seed data if needed
+        const { SEED_HTML_PRODUCTS, SEED_HTML_CUSTOMERS } = await import('../../data/seedHtmlData');
         const preview = analyzeAndBuildPreview(
           products.length > 0 ? products : SEED_HTML_PRODUCTS,
           customers.length > 0 ? customers : SEED_HTML_CUSTOMERS

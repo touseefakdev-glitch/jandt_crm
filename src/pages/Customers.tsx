@@ -43,8 +43,8 @@ export const Customers: React.FC = () => {
   const queryKey = useMemo(() => JSON.stringify({ ...fetchParams, dbVersion }), [fetchParams, dbVersion]);
 
   const {
-    data: paginatedCustomers,
-    total: totalCustomers,
+    data: rawCustomers,
+    total: rawTotal,
     loading: customersLoading,
     refresh: refreshCustomers,
   } = useServerListQuery<Customer>({
@@ -58,6 +58,8 @@ export const Customers: React.FC = () => {
     },
   });
 
+  const paginatedCustomers = rawCustomers || [];
+  const totalCustomers = rawTotal || 0;
   const totalPages = Math.ceil(totalCustomers / ITEMS_PER_PAGE) || 1;
 
   const [isSubmitting, setIsSubmitting] = useState(false);

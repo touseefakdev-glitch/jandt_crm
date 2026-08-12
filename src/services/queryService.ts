@@ -117,7 +117,7 @@ export async function fetchCustomersPage(
       'city',
       'route',
     ]);
-    if (clauses) query = query.or(`(${clauses})`);
+    if (clauses) query = query.or(clauses);
   }
   query = query.order('created_at', { ascending: false }).range(from, to);
 
@@ -166,7 +166,7 @@ export async function fetchProductsPage(
 
   if (searchTerm.trim()) {
     const clauses = ilikeClauses(searchTerm, ['sku', 'product_name', 'description']);
-    if (clauses) query = query.or(`(${clauses})`);
+    if (clauses) query = query.or(clauses);
   }
 
   query = query.order('product_name', { ascending: true }).range(from, to);
@@ -282,37 +282,45 @@ export async function fetchQueriesPage(
 
     const [custIds, orderIds, productIds, profileIds] = await Promise.all([
       (async () => {
+        const c = ilikeClauses(clean, ['company_name', 'customer_code', 'phone']);
+        if (!c) return [];
         const { data, error } = await supabase!
           .from('customers')
           .select('id')
-          .or(`(${ilikeClauses(clean, ['company_name', 'customer_code', 'phone'])})`)
+          .or(c)
           .limit(100);
         if (error) throw error;
         return (data || []).map((r) => r.id as string);
       })(),
       (async () => {
+        const c = ilikeClauses(clean, ['order_number']);
+        if (!c) return [];
         const { data, error } = await supabase!
           .from('orders')
           .select('id')
-          .or(`(${ilikeClauses(clean, ['order_number'])})`)
+          .or(c)
           .limit(100);
         if (error) throw error;
         return (data || []).map((r) => r.id as string);
       })(),
       (async () => {
+        const c = ilikeClauses(clean, ['sku']);
+        if (!c) return [];
         const { data, error } = await supabase!
           .from('products')
           .select('id')
-          .or(`(${ilikeClauses(clean, ['sku'])})`)
+          .or(c)
           .limit(100);
         if (error) throw error;
         return (data || []).map((r) => r.id as string);
       })(),
       (async () => {
+        const c = ilikeClauses(clean, ['full_name']);
+        if (!c) return [];
         const { data, error } = await supabase!
           .from('profiles')
           .select('id')
-          .or(`(${ilikeClauses(clean, ['full_name'])})`)
+          .or(c)
           .limit(100);
         if (error) throw error;
         return (data || []).map((r) => r.id as string);
@@ -325,7 +333,7 @@ export async function fetchQueriesPage(
     if (profileIds.length) clauses.push(`assigned_to.in.(${profileIds.join(',')})`);
 
     if (clauses.length > 0) {
-      query = query.or(`(${clauses.join(',')})`);
+      query = query.or(clauses.join(','));
     }
   }
 

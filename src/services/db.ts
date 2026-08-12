@@ -611,13 +611,19 @@ class LocalDatabaseService {
         updated_by: validUserId,
       };
 
-      const { data, error } = await supabase.from('customers').insert(cleanRow).select().single();
-      if (error) {
-        console.error('[Supabase] createCustomer insert error:', error);
-        throw new Error(`Failed to save customer to database: ${error.message}`);
+      let res = await supabase.from('customers').insert(cleanRow).select().single();
+      if (res.error && res.error.message && res.error.message.includes('route')) {
+        console.warn('[Supabase] `route` column not found on `customers` table; retrying insert without `route`.');
+        const { route, ...rowWithoutRoute } = cleanRow;
+        res = await supabase.from('customers').insert(rowWithoutRoute).select().single();
       }
-      if (data) {
-        const createdFromDb = data as Customer;
+
+      if (res.error) {
+        console.error('[Supabase] createCustomer insert error:', res.error);
+        throw new Error(`Failed to save customer to database: ${res.error.message}`);
+      }
+      if (res.data) {
+        const createdFromDb = res.data as Customer;
         storageSet(this.customersKey, JSON.stringify([createdFromDb, ...customers]));
         const userProfile = this.getUserById(userId);
         return {
@@ -664,20 +670,31 @@ class LocalDatabaseService {
     };
 
     if (supabase) {
-      const { data, error } = await supabase
+      let res = await supabase
         .from('customers')
         .update(updatePayload)
         .eq('id', id)
         .select()
         .single();
 
-      if (error) {
-        console.error('[Supabase] updateCustomer error:', error);
-        throw new Error(`Customer update failed: ${error.message}`);
+      if (res.error && res.error.message && res.error.message.includes('route')) {
+        console.warn('[Supabase] `route` column not found on `customers` table; retrying update without `route`.');
+        const { route, ...payloadWithoutRoute } = updatePayload;
+        res = await supabase
+          .from('customers')
+          .update(payloadWithoutRoute)
+          .eq('id', id)
+          .select()
+          .single();
       }
 
-      if (data) {
-        const updatedFromDb = data as Customer;
+      if (res.error) {
+        console.error('[Supabase] updateCustomer error:', res.error);
+        throw new Error(`Customer update failed: ${res.error.message}`);
+      }
+
+      if (res.data) {
+        const updatedFromDb = res.data as Customer;
         if (index !== -1) {
           customers[index] = { ...customers[index], ...updatedFromDb };
         } else {

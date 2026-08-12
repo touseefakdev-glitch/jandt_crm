@@ -30,6 +30,8 @@ export const AdminRouteSchedules: React.FC = () => {
   const [newPortal, setNewPortal] = useState<'kelowna' | 'outside_kelowna'>('outside_kelowna');
   const [formError, setFormError] = useState('');
 
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
   // Load Route Schedules
   const schedules = useMemo(() => {
     let list = localDb.getRouteSchedules();
@@ -40,12 +42,12 @@ export const AdminRouteSchedules: React.FC = () => {
       list = list.filter(s => s.portal === selectedPortal);
     }
     return list;
-  }, [selectedDay, selectedPortal, isAddModalOpen]);
+  }, [selectedDay, selectedPortal, isAddModalOpen, refreshTrigger]);
 
   if (!canManage) {
     return (
-      <Card className="p-8 text-center border-amber-200 bg-amber-50">
-        <ShieldAlert className="w-12 h-12 text-amber-600 mx-auto mb-3" />
+      <Card className="p-8 text-center max-w-lg mx-auto my-12">
+        <MapPin className="w-12 h-12 text-slate-300 mx-auto mb-3" />
         <h2 className="text-lg font-bold text-slate-900">Access Restricted</h2>
         <p className="text-sm text-slate-600 max-w-md mx-auto mt-1">
           Only System Administrators have permission to configure weekly route schedules.
@@ -54,29 +56,35 @@ export const AdminRouteSchedules: React.FC = () => {
     );
   }
 
-  const handleToggleActive = (schedule: RouteSchedule) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleToggleActive = async (schedule: RouteSchedule) => {
     try {
-      localDb.updateRouteSchedule(schedule.id, { active: !schedule.active }, user!.id);
-      toast({
-        type: 'success',
-        title: 'Schedule Updated',
-        message: `${schedule.city_or_route} (${schedule.day_of_week}) is now ${!schedule.active ? 'Active' : 'Inactive'}`,
-      });
+      const updated = await localDb.updateRouteSchedule(schedule.id, { active: !schedule.active }, user!.id);
+      if (updated) {
+        toast({
+          type: 'success',
+          title: 'Schedule Updated',
+          message: `${schedule.city_or_route} (${schedule.day_of_week}) is now ${!schedule.active ? 'Active' : 'Inactive'}`,
+        });
+        setRefreshTrigger((t) => t + 1);
+      }
     } catch (err: any) {
-      toast({ type: 'error', title: 'Update Failed', message: err.message });
+      toast({ type: 'error', title: 'Update Failed', message: err.message || 'Failed to update route schedule in database.' });
     }
   };
 
-  const handleAddScheduleSubmit = (e: React.FormEvent) => {
+  const handleAddScheduleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCityOrRoute.trim()) {
       setFormError('City or Route name is required.');
       return;
     }
     setFormError('');
+    setIsSubmitting(true);
 
     try {
-      localDb.createRouteSchedule({
+      await localDb.createRouteSchedule({
         day_of_week: newDay,
         city_or_route: newCityOrRoute.trim(),
         portal: newPortal,
@@ -91,8 +99,11 @@ export const AdminRouteSchedules: React.FC = () => {
 
       setNewCityOrRoute('');
       setIsAddModalOpen(false);
+      setRefreshTrigger((t) => t + 1);
     } catch (err: any) {
       setFormError(err.message || 'Failed to create route schedule.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -267,7 +278,7 @@ export const AdminRouteSchedules: React.FC = () => {
               <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" icon={<Plus className="w-4 h-4" />}>
+              <Button type="submit" variant="primary" icon={<Plus className="w-4 h-4" />} disabled={isSubmitting} loading={isSubmitting}>
                 Create Route Schedule
               </Button>
             </div>

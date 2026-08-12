@@ -3109,7 +3109,26 @@ class LocalDatabaseService {
     }
   }
 
-  public updateRouteSchedule(id: string, updates: Partial<RouteSchedule>, currentUserId: string): RouteSchedule | null {
+  private async syncRouteScheduleToSupabase(schedule: RouteSchedule): Promise<void> {
+    if (!supabase) return;
+    const cleanRow = {
+      id: schedule.id,
+      day_of_week: schedule.day_of_week,
+      city_or_route: schedule.city_or_route,
+      portal: schedule.portal,
+      active: Boolean(schedule.active),
+      created_at: schedule.created_at || new Date().toISOString(),
+      updated_at: schedule.updated_at || new Date().toISOString(),
+    };
+
+    const { error } = await supabase.from('route_schedules').upsert(cleanRow, { onConflict: 'id' });
+    if (error) {
+      console.error('[Supabase] direct route_schedules write error:', error.message);
+      throw new Error(`Failed to save route schedule to Supabase: ${error.message}`);
+    }
+  }
+
+  public async updateRouteSchedule(id: string, updates: Partial<RouteSchedule>, currentUserId: string): Promise<RouteSchedule | null> {
     const list = this.getRouteSchedules();
     const index = list.findIndex(r => r.id === id);
     if (index === -1) return null;
@@ -3120,6 +3139,10 @@ class LocalDatabaseService {
       ...updates,
       updated_at: new Date().toISOString(),
     };
+
+    if (supabase) {
+      await this.syncRouteScheduleToSupabase(updated);
+    }
 
     list[index] = updated;
     storageSet(this.routeSchedulesKey, JSON.stringify(list));
@@ -3138,7 +3161,7 @@ class LocalDatabaseService {
     return updated;
   }
 
-  public createRouteSchedule(input: { day_of_week: DayOfWeek; city_or_route: string; portal: 'kelowna' | 'outside_kelowna'; active: boolean }, currentUserId: string): RouteSchedule {
+  public async createRouteSchedule(input: { day_of_week: DayOfWeek; city_or_route: string; portal: 'kelowna' | 'outside_kelowna'; active: boolean }, currentUserId: string): Promise<RouteSchedule> {
     const list = this.getRouteSchedules();
     const newSchedule: RouteSchedule = {
       id: crypto.randomUUID(),
@@ -3149,6 +3172,10 @@ class LocalDatabaseService {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
+
+    if (supabase) {
+      await this.syncRouteScheduleToSupabase(newSchedule);
+    }
 
     const updatedList = [...list, newSchedule];
     storageSet(this.routeSchedulesKey, JSON.stringify(updatedList));

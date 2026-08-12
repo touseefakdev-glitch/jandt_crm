@@ -562,6 +562,40 @@ class LocalDatabaseService {
     return `CUST-${nextNum.toString().padStart(6, '0')}`;
   }
 
+  /**
+   * Generic Supabase customer mutation executor with automatic missing-column stripping.
+   * If PostgREST returns a schema cache error for a missing column (e.g. "Could not find the 'whatsapp_number' column..."),
+   * it strips that column from the payload and retries automatically until success or unrecoverable error.
+   */
+  private async executeSupabaseCustomerMutation<T extends Record<string, any>>(
+    operation: (payload: T) => Promise<{ data: any; error: any }>,
+    initialPayload: T
+  ): Promise<{ data: any; error: any }> {
+    let payload = { ...initialPayload };
+    const maxRetries = 5;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const res = await operation(payload);
+      if (!res.error) return res;
+
+      const errorMsg = res.error.message || '';
+      const match = errorMsg.match(/Could not find the '([^']+)' column/i) || errorMsg.match(/column "([^"]+)" of relation/i);
+      
+      if (match && match[1]) {
+        const missingColumn = match[1];
+        if (missingColumn in payload) {
+          console.warn(`[Supabase] Column '${missingColumn}' not found on 'customers' table. Retrying mutation without '${missingColumn}'.`);
+          delete payload[missingColumn];
+          continue;
+        }
+      }
+
+      return res;
+    }
+
+    return operation(payload);
+  }
+
   public async createCustomer(input: CustomerFormInput, userId: string): Promise<Customer> {
     const customers = this.getCustomers();
     const customerCode = this.generateCustomerCode();
@@ -611,12 +645,10 @@ class LocalDatabaseService {
         updated_by: validUserId,
       };
 
-      let res = await supabase.from('customers').insert(cleanRow).select().single();
-      if (res.error && res.error.message && res.error.message.includes('route')) {
-        console.warn('[Supabase] `route` column not found on `customers` table; retrying insert without `route`.');
-        const { route, ...rowWithoutRoute } = cleanRow;
-        res = await supabase.from('customers').insert(rowWithoutRoute).select().single();
-      }
+      const res = await this.executeSupabaseCustomerMutation(
+        (p) => supabase!.from('customers').insert(p).select().single(),
+        cleanRow
+      );
 
       if (res.error) {
         console.error('[Supabase] createCustomer insert error:', res.error);
@@ -670,23 +702,10 @@ class LocalDatabaseService {
     };
 
     if (supabase) {
-      let res = await supabase
-        .from('customers')
-        .update(updatePayload)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (res.error && res.error.message && res.error.message.includes('route')) {
-        console.warn('[Supabase] `route` column not found on `customers` table; retrying update without `route`.');
-        const { route, ...payloadWithoutRoute } = updatePayload;
-        res = await supabase
-          .from('customers')
-          .update(payloadWithoutRoute)
-          .eq('id', id)
-          .select()
-          .single();
-      }
+      const res = await this.executeSupabaseCustomerMutation(
+        (p) => supabase!.from('customers').update(p).eq('id', id).select().single(),
+        updatePayload
+      );
 
       if (res.error) {
         console.error('[Supabase] updateCustomer error:', res.error);

@@ -172,7 +172,7 @@ export const SEED_USERS: UserProfile[] = [
     updated_at: new Date('2026-01-01').toISOString(),
   },
   {
-    id: 'g7777777-7777-7777-7777-777777777777',
+    id: 'a7777777-7777-7777-7777-777777777777',
     email: 'sukhjeet@jtsupplies.com',
     full_name: 'Sukhjeet (Sales)',
     role: 'sales_agent',

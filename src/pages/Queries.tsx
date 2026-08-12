@@ -9,6 +9,7 @@ import { useServerQuery } from '../hooks/useServerQuery';
 import { CustomerQuery, QueryFormInput } from '../types';
 import { QueryFormModal } from '../components/queries/QueryFormModal';
 import { QueryAssignModal } from '../components/queries/QueryAssignModal';
+import { MobileQueryCard } from '../components/queries/MobileQueryCard';
 import { Avatar, Badge, Button, Card, EmptyState, Input, PageHeader, Pagination, Select, Table, TableToolbar, Tabs, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
 import { getQueryPriorityBadge, getQueryStatusBadge } from '../utils/badges';
 import { formatDateTime } from '../utils/format';
@@ -347,85 +348,97 @@ export const Queries: React.FC = () => {
         </div>
       </TableToolbar>
 
-      <Card flush>
+      <Card flush className="p-3 md:p-0">
         {paginatedQueries.length > 0 ? (
-          <Table minWidth={1300}>
-            <THead>
-              <Tr hover={false}>
-                <Th width={130}>Query Number</Th>
-                <Th width={220}>Customer Account</Th>
-                <Th width={320}>Subject & Related Entity</Th>
-                <Th width={110}>Priority</Th>
-                <Th width={130}>Status</Th>
-                <Th width={160}>Assigned Agent</Th>
-                <Th width={140}>Last Updated</Th>
-                <Th width={90} align="right">Action</Th>
-              </Tr>
-            </THead>
-            <TBody>
+          <>
+            {/* Mobile View Cards */}
+            <div className="grid grid-cols-1 gap-3 md:hidden">
               {paginatedQueries.map((query) => (
-                <Tr key={query.id}>
-                  <Td width={130} className="font-mono font-bold text-brand-700">
-                    <Link to={`/queries/${query.id}`} className="hover:underline">{query.query_number}</Link>
-                  </Td>
-                  <Td width={220} truncate>
-                    {query.customer ? (
-                      <div>
-                        <Link to={`/customers/${query.customer.id}`} className="font-bold text-slate-900 hover:text-brand-600 block truncate">{query.customer.company_name}</Link>
-                        <span className="font-mono text-[10px] text-slate-500">{query.customer.customer_code}</span>
-                      </div>
-                    ) : (
-                      <span className="text-slate-400 italic">Unknown Customer</span>
-                    )}
-                  </Td>
-                  <Td width={320} truncate maxWidth={320}>
-                    <div className="font-semibold text-slate-900 truncate" title={query.subject}>{query.subject}</div>
-                    <div className="flex items-center gap-2 mt-1">
-                      {query.category && (
-                        <span className="text-[10px] bg-slate-100 text-slate-600 font-medium px-1.5 py-0.5 rounded border border-slate-200 whitespace-nowrap">{query.category.name}</span>
-                      )}
-                      {query.order && (
-                        <Link to={`/orders/${query.order.id}`} className="text-[10px] bg-emerald-50 text-emerald-800 font-mono font-semibold px-1.5 py-0.5 rounded border border-emerald-200 hover:underline inline-flex items-center gap-0.5 whitespace-nowrap">
-                          <ShoppingBag className="w-2.5 h-2.5" /> {query.order.order_number}
-                        </Link>
-                      )}
-                      {query.product && (
-                        <Link to={`/products/${query.product.id}`} className="text-[10px] bg-purple-50 text-purple-800 font-mono font-semibold px-1.5 py-0.5 rounded border border-purple-200 hover:underline inline-flex items-center gap-0.5 whitespace-nowrap">
-                          <Package className="w-2.5 h-2.5" /> {query.product.sku}
-                        </Link>
-                      )}
-                    </div>
-                  </Td>
-                  <Td width={110}><Badge badge={getQueryPriorityBadge(query.priority)} /></Td>
-                  <Td width={130}><Badge badge={getQueryStatusBadge(query.status)} /></Td>
-                  <Td width={160} truncate maxWidth={160}>
-                    {query.assigned_to_profile ? (
-                      <span className="inline-flex items-center gap-1.5 font-medium text-slate-800">
-                        <Avatar name={query.assigned_to_profile.full_name} size="xs" />
-                        <span className="truncate">{query.assigned_to_profile.full_name}</span>
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => setAssigningQuery(query)}
-                        className="text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded-md border border-amber-200 transition-colors whitespace-nowrap"
-                      >
-                        + Assign Agent
-                      </button>
-                    )}
-                  </Td>
-                  <Td width={140} className="font-mono text-slate-500">{formatDateTime(query.updated_at)}</Td>
-                  <Td width={90} align="right">
-                    <Link
-                      to={`/queries/${query.id}`}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-[11px] rounded-lg transition-colors"
-                    >
-                      View <ArrowRight className="w-3 h-3" />
-                    </Link>
-                  </Td>
-                </Tr>
+                <MobileQueryCard key={query.id} query={query} />
               ))}
-            </TBody>
-          </Table>
+            </div>
+
+            {/* Desktop View Table */}
+            <div className="hidden md:block">
+              <Table minWidth={1300}>
+                <THead>
+                  <Tr hover={false}>
+                    <Th width={130}>Query Number</Th>
+                    <Th width={220}>Customer Account</Th>
+                    <Th width={320}>Subject & Related Entity</Th>
+                    <Th width={110}>Priority</Th>
+                    <Th width={130}>Status</Th>
+                    <Th width={160}>Assigned Agent</Th>
+                    <Th width={140}>Last Updated</Th>
+                    <Th width={90} align="right">Action</Th>
+                  </Tr>
+                </THead>
+                <TBody>
+                  {paginatedQueries.map((query) => (
+                    <Tr key={query.id}>
+                      <Td width={130} className="font-mono font-bold text-brand-700">
+                        <Link to={`/queries/${query.id}`} className="hover:underline">{query.query_number}</Link>
+                      </Td>
+                      <Td width={220} truncate>
+                        {query.customer ? (
+                          <div>
+                            <Link to={`/customers/${query.customer.id}`} className="font-bold text-slate-900 hover:text-brand-600 block truncate">{query.customer.company_name}</Link>
+                            <span className="font-mono text-[10px] text-slate-500">{query.customer.customer_code}</span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 italic">Unknown Customer</span>
+                        )}
+                      </Td>
+                      <Td width={320} truncate maxWidth={320}>
+                        <div className="font-semibold text-slate-900 truncate" title={query.subject}>{query.subject}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          {query.category && (
+                            <span className="text-[10px] bg-slate-100 text-slate-600 font-medium px-1.5 py-0.5 rounded border border-slate-200 whitespace-nowrap">{query.category.name}</span>
+                          )}
+                          {query.order && (
+                            <Link to={`/orders/${query.order.id}`} className="text-[10px] bg-emerald-50 text-emerald-800 font-mono font-semibold px-1.5 py-0.5 rounded border border-emerald-200 hover:underline inline-flex items-center gap-0.5 whitespace-nowrap">
+                              <ShoppingBag className="w-2.5 h-2.5" /> {query.order.order_number}
+                            </Link>
+                          )}
+                          {query.product && (
+                            <Link to={`/products/${query.product.id}`} className="text-[10px] bg-purple-50 text-purple-800 font-mono font-semibold px-1.5 py-0.5 rounded border border-purple-200 hover:underline inline-flex items-center gap-0.5 whitespace-nowrap">
+                              <Package className="w-2.5 h-2.5" /> {query.product.sku}
+                            </Link>
+                          )}
+                        </div>
+                      </Td>
+                      <Td width={110}><Badge badge={getQueryPriorityBadge(query.priority)} /></Td>
+                      <Td width={130}><Badge badge={getQueryStatusBadge(query.status)} /></Td>
+                      <Td width={160} truncate maxWidth={160}>
+                        {query.assigned_to_profile ? (
+                          <span className="inline-flex items-center gap-1.5 font-medium text-slate-800">
+                            <Avatar name={query.assigned_to_profile.full_name} size="xs" />
+                            <span className="truncate">{query.assigned_to_profile.full_name}</span>
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => setAssigningQuery(query)}
+                            className="text-[11px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 px-2 py-1 rounded-md border border-amber-200 transition-colors whitespace-nowrap"
+                          >
+                            + Assign Agent
+                          </button>
+                        )}
+                      </Td>
+                      <Td width={140} className="font-mono text-slate-500">{formatDateTime(query.updated_at)}</Td>
+                      <Td width={90} align="right">
+                        <Link
+                          to={`/queries/${query.id}`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-[11px] rounded-lg transition-colors"
+                        >
+                          View <ArrowRight className="w-3 h-3" />
+                        </Link>
+                      </Td>
+                    </Tr>
+                  ))}
+                </TBody>
+              </Table>
+            </div>
+          </>
         ) : (
           <EmptyState
             icon={<Inbox className="w-7 h-7" />}

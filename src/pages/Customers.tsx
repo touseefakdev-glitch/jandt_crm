@@ -7,6 +7,7 @@ import { fetchCustomersPage } from '../services/queryService';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useServerListQuery } from '../hooks/useServerListQuery';
 import { CustomerFormModal } from '../components/customers/CustomerFormModal';
+import { MobileCustomerCard } from '../components/customers/MobileCustomerCard';
 import { Badge, Button, Card, ConfirmDialog, EmptyState, Input, PageHeader, Pagination, Table, TableToolbar, Tabs, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
 import { getCustomerStatusBadge } from '../utils/badges';
 import { formatDate } from '../utils/format';
@@ -146,70 +147,82 @@ export const Customers: React.FC = () => {
         </div>
       </TableToolbar>
 
-      <Card flush>
+      <Card flush className="p-3 md:p-0">
         {paginatedCustomers.length > 0 ? (
-          <Table minWidth={1320}>
-            <THead>
-              <Tr hover={false}>
-                <Th width={96}>Code</Th>
-                <Th width={240}>Company Name</Th>
-                <Th width={150}>Phone</Th>
-                <Th width={160}>WhatsApp</Th>
-                <Th width={160}>City</Th>
-                <Th width={120}>Country</Th>
-                <Th width={110}>Status</Th>
-                <Th width={120}>Created</Th>
-                <Th width={130} align="right">Actions</Th>
-              </Tr>
-            </THead>
-            <TBody>
+          <>
+            {/* Mobile View Cards */}
+            <div className="grid grid-cols-1 gap-3 md:hidden">
               {paginatedCustomers.map((cust) => (
-                <Tr key={cust.id}>
-                  <Td width={96} className="font-mono text-xs font-bold text-brand-700">
-                    <Link to={`/customers/${cust.id}`} className="hover:underline">{cust.customer_code}</Link>
-                  </Td>
-                  <Td width={240} truncate className="font-semibold text-slate-900">
-                    <Link to={`/customers/${cust.id}`} className="hover:text-brand-600 transition-colors">{cust.company_name}</Link>
-                  </Td>
-                  <Td width={150} truncate className="text-xs text-slate-600 font-mono">{cust.phone || <span className="text-slate-400 italic">—</span>}</Td>
-                  <Td width={160} truncate className="text-xs text-emerald-600 font-mono">{cust.whatsapp_number || <span className="text-slate-400 italic">—</span>}</Td>
-                  <Td width={160} truncate className="text-xs text-slate-700 font-medium">{cust.city || <span className="text-slate-400 italic">—</span>}</Td>
-                  <Td width={120} truncate className="text-xs text-slate-600">{cust.country || 'Canada'}</Td>
-                  <Td width={110}>
-                    <Badge badge={getCustomerStatusBadge(cust.status)} />
-                  </Td>
-                  <Td width={120} className="text-xs text-slate-500">{formatDate(cust.created_at)}</Td>
-                  <Td width={130} align="right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => navigate(`/customers/${cust.id}`)}
-                        title="View Detailed Customer Profile"
-                        className="p-2 text-slate-500 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleOpenEditModal(cust)}
-                        title="Edit Customer"
-                        className="p-2 text-slate-500 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      {isAdmin && (
-                        <button
-                          onClick={() => setDeactivateTarget(cust)}
-                          title={cust.status === 'active' ? 'Deactivate Account' : 'Activate Account'}
-                          className={`p-2 rounded-lg transition-colors ${cust.status === 'active' ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' : 'text-emerald-600 hover:bg-emerald-50'}`}
-                        >
-                          <Power className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </Td>
-                </Tr>
+                <MobileCustomerCard key={cust.id} customer={cust} onEdit={handleOpenEditModal} />
               ))}
-            </TBody>
-          </Table>
+            </div>
+
+            {/* Desktop View Table */}
+            <div className="hidden md:block">
+              <Table minWidth={1320}>
+                <THead>
+                  <Tr hover={false}>
+                    <Th width={96}>Code</Th>
+                    <Th width={240}>Company Name</Th>
+                    <Th width={150}>Phone</Th>
+                    <Th width={160}>WhatsApp</Th>
+                    <Th width={160}>City</Th>
+                    <Th width={120}>Country</Th>
+                    <Th width={110}>Status</Th>
+                    <Th width={120}>Created</Th>
+                    <Th width={130} align="right">Actions</Th>
+                  </Tr>
+                </THead>
+                <TBody>
+                  {paginatedCustomers.map((cust) => (
+                    <Tr key={cust.id}>
+                      <Td width={96} className="font-mono text-xs font-bold text-brand-700">
+                        <Link to={`/customers/${cust.id}`} className="hover:underline">{cust.customer_code}</Link>
+                      </Td>
+                      <Td width={240} truncate className="font-semibold text-slate-900">
+                        <Link to={`/customers/${cust.id}`} className="hover:text-brand-600 transition-colors">{cust.company_name}</Link>
+                      </Td>
+                      <Td width={150} truncate className="text-xs text-slate-600 font-mono">{cust.phone || <span className="text-slate-400 italic">—</span>}</Td>
+                      <Td width={160} truncate className="text-xs text-emerald-600 font-mono">{cust.whatsapp_number || <span className="text-slate-400 italic">—</span>}</Td>
+                      <Td width={160} truncate className="text-xs text-slate-700 font-medium">{cust.city || <span className="text-slate-400 italic">—</span>}</Td>
+                      <Td width={120} truncate className="text-xs text-slate-600">{cust.country || 'Canada'}</Td>
+                      <Td width={110}>
+                        <Badge badge={getCustomerStatusBadge(cust.status)} />
+                      </Td>
+                      <Td width={120} className="text-xs text-slate-500">{formatDate(cust.created_at)}</Td>
+                      <Td width={130} align="right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => navigate(`/customers/${cust.id}`)}
+                            title="View Detailed Customer Profile"
+                            className="p-2 text-slate-500 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleOpenEditModal(cust)}
+                            title="Edit Customer"
+                            className="p-2 text-slate-500 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => setDeactivateTarget(cust)}
+                              title={cust.status === 'active' ? 'Deactivate Account' : 'Activate Account'}
+                              className={`p-2 rounded-lg transition-colors ${cust.status === 'active' ? 'text-slate-400 hover:text-red-600 hover:bg-red-50' : 'text-emerald-600 hover:bg-emerald-50'}`}
+                            >
+                              <Power className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </Td>
+                    </Tr>
+                  ))}
+                </TBody>
+              </Table>
+            </div>
+          </>
         ) : (
           <EmptyState
             icon={<Building2 className="w-7 h-7" />}

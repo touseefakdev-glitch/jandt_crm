@@ -5,6 +5,20 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.32.0] - 2026-08-12
+
+### Added & Changed
+- **Mobile Orders Module — Complete Mobile Responsive UX Renovation.**
+  - **Mobile Card Architecture**: On viewports `< 768px`, desktop data tables on **Orders**, **Queries**, and **Customers** automatically switch to purpose-built **Mobile Cards** (`MobileOrderCard.tsx`, `MobileQueryCard.tsx`, `MobileCustomerCard.tsx`) designed for 1-tap readability and fast action execution.
+  - **Mobile Bottom Navigation Bar (`MobileBottomNav.tsx`)**: Fixed bottom navigation bar on mobile screen (`md:hidden`) with `Home`, `Orders`, `Queries`, `Customers`, and a slide-up **More** operations sheet for Shift Handover, Out of Stock, Notifications, and Admin shortcuts.
+  - **NEXT ACTION Prominent Banner**: Every mobile order card prominently highlights what step comes next (e.g. `NEXT: GENERATE SALES ORDER` with a 1-tap `[Execute]` button or `✓ ALL STAGES COMPLETED`).
+  - **Mobile Filter Rails**: Horizontally scrollable filter chips (`overflow-x-auto`) for quick stage filtering (`All`, `Pending`, `Received`, `SO`, `Invoiced`, `Dispatched`, `POD`, `Exceptions`).
+  - **Zero Horizontal Page Scroll**: Guaranteed 0 page-level horizontal scrolling across target mobile screen sizes (`320px`, `360px`, `375px`, `390px`, `414px`, `430px`, `768px`).
+  - **Mobile Touch Targets**: All interactive elements satisfy the **44px minimum touch area** standard.
+  - **Mobile Dashboard**: Responsive 2-column KPI grid (`grid-cols-2 gap-3`) on mobile for operational summary metrics.
+  - **Documentation**: Added `MOBILE_UX.md`; updated `PROJECT_SPEC.md` and `CHANGELOG.md`.
+- **No business logic, database structure, Supabase sync, API contracts, workflow logic, or authentication rules changed** — strictly frontend mobile visual/UX renovation.
+
 ## [1.31.0] - 2026-08-12
 
 ### Changed

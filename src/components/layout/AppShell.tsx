@@ -2,6 +2,7 @@ import React, { Suspense, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
+import { MobileBottomNav } from './MobileBottomNav';
 import { ToastProvider } from '../ui/Toast';
 import { PageSkeleton } from '../ui/Skeleton';
 import { cn } from '../../utils/cn';
@@ -24,9 +25,9 @@ export const AppShell: React.FC = () => {
             mobileOpen={mobileNavOpen}
             onMobileClose={() => setMobileNavOpen(false)}
           />
-          {/* Main scroll region — grows to fill the 1920px workspace */}
-          <main className={cn('flex-1 min-w-0 overflow-y-auto')}>
-            <div className="content-width py-5 lg:py-6">
+          {/* Main scroll region — grows to fill the 1920px workspace with mobile bottom nav padding */}
+          <main className={cn('flex-1 min-w-0 overflow-y-auto pb-20 md:pb-6')}>
+            <div className="content-width py-4 lg:py-6">
               <div className="page-stack">
                 <Suspense fallback={<PageSkeleton />}>
                   <Outlet />
@@ -35,7 +36,9 @@ export const AppShell: React.FC = () => {
             </div>
           </main>
         </div>
+        <MobileBottomNav />
       </div>
     </ToastProvider>
   );
 };
+

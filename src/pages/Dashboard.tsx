@@ -236,7 +236,7 @@ export const Dashboard: React.FC = () => {
       )}
 
       {/* Operational KPI Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           title="Orders Today"
           value={orderMetrics.total}

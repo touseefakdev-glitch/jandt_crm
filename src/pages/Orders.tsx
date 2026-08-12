@@ -26,6 +26,7 @@ import { ReportErrorModal } from '../components/orders/ReportErrorModal';
 import { UndoStepModal } from '../components/orders/UndoStepModal';
 import { OrderMatchModal } from '../components/orders/OrderMatchModal';
 import { OrderDetailDrawer } from '../components/orders/OrderDetailDrawer';
+import { MobileOrderCard } from '../components/orders/MobileOrderCard';
 import {
   AlertCircle,
   AlertTriangle,
@@ -901,107 +902,130 @@ export const Orders: React.FC = () => {
         </div>
       </TableToolbar>
 
-      {/* Operational Table */}
-      <Card flush>
+      {/* Operational List: Mobile Cards (md:hidden) vs Desktop Table (hidden md:block) */}
+      <Card flush className="p-3 md:p-0">
         {visibleOperations.length > 0 ? (
           <>
-            <Table minWidth={1380}>
-              <THead>
-                <Tr hover={false}>
-                  <Th width={220} className="sticky left-0 bg-[#F4F7FB] z-10 border-r border-slate-200">Customer</Th>
-                  <Th width={90}>City</Th>
-                  <Th width={90}>Route</Th>
-                  <Th width={120}>Status</Th>
-                  <Th width={90} align="center">Received</Th>
-                  <Th width={120} align="center">Sales Order</Th>
-                  <Th width={120} align="center">Invoiced</Th>
-                  <Th width={110} align="center">Order Match</Th>
-                  <Th width={90} align="center">Dispatched</Th>
-                  <Th width={90} align="center">POD Sent</Th>
-                  <Th width={120}>Exception</Th>
-                  <Th width={120}>Last Updated</Th>
-                </Tr>
-              </THead>
-              <TBody>
-                {pagedOperations.map((op) => (
-                  <Tr key={op.id} className="group">
-                    {/* Customer */}
-                    <Td width={220} className="sticky left-0 bg-white z-10 border-r border-slate-200 group-hover:bg-[#F4F7FB]">
-                      <div className="flex items-center gap-2.5">
-                        <button
-                          onClick={() => setActiveDetailOp(op)}
-                          className="flex items-center gap-2.5 min-w-0 flex-1 text-left group/cell"
-                          title="Open order details"
-                        >
-                          <Avatar name={op.customer?.company_name || 'Customer'} size="sm" className="shrink-0" />
-                          <span className="min-w-0">
-                            <span className="font-bold text-slate-900 group-hover/cell:text-teal-700 transition-colors text-xs block w-full truncate">
-                              {op.customer?.company_name || 'Customer'}
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-mono block truncate">{op.customer?.customer_code || '—'}</span>
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => navigate(`/customers/${op.customer_id}`)}
-                          className="p-1 text-slate-300 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-all shrink-0"
-                          title="Open customer profile"
-                          aria-label="Open customer profile"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </Td>
+            {/* Mobile View: Purpose-built Order Cards */}
+            <div className="grid grid-cols-1 gap-3 md:hidden">
+              {pagedOperations.map((op) => (
+                <MobileOrderCard
+                  key={op.id}
+                  op={op}
+                  canUpdate={canUpdate}
+                  canRevert={canRevert}
+                  canUpdateOrderMatch={canUpdateOrderMatch}
+                  onOpenDetails={setActiveDetailOp}
+                  onToggleStep={toggleStepFor}
+                  onOpenOrderMatch={handleOpenOrderMatch}
+                  onReportError={setActiveErrorModalOp}
+                  onOpenSOModal={setActiveSOModalOp}
+                  onOpenInvoiceModal={setActiveInvoiceModalOp}
+                />
+              ))}
+            </div>
 
-                    {/* City */}
-                    <Td width={90}>
-                      <span className="text-xs font-semibold text-slate-600 block truncate" title={op.customer?.city || ''}>
-                        {op.customer?.city || '—'}
-                      </span>
-                    </Td>
-
-                    {/* Route */}
-                    <Td width={90}>
-                      <span className="inline-block text-[10px] font-bold text-navy-800 bg-navy-50 border border-navy-100 rounded px-1.5 py-0.5 truncate max-w-full" title={op.route}>
-                        {op.route}
-                      </span>
-                    </Td>
-
-                    {/* Status + Progress */}
-                    <Td width={120}>
-                      {renderStatusCell(op)}
-                    </Td>
-
-                    {/* Step 1: Order Received */}
-                    <Td width={90} className="text-center">{renderStepCell(op, 'order_received')}</Td>
-
-                    {/* Step 2: Sales Order + SO # */}
-                    <Td width={120} className="text-center">{renderStepCell(op, 'sales_order_generated')}</Td>
-
-                    {/* Step 3: Invoiced + Invoice # */}
-                    <Td width={120} className="text-center">{renderStepCell(op, 'invoiced')}</Td>
-
-                    {/* Order Match */}
-                    <Td width={110} className="text-center">{renderOrderMatchCell(op)}</Td>
-
-                    {/* Step 4: Dispatched */}
-                    <Td width={90} className="text-center">{renderStepCell(op, 'dispatched')}</Td>
-
-                    {/* Step 5: POD Sent */}
-                    <Td width={90} className="text-center">{renderStepCell(op, 'pod_sent')}</Td>
-
-                    {/* Exception */}
-                    <Td width={120}>
-                      {renderExceptionCell(op)}
-                    </Td>
-
-                    {/* Last Updated */}
-                    <Td width={120}>
-                      {renderLastUpdatedCell(op)}
-                    </Td>
+            {/* Desktop View: Full Operational Data Table */}
+            <div className="hidden md:block">
+              <Table minWidth={1380}>
+                <THead>
+                  <Tr hover={false}>
+                    <Th width={220} className="sticky left-0 bg-[#F4F7FB] z-10 border-r border-slate-200">Customer</Th>
+                    <Th width={90}>City</Th>
+                    <Th width={90}>Route</Th>
+                    <Th width={120}>Status</Th>
+                    <Th width={90} align="center">Received</Th>
+                    <Th width={120} align="center">Sales Order</Th>
+                    <Th width={120} align="center">Invoiced</Th>
+                    <Th width={110} align="center">Order Match</Th>
+                    <Th width={90} align="center">Dispatched</Th>
+                    <Th width={90} align="center">POD Sent</Th>
+                    <Th width={120}>Exception</Th>
+                    <Th width={120}>Last Updated</Th>
                   </Tr>
-                ))}
-              </TBody>
-            </Table>
+                </THead>
+                <TBody>
+                  {pagedOperations.map((op) => (
+                    <Tr key={op.id} className="group">
+                      {/* Customer */}
+                      <Td width={220} className="sticky left-0 bg-white z-10 border-r border-slate-200 group-hover:bg-[#F4F7FB]">
+                        <div className="flex items-center gap-2.5">
+                          <button
+                            onClick={() => setActiveDetailOp(op)}
+                            className="flex items-center gap-2.5 min-w-0 flex-1 text-left group/cell"
+                            title="Open order details"
+                          >
+                            <Avatar name={op.customer?.company_name || 'Customer'} size="sm" className="shrink-0" />
+                            <span className="min-w-0">
+                              <span className="font-bold text-slate-900 group-hover/cell:text-teal-700 transition-colors text-xs block w-full truncate">
+                                {op.customer?.company_name || 'Customer'}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-mono block truncate">{op.customer?.customer_code || '—'}</span>
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => navigate(`/customers/${op.customer_id}`)}
+                            className="p-1 text-slate-300 hover:text-teal-600 hover:bg-teal-50 rounded-md transition-all shrink-0"
+                            title="Open customer profile"
+                            aria-label="Open customer profile"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </Td>
+
+                      {/* City */}
+                      <Td width={90}>
+                        <span className="text-xs font-semibold text-slate-600 block truncate" title={op.customer?.city || ''}>
+                          {op.customer?.city || '—'}
+                        </span>
+                      </Td>
+
+                      {/* Route */}
+                      <Td width={90}>
+                        <span className="inline-block text-[10px] font-bold text-navy-800 bg-navy-50 border border-navy-100 rounded px-1.5 py-0.5 truncate max-w-full" title={op.route}>
+                          {op.route}
+                        </span>
+                      </Td>
+
+                      {/* Status + Progress */}
+                      <Td width={120}>
+                        {renderStatusCell(op)}
+                      </Td>
+
+                      {/* Step 1: Order Received */}
+                      <Td width={90} className="text-center">{renderStepCell(op, 'order_received')}</Td>
+
+                      {/* Step 2: Sales Order + SO # */}
+                      <Td width={120} className="text-center">{renderStepCell(op, 'sales_order_generated')}</Td>
+
+                      {/* Step 3: Invoiced + Invoice # */}
+                      <Td width={120} className="text-center">{renderStepCell(op, 'invoiced')}</Td>
+
+                      {/* Order Match */}
+                      <Td width={110} className="text-center">{renderOrderMatchCell(op)}</Td>
+
+                      {/* Step 4: Dispatched */}
+                      <Td width={90} className="text-center">{renderStepCell(op, 'dispatched')}</Td>
+
+                      {/* Step 5: POD Sent */}
+                      <Td width={90} className="text-center">{renderStepCell(op, 'pod_sent')}</Td>
+
+                      {/* Exception */}
+                      <Td width={120}>
+                        {renderExceptionCell(op)}
+                      </Td>
+
+                      {/* Last Updated */}
+                      <Td width={120}>
+                        {renderLastUpdatedCell(op)}
+                      </Td>
+                    </Tr>
+                  ))}
+                </TBody>
+              </Table>
+            </div>
+
             <Pagination
               currentPage={safePage}
               totalPages={totalPages}

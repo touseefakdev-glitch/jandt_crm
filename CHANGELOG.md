@@ -5,6 +5,16 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.34.0] - 2026-08-12
+
+### Changed & Security
+- **Critical Database Audit — Made Supabase PostgreSQL the Single Source of Truth.**
+  - **Eliminated `localStorage` Database Mirroring**: Removed local storage table writes and reads for CRM database tables. `localStorage` is restricted strictly to non-critical UI display preferences (`sidebar_collapsed`, `theme_mode`).
+  - **Direct Supabase Single Source of Truth**: All operational modules (**Customers**, **Products**, **Orders / Daily Operations**, **Queries**, **Users / Profiles**, **Teams & Schedules**, **Shift Handovers**, **Notifications**) write and read directly from Supabase PostgreSQL.
+  - **Database Connection Error State**: Added `DatabaseErrorBanner.tsx` component so that when Supabase is unreachable or unconfigured, an explicit connection error state (*"Unable to connect to the CRM database. Please check your connection."*) with a 1-tap **Retry Connection** button is rendered, avoiding silent fallback to fake local data.
+  - **Security & Service Role Audit**: Confirmed `SUPABASE_SERVICE_ROLE_KEY` is not exposed in frontend code. Client uses RLS-enforced anonymous key (`VITE_SUPABASE_ANON_KEY`).
+  - **Documentation**: Created `DATABASE_ARCHITECTURE.md`; updated `PROJECT_SPEC.md` and `CHANGELOG.md`.
+
 ## [1.33.0] - 2026-08-12
 
 ### Changed

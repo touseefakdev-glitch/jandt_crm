@@ -8,39 +8,49 @@ import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useServerListQuery } from '../hooks/useServerListQuery';
 import { CustomerFormModal } from '../components/customers/CustomerFormModal';
 import { MobileCustomerCard } from '../components/customers/MobileCustomerCard';
+import { DatabaseErrorBanner } from '../components/common/DatabaseErrorBanner';
 import { Badge, Button, Card, ConfirmDialog, EmptyState, Input, PageHeader, Pagination, Table, TableToolbar, Tabs, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
 import { getCustomerStatusBadge } from '../utils/badges';
 import { formatDate } from '../utils/format';
 import { Users, Plus, Eye, Edit, Power, Building2, XCircle, Upload } from 'lucide-react';
 
-const ITEMS_PER_PAGE = 10;
-
 export const Customers: React.FC = () => {
-  const { user, hasRole } = useAuth();
+  const { user, hasRole, dbVersion } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isAdmin = hasRole('admin');
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [customerToEdit, setCustomerToEdit] = useState<Customer | null>(null);
-
   const [deactivateTarget, setDeactivateTarget] = useState<Customer | null>(null);
 
-  const isAdmin = hasRole('admin');
-
   const debouncedSearch = useDebouncedValue(searchTerm, 300);
+
+  const fetchParams = useMemo(
+    () => ({
+      searchTerm: debouncedSearch,
+      status: statusFilter,
+      page: currentPage,
+    }),
+    [debouncedSearch, statusFilter, currentPage]
+  );
+
+  const queryKey = useMemo(() => JSON.stringify({ ...fetchParams, dbVersion }), [fetchParams, dbVersion]);
 
   const {
     data: paginatedCustomers,
     total: totalCustomers,
     loading: customersLoading,
+    refresh: refreshCustomers,
   } = useServerListQuery<Customer>({
-    key: JSON.stringify({ search: debouncedSearch, status: statusFilter, page: currentPage }),
-    fetcher: () =>
-      fetchCustomersPage({ searchTerm: debouncedSearch, status: statusFilter, page: currentPage }),
+    key: queryKey,
+    fetcher: (signal) =>
+      fetchCustomersPage({ ...fetchParams, signal }),
     localFallback: () => {
       const list = localDb.getCustomers(debouncedSearch, statusFilter);
       const start = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -72,6 +82,7 @@ export const Customers: React.FC = () => {
       toast({ type: 'success', title: 'Customer created', message: `Customer "${created.company_name}" (${created.customer_code}) created successfully.` });
     }
     setIsModalOpen(false);
+    refreshCustomers();
   };
 
   const handleConfirmToggleStatus = () => {
@@ -84,12 +95,15 @@ export const Customers: React.FC = () => {
         title: 'Customer status changed',
         message: `Customer "${updated.company_name}" has been ${newStatus === 'active' ? 'activated' : 'deactivated'}.`,
       });
+      refreshCustomers();
     }
     setDeactivateTarget(null);
   };
 
   return (
     <div className="space-y-6">
+      <DatabaseErrorBanner onRetrySuccess={refreshCustomers} />
+
       <PageHeader
         icon={<Users className="w-5 h-5 text-brand-400" />}
         title="Customer Directory"

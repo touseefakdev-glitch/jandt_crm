@@ -112,39 +112,21 @@ export function notifyDataUpdated(): void {
   }
 }
 
-/** Read a stored table/object from in-memory cache, falling back to localStorage. */
+/** Read a stored table/object from in-memory cache. */
 export function storageGet(key: string): string | null {
-  if (memoryStore.has(key)) {
-    return memoryStore.get(key)!;
-  }
-  const fromLs = localStorage.getItem(key);
-  if (fromLs !== null) {
-    memoryStore.set(key, fromLs);
-    return fromLs;
-  }
-  return null;
+  return memoryStore.get(key) ?? null;
 }
 
-/** Write to memoryStore AND localStorage, AND schedule write-through to Supabase. */
+/** Write to memoryStore AND trigger write-through to Supabase PostgreSQL. */
 export function storageSet(key: string, value: string): void {
   memoryStore.set(key, value);
-  try {
-    localStorage.setItem(key, value);
-  } catch (e) {
-    console.warn('[Storage] localStorage.setItem failed:', e);
-  }
   scheduleTableSync(key, value);
   notifyDataUpdated();
 }
 
-/** Prime memoryStore AND localStorage without triggering a Supabase write. */
+/** Prime memoryStore without triggering a Supabase write (e.g. from remote fetch or realtime). */
 export function storagePrime(key: string, value: string): void {
   memoryStore.set(key, value);
-  try {
-    localStorage.setItem(key, value);
-  } catch (e) {
-    console.warn('[Storage] localStorage.setItem failed:', e);
-  }
   notifyDataUpdated();
 }
 
@@ -152,33 +134,16 @@ export function storageClear(): void {
   memoryStore.clear();
   previousRowIds.clear();
   serverReadsBlocked = false;
-  try {
-    localStorage.removeItem(SERVER_READS_OK_KEY);
-    const toRemove: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.startsWith(HYDRATION_TS_PREFIX)) toRemove.push(k);
-    }
-    toRemove.forEach((k) => localStorage.removeItem(k));
-  } catch (e) {
-    console.warn('[Storage] Failed to clear hydration timestamps:', e);
-  }
   notifyDataUpdated();
 }
 
 /**
- * Writes several tables at once (memory + localStorage + a single debounced
- * Supabase sync each) with ONE notification instead of one per key. Used by
- * batch operations such as CSV import to avoid re-render storms.
+ * Writes several tables at once to memoryStore and flushes write-through to Supabase.
+ * Used by batch operations such as CSV import.
  */
 export function storageSetBatch(entries: Array<[string, string]>): void {
   for (const [key, value] of entries) {
     memoryStore.set(key, value);
-    try {
-      localStorage.setItem(key, value);
-    } catch (e) {
-      console.warn('[Storage] localStorage.setItem failed:', e);
-    }
     scheduleTableSync(key, value);
   }
   notifyDataUpdated();
@@ -269,7 +234,7 @@ function scheduleTableSync(key: string, value: string): void {
       syncQueue = syncQueue
         .then(() => syncTableToSupabase(key, value))
         .catch((err) => console.error('[Supabase] write failed:', err));
-    }, 400)
+    }, 50)
   );
 }
 
@@ -412,39 +377,23 @@ async function fetchAllRemoteRows(table: string): Promise<Record<string, unknown
 export async function initializeFromSupabase(force = false): Promise<void> {
   if (!supabase) {
     console.warn('[Supabase] Client is null — VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY is missing.');
+    connectionState = 'not_configured';
+    connectionListeners.forEach((l) => l(connectionState));
     return;
   }
   if (hydrating) return;
   hydrating = true;
 
   try {
-    const persisted = localStorage.getItem(SERVER_READS_OK_KEY);
-    if (persisted !== null) serverReadsBlocked = persisted !== '1';
-
     const entries = Object.entries(TABLE_MAP);
-    const now = Date.now();
-
-    const toFetch: Array<[string, string]> = [];
-    for (const [lsKey, table] of entries) {
-      const local = storageGet(lsKey);
-      const isFresh = now - readHydrationTimestamp(lsKey) <= HYDRATION_TTL_MS;
-      if (force || local === null || !isFresh) {
-        toFetch.push([lsKey, table]);
-      }
-    }
-
-    if (toFetch.length === 0) {
-      return;
-    }
-
     const results = await Promise.allSettled(
-      toFetch.map(([, table]) => fetchAllRemoteRows(table))
+      entries.map(([, table]) => fetchAllRemoteRows(table))
     );
 
     let anyRemoteRows = false;
 
-    for (let i = 0; i < toFetch.length; i++) {
-      const [lsKey] = toFetch[i];
+    for (let i = 0; i < entries.length; i++) {
+      const [lsKey] = entries[i];
       const result = results[i];
 
       if (result.status === 'rejected') {
@@ -456,41 +405,24 @@ export async function initializeFromSupabase(force = false): Promise<void> {
       const remoteCount = remoteData.length;
       if (remoteCount > 0) anyRemoteRows = true;
 
-      const localData = storageGet(lsKey);
-      let localCount = 0;
-      if (localData) {
-        try {
-          const parsedLocal = JSON.parse(localData);
-          localCount = Array.isArray(parsedLocal) ? parsedLocal.length : (parsedLocal ? 1 : 0);
-        } catch {}
-      }
-
-      if (remoteCount >= localCount && remoteCount > 0) {
-        storagePrime(lsKey, JSON.stringify(remoteData));
-        previousRowIds.set(
-          lsKey,
-          new Set(remoteData.map((row) => (row as { id?: unknown }).id as string))
-        );
-        writeHydrationTimestamp(lsKey);
-        console.log(`[Supabase] Loaded ${remoteCount} rows into '${lsKey}' from Supabase table '${TABLE_MAP[lsKey]}'.`);
-      } else if (localCount > 0) {
-        if (localData) {
-          console.log(`[Supabase] Local dataset for '${lsKey}' (${localCount} rows) is larger than remote Supabase (${remoteCount} rows). Pushing local data to Supabase...`);
-          await syncTableToSupabase(lsKey, localData);
-        }
-      }
+      storagePrime(lsKey, JSON.stringify(remoteData));
+      previousRowIds.set(
+        lsKey,
+        new Set(remoteData.map((row) => (row as { id?: unknown }).id as string))
+      );
+      console.log(`[Supabase] Loaded ${remoteCount} rows into '${lsKey}' from Supabase table '${TABLE_MAP[lsKey]}'.`);
     }
 
-    // If every table we fetched came back empty (and at least one was fetched),
-    // the anon key cannot read data here — flag it so queries fall back to localDb.
-    serverReadsBlocked = !anyRemoteRows && toFetch.length > 0;
-    try {
-      localStorage.setItem(SERVER_READS_OK_KEY, serverReadsBlocked ? '0' : '1');
-    } catch {}
+    serverReadsBlocked = false;
+    connectionState = 'online';
+    lastConnectionError = null;
   } catch (err) {
     console.error('[Supabase] initializeFromSupabase failed:', err);
+    connectionState = 'offline';
+    lastConnectionError = err instanceof Error ? err.message : String(err);
   } finally {
     hydrating = false;
+    connectionListeners.forEach((l) => l(connectionState));
     notifyDataUpdated();
   }
 }

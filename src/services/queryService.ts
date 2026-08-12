@@ -93,6 +93,7 @@ export interface FetchCustomersParams {
   status?: 'all' | 'active' | 'inactive';
   page: number;
   pageSize?: number;
+  signal?: AbortSignal;
 }
 
 export async function fetchCustomersPage(

@@ -27,6 +27,7 @@ import { UndoStepModal } from '../components/orders/UndoStepModal';
 import { OrderMatchModal } from '../components/orders/OrderMatchModal';
 import { OrderDetailDrawer } from '../components/orders/OrderDetailDrawer';
 import { MobileOrderCard } from '../components/orders/MobileOrderCard';
+import { DatabaseErrorBanner } from '../components/common/DatabaseErrorBanner';
 import {
   AlertCircle,
   AlertTriangle,
@@ -624,6 +625,7 @@ export const Orders: React.FC = () => {
 
   return (
     <div className="space-y-5">
+      <DatabaseErrorBanner />
       <PageHeader
         icon={<CalendarClock className="w-5 h-5" />}
         iconBg="bg-navy-900"

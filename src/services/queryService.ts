@@ -126,6 +126,18 @@ export async function fetchCustomersPage(
   return { data: (data as Customer[]) || [], total: count || 0 };
 }
 
+export async function fetchCustomerById(id: string): Promise<Customer | null> {
+  throwIfServerUnavailable();
+  const { data, error } = await supabase!
+    .from('customers')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data as Customer) || null;
+}
+
 // ---------------------------------------------------------------------------
 // Products
 // ---------------------------------------------------------------------------

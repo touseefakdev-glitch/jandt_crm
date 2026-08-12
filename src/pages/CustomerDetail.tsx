@@ -24,6 +24,8 @@ import {
   Package,
 } from 'lucide-react';
 
+import { fetchCustomerById, canUseServerQueries } from '../services/queryService';
+
 type TabKey = 'overview' | 'queries' | 'orders' | 'history' | 'activity';
 
 export const CustomerDetail: React.FC = () => {
@@ -32,6 +34,7 @@ export const CustomerDetail: React.FC = () => {
   const { toast } = useToast();
 
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCreateQueryModalOpen, setIsCreateQueryModalOpen] = useState(false);
@@ -41,9 +44,35 @@ export const CustomerDetail: React.FC = () => {
   const isAdmin = hasRole('admin');
 
   useEffect(() => {
+    let active = true;
     if (id) {
-      setCustomer(localDb.getCustomerById(id));
+      setLoading(true);
+      const localMatch = localDb.getCustomerById(id);
+      if (localMatch) {
+        setCustomer(localMatch);
+        setLoading(false);
+      }
+
+      if (canUseServerQueries()) {
+        fetchCustomerById(id)
+          .then((fetched) => {
+            if (active && fetched) {
+              setCustomer(fetched);
+            }
+          })
+          .catch((err) => {
+            console.error('[CustomerDetail] Supabase customer fetch error:', err);
+          })
+          .finally(() => {
+            if (active) setLoading(false);
+          });
+      } else {
+        setLoading(false);
+      }
     }
+    return () => {
+      active = false;
+    };
   }, [id]);
 
   const customerQueries = useMemo(() => {
@@ -64,6 +93,17 @@ export const CustomerDetail: React.FC = () => {
     }
     return hist;
   }, [customer]);
+
+  if (loading && !customer) {
+    return (
+      <Card className="p-12 my-8">
+        <div className="flex flex-col items-center justify-center space-y-3 py-6">
+          <Building2 className="w-8 h-8 text-brand-500 animate-bounce" />
+          <p className="text-sm font-semibold text-slate-600">Loading customer record...</p>
+        </div>
+      </Card>
+    );
+  }
 
   if (!customer) {
     return (

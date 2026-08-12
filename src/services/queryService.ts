@@ -10,6 +10,7 @@ import {
   Team,
   Order,
   UserProfile,
+  RouteSchedule,
 } from '../types';
 
 /**
@@ -688,4 +689,16 @@ export async function fetchProductTabCounts(): Promise<ProductTabCounts> {
     countWhere('products', (q) => q.eq('availability_status', 'discontinued')),
   ]);
   return { all, outOfStock, discontinued };
+}
+
+export async function fetchRouteSchedules(): Promise<RouteSchedule[]> {
+  throwIfServerUnavailable();
+  const { data, error } = await supabase!
+    .from('route_schedules')
+    .select('*')
+    .order('day_of_week', { ascending: true })
+    .order('city_or_route', { ascending: true });
+
+  if (error) throw error;
+  return (data as RouteSchedule[]) || [];
 }

@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { DayOfWeek, RouteSchedule } from '../../types';
 import { localDb } from '../../services/db';
 import { permissions } from '../../services/permissions';
+import { fetchRouteSchedules, canUseServerQueries } from '../../services/queryService';
+import { storagePrime } from '../../services/supabaseSync';
 import { 
   MapPin, 
   Plus, 
@@ -23,6 +25,7 @@ export const AdminRouteSchedules: React.FC = () => {
   const [selectedDay, setSelectedDay] = useState<string>('all');
   const [selectedPortal, setSelectedPortal] = useState<string>('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // Form State for Adding Route Schedule
   const [newDay, setNewDay] = useState<DayOfWeek>('monday');
@@ -31,6 +34,29 @@ export const AdminRouteSchedules: React.FC = () => {
   const [formError, setFormError] = useState('');
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    if (canUseServerQueries()) {
+      setLoading(true);
+      fetchRouteSchedules()
+        .then((remoteList) => {
+          if (active && remoteList && remoteList.length > 0) {
+            storagePrime('jt_crm_route_schedules', JSON.stringify(remoteList));
+            setRefreshTrigger((t) => t + 1);
+          }
+        })
+        .catch((err) => {
+          console.error('[AdminRouteSchedules] Supabase route schedules fetch error:', err);
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    }
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // Load Route Schedules
   const schedules = useMemo(() => {

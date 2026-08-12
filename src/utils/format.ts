@@ -33,6 +33,20 @@ export const formatTime = (value: string | null | undefined): string => {
 
 export const formatNumber = (value: number): string => (value || 0).toLocaleString('en-US');
 
+/** Human-friendly relative time, e.g. "just now", "4 min ago", "2 hours ago". */
+export const timeAgo = (value: string | null | undefined): string => {
+  if (!value) return '';
+  const then = new Date(value).getTime();
+  if (isNaN(then)) return '';
+  const mins = Math.max(0, Math.floor((Date.now() - then) / 60000));
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? '' : 's'} ago`;
+};
+
 export const initials = (name: string | null | undefined): string => {
   if (!name) return '?';
   return name

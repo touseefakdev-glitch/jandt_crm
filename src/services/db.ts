@@ -2,6 +2,7 @@
 import { supabase, storageGet, storageSet, storagePrime } from './supabaseSync';
 export { supabase };
 import { extractCityFromCompanyName } from '../utils/cityExtractor';
+import { isOperationError, isOrderDifferent } from '../utils/orderWorkflow';
 import { 
   Team, 
   UserProfile, 
@@ -3082,10 +3083,13 @@ class LocalDatabaseService {
 
   public getDailyOrderOperations(options: {
     date: string; // YYYY-MM-DD
-    route?: string;
+    route?: string; // empty/undefined = all active routes for the date
     portal?: PortalType;
     searchTerm?: string;
     statusFilter?: string;
+    orderMatchFilter?: 'all' | 'SAME' | 'DIFFERENT' | 'unset';
+    exceptionFilter?: 'all' | 'error' | 'different' | 'invoice_updated';
+    assignedUserId?: string; // 'all' / '' = everyone, otherwise a profile id
     sortBy?: string;
     operationalArea?: OperationalArea; // client-side area enforcement (defense in depth)
   }): { operations: DailyOrderOperation[]; activeRoutes: string[]; weekday: DayOfWeek } {
@@ -3114,19 +3118,33 @@ class LocalDatabaseService {
       };
 
       const activeRoutes = Array.from(new Set(schedules.map(s => s.city_or_route)));
-      const targetRoute = options.route || activeRoutes[0] || '';
+      const targetRoute = options.route || '';
 
-      if (!targetRoute) {
+      if (activeRoutes.length === 0) {
         return { operations: [], activeRoutes, weekday };
       }
 
-      // Find customers assigned to this route or city
-      const customers = this.getCustomers('').filter(c => {
-        const cRoute = (c.route || '').trim().toLowerCase();
-        const cCity = (c.city || '').trim().toLowerCase();
-        const matchRoute = targetRoute.trim().toLowerCase();
-        return cRoute === matchRoute || cCity === matchRoute;
-      });
+      const normalize = (v: string | null | undefined): string => (v || '').trim().toLowerCase();
+      const routeSet = new Set(activeRoutes.map(r => normalize(r)));
+
+      // Customers assigned to any active route/city (or the single selected route)
+      let customers = this.getCustomers('').filter(c =>
+        routeSet.has(normalize(c.route)) || routeSet.has(normalize(c.city))
+      );
+      if (targetRoute) {
+        const tr = normalize(targetRoute);
+        customers = customers.filter(c =>
+          normalize(c.route) === tr || normalize(c.city) === tr
+        );
+      }
+
+      // Resolve which active route a customer belongs to when all routes are shown
+      const routeForCustomer = (c: Customer): string => {
+        if (targetRoute) return targetRoute;
+        const byRoute = activeRoutes.find(r => normalize(r) === normalize(c.route));
+        if (byRoute) return byRoute;
+        return activeRoutes.find(r => normalize(r) === normalize(c.city)) || activeRoutes[0];
+      };
 
       // Load operations list from storage
       const opsData = storageGet(this.dailyOrderOperationsKey);
@@ -3136,7 +3154,7 @@ class LocalDatabaseService {
       const users = this.getUsers();
       const queries = this.getQueries();
 
-      // Ensure operation record exists for each customer for date & targetRoute
+      // Ensure operation record exists for each customer for date & route
       const resultOps: DailyOrderOperation[] = customers.map(cust => {
         let opIndex = updatedOpsList.findIndex(o => o.customer_id === cust.id && o.operation_date === options.date);
         let op: DailyOrderOperation;
@@ -3151,7 +3169,7 @@ class LocalDatabaseService {
             id: crypto.randomUUID(),
             customer_id: cust.id,
             operation_date: options.date,
-            route: targetRoute,
+            route: routeForCustomer(cust),
             order_received: false,
             sales_order_generated: false,
             invoiced: false,
@@ -3160,7 +3178,7 @@ class LocalDatabaseService {
             error_flag: false,
             exception_status: 'NONE',
             invoice_updated: false,
-            operational_area: areaForRoute(targetRoute),
+            operational_area: areaForRoute(routeForCustomer(cust)),
             status: 'not_started',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -3191,10 +3209,12 @@ class LocalDatabaseService {
       if (options.searchTerm) {
         const q = options.searchTerm.trim().toLowerCase();
         filtered = filtered.filter(o => 
-          o.customer?.company_name.toLowerCase().includes(q) ||
+          o.customer?.company_name?.toLowerCase().includes(q) ||
           o.customer?.contact_person?.toLowerCase().includes(q) ||
           o.customer?.phone?.toLowerCase().includes(q) ||
           o.customer?.whatsapp_number?.toLowerCase().includes(q) ||
+          o.customer?.city?.toLowerCase().includes(q) ||
+          o.route.toLowerCase().includes(q) ||
           o.sales_order_number?.toLowerCase().includes(q) ||
           o.invoice_number?.toLowerCase().includes(q)
         );
@@ -3204,6 +3224,33 @@ class LocalDatabaseService {
         filtered = filtered.filter(o => o.status === options.statusFilter);
       }
 
+      if (options.orderMatchFilter && options.orderMatchFilter !== 'all') {
+        filtered = filtered.filter(o =>
+          options.orderMatchFilter === 'unset' ? !o.order_match : o.order_match === options.orderMatchFilter
+        );
+      }
+
+      if (options.exceptionFilter && options.exceptionFilter !== 'all') {
+        filtered = filtered.filter(o => {
+          if (options.exceptionFilter === 'error') return isOperationError(o);
+          if (options.exceptionFilter === 'different') return isOrderDifferent(o);
+          if (options.exceptionFilter === 'invoice_updated') return Boolean(o.invoice_updated);
+          return false;
+        });
+      }
+
+      if (options.assignedUserId && options.assignedUserId !== 'all') {
+        const uid = options.assignedUserId;
+        filtered = filtered.filter(o =>
+          o.order_received_by === uid ||
+          o.sales_order_generated_by === uid ||
+          o.invoiced_by === uid ||
+          o.dispatched_by === uid ||
+          o.pod_sent_by === uid ||
+          o.updated_by === uid
+        );
+      }
+
       // Sort
       filtered.sort((a, b) => {
         if (options.sortBy === 'status') {
@@ -3211,6 +3258,9 @@ class LocalDatabaseService {
         }
         if (options.sortBy === 'updated_at') {
           return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+        }
+        if (options.sortBy === 'route') {
+          return a.route.localeCompare(b.route) || (a.customer?.company_name || '').localeCompare(b.customer?.company_name || '');
         }
         return (a.customer?.company_name || '').localeCompare(b.customer?.company_name || '');
       });
@@ -3286,7 +3336,7 @@ class LocalDatabaseService {
       // Derive status
       if (updated.error_flag || updated.exception_status === 'ERROR') {
         updated.status = 'error';
-      } else if (updated.order_received && updated.sales_order_generated && updated.invoiced && updated.dispatched) {
+      } else if (updated.order_received && updated.sales_order_generated && updated.invoiced && updated.dispatched && updated.pod_sent) {
         updated.status = 'completed';
       } else if (updated.dispatched) {
         updated.status = 'dispatched';
@@ -3681,7 +3731,7 @@ class LocalDatabaseService {
         error_flag: false,
       };
 
-      if (updated.order_received && updated.sales_order_generated && updated.invoiced && updated.dispatched) {
+      if (updated.order_received && updated.sales_order_generated && updated.invoiced && updated.dispatched && updated.pod_sent) {
         updated.status = 'completed';
       } else if (updated.dispatched) {
         updated.status = 'dispatched';

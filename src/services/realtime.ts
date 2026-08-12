@@ -26,6 +26,7 @@ let pollTimer: number | null = null;
 let isPolling = false;
 let lastPollAt = 0;
 let subscribers = 0;
+let onUpdateHandler: ((row: Record<string, unknown>, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => void) | null = null;
 
 type ChangePayload<T = Record<string, unknown>> = {
   eventType: 'INSERT' | 'UPDATE' | 'DELETE';
@@ -71,18 +72,26 @@ function handleOperationsChange(payload: ChangePayload): void {
   if (payload.eventType === 'DELETE') {
     const id = payload.old?.id;
     if (id) removeRow(OPS_KEY, id);
+    onUpdateHandler?.(payload.old as Record<string, unknown>, payload.eventType);
     return;
   }
-  if (payload.new) mergeRow(OPS_KEY, payload.new);
+  if (payload.new) {
+    mergeRow(OPS_KEY, payload.new);
+    onUpdateHandler?.(payload.new, payload.eventType);
+  }
 }
 
 function handleHistoryChange(payload: ChangePayload): void {
   if (payload.eventType === 'DELETE') {
     const id = payload.old?.id;
     if (id) removeRow(HISTORY_KEY, id);
+    onUpdateHandler?.(payload.old as Record<string, unknown>, payload.eventType);
     return;
   }
-  if (payload.new) mergeRow(HISTORY_KEY, payload.new);
+  if (payload.new) {
+    mergeRow(HISTORY_KEY, payload.new);
+    onUpdateHandler?.(payload.new, payload.eventType);
+  }
 }
 
 function isoDaysAgo(days: number): string {
@@ -147,9 +156,11 @@ async function pollOrders(): Promise<void> {
 
 /** Ensure a single shared channel across multiple subscribers (ref-counted). */
 export function subscribeOrdersRealtime(
-  onStatus?: (status: 'live' | 'connecting' | 'polling' | 'offline') => void
+  onStatus?: (status: 'live' | 'connecting' | 'polling' | 'offline') => void,
+  onUpdate?: (row: Record<string, unknown>, eventType: 'INSERT' | 'UPDATE' | 'DELETE') => void
 ): () => void {
   subscribers += 1;
+  if (onUpdate) onUpdateHandler = onUpdate;
 
   if (subscribers === 1 && supabase && !channel) {
     channel = supabase
@@ -194,6 +205,7 @@ export function subscribeOrdersRealtime(
         pollTimer = null;
       }
       lastPollAt = 0;
+      onUpdateHandler = null;
       onStatus?.('offline');
     }
   };

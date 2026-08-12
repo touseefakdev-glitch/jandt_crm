@@ -574,8 +574,8 @@ class LocalDatabaseService {
       contact_person: input.contact_person?.trim() || null,
       phone: input.phone?.trim() || null,
       whatsapp_number: input.whatsapp_number?.trim() || null,
-      email: null,
-      address: null,
+      email: input.email?.trim() || null,
+      address: input.address?.trim() || null,
       city: city,
       route: input.route?.trim() || null,
       country: input.country?.trim() || 'Canada',
@@ -588,6 +588,31 @@ class LocalDatabaseService {
     };
 
     storageSet(this.customersKey, JSON.stringify([newCustomer, ...customers]));
+
+    if (supabase) {
+      const cleanRow = {
+        id: newCustomer.id,
+        customer_code: newCustomer.customer_code,
+        company_name: newCustomer.company_name,
+        contact_person: newCustomer.contact_person,
+        phone: newCustomer.phone,
+        whatsapp_number: newCustomer.whatsapp_number,
+        email: newCustomer.email,
+        address: newCustomer.address,
+        city: newCustomer.city,
+        route: newCustomer.route,
+        country: newCustomer.country,
+        notes: newCustomer.notes,
+        status: newCustomer.status,
+        created_at: newCustomer.created_at,
+        updated_at: newCustomer.updated_at,
+        created_by: userId || null,
+        updated_by: userId || null,
+      };
+      supabase.from('customers').upsert(cleanRow).then(({ error }) => {
+        if (error) console.error('[Supabase] createCustomer direct write error:', error.message);
+      });
+    }
 
     const userProfile = this.getUserById(userId);
     return {
@@ -611,15 +636,15 @@ class LocalDatabaseService {
     const updated: Customer = {
       ...existing,
       company_name: companyName,
-      contact_person: input.contact_person?.trim() || null,
-      phone: input.phone?.trim() || null,
+      contact_person: input.contact_person !== undefined ? (input.contact_person?.trim() || null) : existing.contact_person,
+      phone: input.phone !== undefined ? (input.phone?.trim() || null) : existing.phone,
       whatsapp_number: input.whatsapp_number !== undefined ? (input.whatsapp_number?.trim() || null) : existing.whatsapp_number,
-      email: null,
-      address: null,
+      email: input.email !== undefined ? (input.email?.trim() || null) : existing.email,
+      address: input.address !== undefined ? (input.address?.trim() || null) : existing.address,
       city: city,
       route: input.route !== undefined ? (input.route?.trim() || null) : existing.route,
-      country: input.country?.trim() || 'Canada',
-      notes: input.notes?.trim() || null,
+      country: input.country !== undefined ? (input.country?.trim() || 'Canada') : existing.country,
+      notes: input.notes !== undefined ? (input.notes?.trim() || null) : existing.notes,
       status: input.status || existing.status,
       updated_at: new Date().toISOString(),
       updated_by: userId,
@@ -627,6 +652,29 @@ class LocalDatabaseService {
 
     customers[index] = updated;
     storageSet(this.customersKey, JSON.stringify(customers));
+
+    if (supabase) {
+      const cleanRow = {
+        id: updated.id,
+        customer_code: updated.customer_code,
+        company_name: updated.company_name,
+        contact_person: updated.contact_person,
+        phone: updated.phone,
+        whatsapp_number: updated.whatsapp_number,
+        email: updated.email,
+        address: updated.address,
+        city: updated.city,
+        route: updated.route,
+        country: updated.country,
+        notes: updated.notes,
+        status: updated.status,
+        updated_at: updated.updated_at,
+        updated_by: userId || null,
+      };
+      supabase.from('customers').upsert(cleanRow).then(({ error }) => {
+        if (error) console.error('[Supabase] updateCustomer direct write error:', error.message);
+      });
+    }
 
     const updater = this.getUserById(userId);
     const creator = existing.created_by ? this.getUserById(existing.created_by) : null;

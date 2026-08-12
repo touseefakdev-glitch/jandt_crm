@@ -42,6 +42,7 @@ const stepIcons: Record<DailyOpStepKey, React.ReactNode> = {
   sales_order_generated: <FileText className="w-3.5 h-3.5" />,
   invoiced: <ReceiptText className="w-3.5 h-3.5" />,
   dispatched: <Truck className="w-3.5 h-3.5" />,
+  order_match: <Scale className="w-3.5 h-3.5" />,
   pod_sent: <Send className="w-3.5 h-3.5" />,
 };
 
@@ -50,6 +51,7 @@ const stepColors: Record<DailyOpStepKey, { done: string; active: string }> = {
   sales_order_generated: { done: 'bg-indigo-500 text-white', active: 'text-indigo-600' },
   invoiced: { done: 'bg-purple-500 text-white', active: 'text-purple-600' },
   dispatched: { done: 'bg-emerald-500 text-white', active: 'text-emerald-600' },
+  order_match: { done: 'bg-teal-500 text-white', active: 'text-teal-600' },
   pod_sent: { done: 'bg-cyan-500 text-white', active: 'text-cyan-600' },
 };
 
@@ -236,16 +238,21 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
                   {canUpdateOrderMatch ? 'Update Match' : 'View Match'}
                 </button>
               </div>
+            ) : !op.dispatched ? (
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-slate-500 font-medium italic">⏳ Waiting for Dispatch</span>
+                <span className="text-[10px] text-slate-400">Available after order dispatch</span>
+              </div>
             ) : (
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs text-slate-500">Not yet matched</span>
+                <span className="text-xs font-semibold text-amber-800">Match Required</span>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => onOpenOrderMatch(op)}
                   disabled={!canUpdateOrderMatch}
                 >
-                  Set Match
+                  Check Match
                 </Button>
               </div>
             )}

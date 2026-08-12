@@ -53,6 +53,7 @@ const stepIcons: Record<DailyOpStepKey, React.ReactNode> = {
   sales_order_generated: <FileText className="w-3 h-3" />,
   invoiced: <ReceiptText className="w-3 h-3" />,
   dispatched: <Truck className="w-3 h-3" />,
+  order_match: <Scale className="w-3 h-3" />,
   pod_sent: <Send className="w-3 h-3" />,
 };
 
@@ -302,15 +303,19 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
               <Scale className="w-3 h-3" />
               {op.order_match === 'DIFFERENT' ? '⚠ Different' : '✓ Same'}
             </button>
+          ) : !op.dispatched ? (
+            <span className="text-[10px] font-medium text-[#7B8CA4] italic px-2 py-0.5" title="Matching available after dispatch">
+              ⏳ Wait for Dispatch
+            </span>
           ) : (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 if (canUpdateOrderMatch) onOpenOrderMatch(op);
               }}
-              className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-dashed border-[#C4D0E0] text-[#7B8CA4] hover:text-teal-700"
+              className="text-[10px] font-bold px-2.5 py-1 rounded-full border border-teal-300 text-teal-800 bg-teal-50 hover:bg-teal-100 shadow-xs transition-all animate-pulse"
             >
-              Set Match
+              Check Match
             </button>
           )}
 

@@ -10,7 +10,7 @@
 2. **Zero Page Horizontal Scroll:** The page container (`html`, `body`, `main`) NEVER scrolls horizontally. Only explicit filter-chip containers use `overflow-x-auto`.
 3. **Instant Operational Clarity:** A user looking at any mobile order card understands within 2 seconds:
    - What order/customer this is.
-   - The 5-stage progress checklist (`Received` → `SO` → `Invoice` → `Dispatch` → `POD`).
+   - The 6-stage progress checklist (`Received` → `SO` → `Invoice` → `Dispatch` → `Match` → `POD`).
    - The exact **NEXT ACTION** required to advance the order.
 4. **Touch Target Standard:** All interactive elements (buttons, filter chips, dropdown triggers, bottom nav items) have a minimum touch target area of **44 × 44px**.
 
@@ -50,21 +50,21 @@ Each order card presents essential operational context without clutter:
 │ ABC Medical Supplies                                       │
 │ Kelowna • Main Route                                       │
 │                                                            │
-│ [ ✓ Rec  ✓ SO  ✓ Inv  ○ Disp  ○ POD ]                      │
+│ [ ✓ Rec  ✓ SO  ✓ Inv  ✓ Disp  ⏳ Match  ○ POD ]             │
 │                                                            │
 │ ┌────────────────────────────────────────────────────────┐ │
-│ │ NEXT ACTION: DISPATCH                        [Execute] │ │
+│ │ NEXT ACTION: MATCH SALES ORDER WITH INVOICE  [Execute] │ │
 │ └────────────────────────────────────────────────────────┘ │
 │                                                            │
-│ ✓ SAME                                       10 mins ago   │
+│ ⏳ Wait for Dispatch / Check Match          10 mins ago   │
 └────────────────────────────────────────────────────────────┘
 ```
 
-- **Top Row:** Customer/Order Code badge, Operational Area badge (`[KELOWNA]` or `[OUTSIDE KELOWNA]`), and 3-dot dropdown menu (`•••` for Quick Actions: View Details, Set Match, Report Issue).
+- **Top Row:** Customer/Order Code badge, Operational Area badge (`[KELOWNA]` or `[OUTSIDE KELOWNA]`), and 3-dot dropdown menu (`•••` for Quick Actions: View Details, Check Match, Report Issue).
 - **Customer Row:** Company name (15px bold text), City, Route.
-- **Workflow Checklist Rail:** Visual status chips showing completed stages with green checkmarks and active glowing indicators.
-- **NEXT ACTION Banner:** High-visibility banner highlighting the next required stage (e.g. `NEXT: GENERATE SALES ORDER` with a 1-tap `[Execute]` button if permissions allow, or `✓ Completed`).
-- **Order Match Indicator:** `✓ SAME` or `⚠ DIFFERENT` (with expandable difference note).
+- **Workflow Checklist Rail:** Visual status chips showing completed stages with green checkmarks and active glowing indicators (`Rec` → `SO` → `Invoice` → `Dispatch` → `Match` → `POD`).
+- **NEXT ACTION Banner:** High-visibility banner highlighting the next required stage (e.g. `NEXT: DISPATCH ORDER`, `NEXT: MATCH SALES ORDER WITH INVOICE`, `NEXT: SEND POD`, or `✓ Completed`).
+- **Order Match Indicator:** `⏳ Wait for Dispatch` before dispatch, `[ Check Match ]` after dispatch, `✓ SAME` or `⚠ DIFFERENT` (with expandable difference note).
 
 ---
 

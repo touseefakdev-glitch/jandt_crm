@@ -5,6 +5,18 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.33.0] - 2026-08-12
+
+### Changed
+- **Order Workflow Change — Moved Sales Order vs. Invoice Matching to After Dispatch.**
+  - **New Workflow Sequence**: `Order Received` ➔ `Sales Order` ➔ `Invoiced` ➔ `Dispatched` ➔ `SO vs Invoice Match` ➔ `POD Sent`.
+  - **Invoice Creation Scope**: Creating an invoice sets `invoiced = true`. It does **not** trigger matching, set match results, or auto-complete the order.
+  - **Post-Dispatch Match Gate**: Before dispatch (`!op.dispatched`), matching status shows `⏳ Wait for Dispatch`. After dispatch (`op.dispatched === true`), matching becomes active (`MATCH REQUIRED` / `Check Match`).
+  - **POD Advancement Gate**: Advancing to `POD Sent` requires the post-dispatch match to be completed (`MATCHED_SAME` or `MATCHED_DIFFERENT` with an updated invoice).
+  - **Next Action Banner**: Updated to guide agents sequentially (`NEXT: DISPATCH ORDER` ➔ `NEXT: MATCH SALES ORDER WITH INVOICE` ➔ `NEXT: SEND POD`).
+  - **Validation & Guards**: `updateDailyOrderMatch` in `src/services/db.ts` enforces `op.dispatched === true`.
+  - **Documentation**: Updated `PROJECT_SPEC.md`, `MOBILE_UX.md`, and `CHANGELOG.md`.
+
 ## [1.32.0] - 2026-08-12
 
 ### Added & Changed

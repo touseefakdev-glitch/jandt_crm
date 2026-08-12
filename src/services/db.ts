@@ -3609,6 +3609,9 @@ class LocalDatabaseService {
       if (index === -1) return null;
 
       const existing = opsList[index];
+      if (!existing.dispatched) {
+        throw new Error('Sales Order vs Invoice matching can only be performed after the order has been dispatched.');
+      }
       const now = new Date().toISOString();
       const previousMatch = existing.order_match || 'None';
 

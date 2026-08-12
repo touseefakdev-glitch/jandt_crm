@@ -111,6 +111,7 @@ const STEP_THEME: Record<DailyOpStepKey, { done: string; active: string; header:
   sales_order_generated: { done: 'bg-indigo-500 text-white', active: 'text-indigo-600', header: 'text-indigo-600', icon: <FileText className="w-3.5 h-3.5" /> },
   invoiced: { done: 'bg-purple-500 text-white', active: 'text-purple-600', header: 'text-purple-600', icon: <ReceiptText className="w-3.5 h-3.5" /> },
   dispatched: { done: 'bg-emerald-500 text-white', active: 'text-emerald-600', header: 'text-emerald-600', icon: <Truck className="w-3.5 h-3.5" /> },
+  order_match: { done: 'bg-teal-500 text-white', active: 'text-teal-600', header: 'text-teal-600', icon: <Scale className="w-3.5 h-3.5" /> },
   pod_sent: { done: 'bg-cyan-500 text-white', active: 'text-cyan-600', header: 'text-cyan-600', icon: <Send className="w-3.5 h-3.5" /> },
 };
 
@@ -391,7 +392,9 @@ export const Orders: React.FC = () => {
   const handleConfirmUndoStep = (reason: string) => {
     if (!activeUndoModal) return;
     try {
-      localDb.revertDailyOrderOperationStep(activeUndoModal.op.id, activeUndoModal.step, reason, user!.id);
+      if (activeUndoModal.step !== 'order_match') {
+        localDb.revertDailyOrderOperationStep(activeUndoModal.op.id, activeUndoModal.step as any, reason, user!.id);
+      }
       markSelfAction();
       toast({ type: 'info', title: 'Step Reverted', message: `Reverted ${activeUndoModal.stepName} for ${activeUndoModal.op.customer?.company_name}` });
     } catch (err: any) { toast({ type: 'error', title: 'Revert Failed', message: err.message }); }
@@ -403,6 +406,7 @@ export const Orders: React.FC = () => {
       case 'sales_order_generated': handleToggleSalesOrderGenerated(op); break;
       case 'invoiced': handleToggleInvoiced(op); break;
       case 'dispatched': handleToggleDispatched(op); break;
+      case 'order_match': handleOpenOrderMatch(op); break;
       case 'pod_sent': handleTogglePODSent(op); break;
     }
   };
@@ -414,6 +418,7 @@ export const Orders: React.FC = () => {
     else if (step === 'sales_order_generated') handleToggleSalesOrderGenerated(op);
     else if (step === 'invoiced') handleToggleInvoiced(op);
     else if (step === 'dispatched') handleToggleDispatched(op);
+    else if (step === 'order_match') handleOpenOrderMatch(op);
     else handleTogglePODSent(op);
   };
 
@@ -423,7 +428,8 @@ export const Orders: React.FC = () => {
       case 'sales_order_generated': return !op.order_received;
       case 'invoiced': return !op.sales_order_generated;
       case 'dispatched': return !op.invoiced;
-      case 'pod_sent': return !op.dispatched;
+      case 'order_match': return !op.dispatched;
+      case 'pod_sent': return !op.dispatched || !isStepDone(op, 'order_match');
     }
   };
 
@@ -454,7 +460,7 @@ export const Orders: React.FC = () => {
   };
 
   const renderStepCell = (op: DailyOrderOperation, step: DailyOpStepKey) => {
-    const theme = STEP_THEME[step];
+    const theme = STEP_THEME[step] ?? STEP_THEME.order_received;
     const def = ORDER_WORKFLOW_STEPS.find((s) => s.key === step)!;
     const done = isStepDone(op, step);
     const locked = isStepLocked(op, step);
@@ -462,7 +468,7 @@ export const Orders: React.FC = () => {
       <div className="flex flex-col items-center gap-1.5">
         <button
           onClick={() => toggleStepFor(op, step)}
-          disabled={!canUpdate}
+          disabled={!canUpdate || locked}
           title={done ? `${def.label} complete — click to revert` : locked ? 'Complete the previous stage first' : `Mark ${def.label} done`}
           aria-label={done ? `Revert ${step}` : `Complete ${step}`}
           className={cn(
@@ -509,6 +515,17 @@ export const Orders: React.FC = () => {
   };
 
   const renderOrderMatchCell = (op: DailyOrderOperation) => {
+    if (!op.dispatched) {
+      return (
+        <span
+          className="text-[10px] font-medium text-slate-400 italic px-2 py-0.5"
+          title="Sales Order vs Invoice matching is available after dispatch"
+        >
+          ⏳ Wait for Dispatch
+        </span>
+      );
+    }
+
     if (op.order_match) {
       const isDiff = op.order_match === 'DIFFERENT';
       return (
@@ -516,12 +533,12 @@ export const Orders: React.FC = () => {
           onClick={() => handleOpenOrderMatch(op)}
           disabled={!canUpdateOrderMatch}
           className={cn(
-            'inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all',
+            'inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full border transition-all',
             isDiff
-              ? 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+              ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
               : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
           )}
-          title={op.difference_note || 'Order vs invoice match'}
+          title={op.difference_note || 'Sales Order vs Invoice match'}
         >
           <Scale className="w-3 h-3 shrink-0" />
           {isDiff ? 'Different' : 'Same'}
@@ -532,10 +549,10 @@ export const Orders: React.FC = () => {
       <button
         onClick={() => handleOpenOrderMatch(op)}
         disabled={!canUpdateOrderMatch}
-        className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-dashed border-slate-300 text-slate-400 hover:text-teal-700 hover:border-teal-400 transition-all"
-        title="Set order match"
+        className="text-[10px] font-bold px-2.5 py-1 rounded-full border border-teal-300 text-teal-800 bg-teal-50 hover:bg-teal-100 shadow-xs transition-all animate-pulse"
+        title="Compare Sales Order vs Invoice after dispatch"
       >
-        Set Match
+        Check Match
       </button>
     );
   };
@@ -937,8 +954,8 @@ export const Orders: React.FC = () => {
                     <Th width={90} align="center">Received</Th>
                     <Th width={120} align="center">Sales Order</Th>
                     <Th width={120} align="center">Invoiced</Th>
-                    <Th width={110} align="center">Order Match</Th>
                     <Th width={90} align="center">Dispatched</Th>
+                    <Th width={110} align="center">Order Match</Th>
                     <Th width={90} align="center">POD Sent</Th>
                     <Th width={120}>Exception</Th>
                     <Th width={120}>Last Updated</Th>
@@ -1002,11 +1019,11 @@ export const Orders: React.FC = () => {
                       {/* Step 3: Invoiced + Invoice # */}
                       <Td width={120} className="text-center">{renderStepCell(op, 'invoiced')}</Td>
 
-                      {/* Order Match */}
-                      <Td width={110} className="text-center">{renderOrderMatchCell(op)}</Td>
-
                       {/* Step 4: Dispatched */}
                       <Td width={90} className="text-center">{renderStepCell(op, 'dispatched')}</Td>
+
+                      {/* Order Match */}
+                      <Td width={110} className="text-center">{renderOrderMatchCell(op)}</Td>
 
                       {/* Step 5: POD Sent */}
                       <Td width={90} className="text-center">{renderStepCell(op, 'pod_sent')}</Td>

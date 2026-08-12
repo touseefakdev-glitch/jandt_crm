@@ -6,6 +6,7 @@ import { notificationService } from '../services/notificationService';
 import { fetchDashboardStats, DashboardStats } from '../services/queryService';
 import { useServerQuery } from '../hooks/useServerQuery';
 import { getNotificationPriorityBadge, getQueryPriorityBadge, getQueryStatusBadge, getRoleBadge } from '../utils/badges';
+import { MyWorkQueues } from '../components/work/MyWorkQueues';
 import { Avatar, Badge, Card, CardBody, CardHeader, EmptyState, StatCard, Table, TBody, Td, Th, THead, Tr } from '../components/ui';
 import {
   Bell,
@@ -155,6 +156,21 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* My Work — Permission-derived action queues */}
+      <Card>
+        <CardHeader
+          title="My Work — Action Queues"
+          actions={
+            <Link to="/my-work" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 hover:underline">
+              Open My Work Center <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          }
+        />
+        <CardBody className="pt-4">
+          <MyWorkQueues compact />
+        </CardBody>
+      </Card>
 
       {/* Handover Action Banner */}
       {pendingIncomingHandover && (

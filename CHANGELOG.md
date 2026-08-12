@@ -5,6 +5,17 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.29.0] - 2026-08-12
+
+### Added
+- **Role-Based Orders & Query Operations UI (Phase 2)**:
+  - **Capability model** (`src/services/access.ts`): granular, role + operational-area derived capabilities (`orders:receive`, `orders:createSalesOrder`, `orders:invoice`, `orders:dispatch`, `orders:sendPod`, `orders:updateOrderMatch`, `queries:view`, `queries:manage`, `queries:verify`, `customers:*`, `products:*`, `admin`) plus area-scoping helpers and a four-eyes `canVerifyQuery`. No usernames are hard-coded anywhere.
+  - **Permission-derived navigation** (`Sidebar.tsx`): sections `Work` / `Operations` / `Queries` / `Administration` built from capabilities, with live queue badges on `Daily Operations` (today's pending, area-scoped) and `Support Queries` (active open count).
+  - **My Work center** (`src/pages/MyWork.tsx`, route `/my-work`, index redirect target): per-user action-queue page whose cards are computed purely from capabilities and link to pre-filtered lists (Orders honors `?status=` / `?quick=different`; Queries honors `?tab=` / `?status=`). Shared component `src/components/work/MyWorkQueues.tsx` also feeds the dashboard's new "My Work — Action Queues" card.
+  - **Query resolution verification**: new `verified` query status (`QUERY_STATUS` enum + `queryStatusBadges` + `QueryStatusModal` + `QueryDetail` actions) completing `OPEN → ASSIGNED → IN_PROGRESS → RESOLVED → VERIFIED → CLOSED`; self-verification is blocked; "Fail Verification" returns the ticket to `IN_PROGRESS`; `verified_at` / `verified_by` recorded and shown in the resolution record. `Queries` page gained a `Verified` status filter.
+  - **Database migration** `database/migrations/05_query_verified_status.sql`: `ALTER TYPE query_status ADD VALUE IF NOT EXISTS 'verified'`, `verified_at` / `verified_by` columns + index; `database/schema.sql` updated.
+  - **Docs**: `PROJECT_SPEC.md` gained a "Role-Based Orders & Query Operations UI (Phase 2)" section.
+
 ## [1.28.0] - 2026-08-12
 
 ### Added

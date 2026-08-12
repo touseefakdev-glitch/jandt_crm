@@ -70,7 +70,7 @@ export interface CustomerFormInput {
 
 export type QueryPriority = 'low' | 'medium' | 'high' | 'urgent';
 
-export type QueryStatus = 'new' | 'assigned' | 'in_progress' | 'waiting_customer' | 'resolved' | 'closed' | 'reopened' | 'open';
+export type QueryStatus = 'new' | 'assigned' | 'in_progress' | 'waiting_customer' | 'resolved' | 'verified' | 'closed' | 'reopened' | 'open';
 
 export interface QueryCategory {
   id: string;
@@ -107,6 +107,9 @@ export interface CustomerQuery {
   resolved_by: string | null;
   resolved_by_profile?: UserProfile | null;
   resolution: string | null;
+  verified_at?: string | null;
+  verified_by?: string | null;
+  verified_by_profile?: UserProfile | null;
   closed_at: string | null;
   closed_by: string | null;
   closed_by_profile?: UserProfile | null;

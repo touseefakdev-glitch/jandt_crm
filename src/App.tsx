@@ -13,6 +13,7 @@ import { PageSkeleton } from './components/ui/Skeleton';
  */
 const Login = lazy(() => import('./pages/Login').then((m) => ({ default: m.Login })));
 const Dashboard = lazy(() => import('./pages/Dashboard').then((m) => ({ default: m.Dashboard })));
+const MyWork = lazy(() => import('./pages/MyWork').then((m) => ({ default: m.MyWork })));
 const Customers = lazy(() => import('./pages/Customers').then((m) => ({ default: m.Customers })));
 const CustomerDetail = lazy(() => import('./pages/CustomerDetail').then((m) => ({ default: m.CustomerDetail })));
 const Queries = lazy(() => import('./pages/Queries').then((m) => ({ default: m.Queries })));
@@ -64,7 +65,8 @@ export const App: React.FC = () => {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route index element={<Navigate to="/my-work" replace />} />
+            <Route path="my-work" element={<MyWork />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="customers" element={<Customers />} />
             <Route path="customers/:id" element={<CustomerDetail />} />

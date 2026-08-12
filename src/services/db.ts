@@ -744,6 +744,7 @@ class LocalDatabaseService {
         assigned_team: assignedTeamId ? teams.find(t => t.id === assignedTeamId) || null : null,
         created_by_profile: q.created_by ? users.find(u => u.id === q.created_by) || null : null,
         resolved_by_profile: q.resolved_by ? users.find(u => u.id === q.resolved_by) || null : null,
+        verified_by_profile: q.verified_by ? users.find(u => u.id === q.verified_by) || null : null,
         closed_by_profile: q.closed_by ? users.find(u => u.id === q.closed_by) || null : null,
         reopened_by_profile: q.reopened_by ? users.find(u => u.id === q.reopened_by) || null : null,
         attachments: this.getQueryAttachments(q.id),
@@ -999,6 +1000,9 @@ class LocalDatabaseService {
       updated.resolved_at = new Date().toISOString();
       updated.resolved_by = currentUserId;
       updated.resolution = extraData!.resolution!.trim();
+    } else if (targetStatus === 'verified') {
+      updated.verified_at = new Date().toISOString();
+      updated.verified_by = currentUserId;
     } else if (targetStatus === 'closed') {
       updated.closed_at = new Date().toISOString();
       updated.closed_by = currentUserId;

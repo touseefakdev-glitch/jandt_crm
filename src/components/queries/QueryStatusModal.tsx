@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CustomerQuery, QueryStatus } from '../../types';
-import { AlertCircle, CheckCircle2, RotateCcw, Lock, AlertTriangle } from 'lucide-react';
+import { AlertCircle, CheckCircle2, RotateCcw, Lock, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { Badge, Button, Modal, Textarea } from '../ui';
 import { getQueryStatusBadge } from '../../utils/badges';
 
@@ -18,6 +18,7 @@ const getStatusLabel = (status: QueryStatus) => {
     case 'in_progress': return 'In Progress';
     case 'waiting_customer': return 'Waiting for Customer';
     case 'resolved': return 'Resolved';
+    case 'verified': return 'Verified';
     case 'closed': return 'Closed';
     case 'reopened': return 'Reopened';
     default: return status;
@@ -26,6 +27,7 @@ const getStatusLabel = (status: QueryStatus) => {
 
 const STATUS_STYLES: Record<QueryStatus, { icon: React.ReactNode; button: 'primary' | 'success' }> = {
   resolved: { icon: <CheckCircle2 className="w-5 h-5 text-emerald-600" />, button: 'success' },
+  verified: { icon: <ShieldCheck className="w-5 h-5 text-emerald-600" />, button: 'success' },
   closed: { icon: <Lock className="w-5 h-5 text-slate-600" />, button: 'primary' },
   reopened: { icon: <RotateCcw className="w-5 h-5 text-amber-600" />, button: 'primary' },
   in_progress: { icon: <AlertTriangle className="w-5 h-5 text-sky-600" />, button: 'primary' },
@@ -137,6 +139,22 @@ export const QueryStatusModal: React.FC<QueryStatusModalProps> = ({
             <p className="text-[11px] text-slate-500 mt-1">
               The reopen reason will be permanently recorded in the ticket audit history.
             </p>
+          </div>
+        )}
+
+        {targetStatus === 'verified' && (
+          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800 space-y-2">
+            <p className="font-semibold text-emerald-900">Confirm Verification?</p>
+            <p>
+              This records that the resolution of <span className="font-bold">{query.query_number}</span> has been independently
+              verified by a second person. You cannot verify a query you resolved yourself.
+            </p>
+            {query.resolution && (
+              <div className="p-2.5 bg-white rounded border border-emerald-200 font-mono text-[11px] text-slate-700">
+                <span className="font-bold text-slate-900 block font-sans">Recorded Resolution:</span>
+                {query.resolution}
+              </div>
+            )}
           </div>
         )}
 

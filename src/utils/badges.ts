@@ -66,6 +66,7 @@ export const queryStatusBadges: Record<QueryStatus, BadgeStyle> = {
   in_progress: { subtle: 'bg-sky-50 text-sky-800 ring-sky-200', solid: 'bg-sky-600 text-white', dot: 'bg-sky-500', label: 'In Progress' },
   waiting_customer: { subtle: 'bg-amber-50 text-amber-800 ring-amber-200', solid: 'bg-amber-500 text-white', dot: 'bg-amber-500', label: 'Waiting for Customer' },
   resolved: { subtle: 'bg-green-50 text-green-700 ring-green-200', solid: 'bg-green-500 text-white', dot: 'bg-green-500', label: 'Resolved' },
+  verified: { subtle: 'bg-emerald-50 text-emerald-800 ring-emerald-200', solid: 'bg-emerald-600 text-white', dot: 'bg-emerald-500', label: 'Verified' },
   closed: { subtle: 'bg-[#E9EFF5] text-[#52606D] ring-[#D9E2EC]', solid: 'bg-[#829AB1] text-white', dot: 'bg-[#829AB1]', label: 'Closed' },
   reopened: { subtle: 'bg-amber-50 text-amber-800 ring-amber-200', solid: 'bg-amber-500 text-white', dot: 'bg-amber-500', label: 'Reopened' },
   open: { subtle: 'bg-teal-50 text-teal-800 ring-teal-200', solid: 'bg-teal-500 text-white', dot: 'bg-teal-500', label: 'Open' },

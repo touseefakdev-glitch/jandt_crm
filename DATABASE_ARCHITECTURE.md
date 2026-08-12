@@ -63,7 +63,22 @@ SUCCESSFUL RESPONSE ACKNOWLEDGMENT
 UI STATE UPDATE & REALTIME BROADCAST
 ```
 
-If the Supabase PostgreSQL write fails (e.g. RLS violation or constraint error), the operation throws an explicit exception, a error toast is presented to the user, and the UI state is **not** updated.
+If the Supabase PostgreSQL write fails (e.g. RLS violation or constraint error), the operation throws an explicit exception, an error toast is presented to the user, and the UI state is **not** updated.
+
+### Customer Update Flow Detail
+```
+Edit Form Submit
+      ↓
+Frontend Form Validation (Company Name required)
+      ↓
+Awaited Supabase PostgreSQL UPDATE Query (.update(payload).eq('id', customerId).select().single())
+      ↓
+Check Supabase Response (throw Error if error returned)
+      ↓
+Update Local Memory Cache & Refresh Query List
+      ↓
+Display Success Notification Toast & Close Modal
+```
 
 ---
 

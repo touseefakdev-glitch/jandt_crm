@@ -5,6 +5,16 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.34.1] - 2026-08-12
+
+### Fixed & Security
+- **Critical Bug Fix — Customer Update Persistence & Error Handling.**
+  - **Awaited Supabase `.update()`**: Converted `localDb.updateCustomer`, `createCustomer`, and `toggleCustomerStatus` to `async` methods that await direct targeted Supabase PostgreSQL updates (`supabase.from('customers').update(payload).eq('id', customerId).select().single()`).
+  - **Explicit Error Propagation**: Removed swallowed background Promise errors. If Supabase returns an error, the operation throws an exception, presents an error toast (*"Customer could not be updated: [error]"*), and leaves the form open for correction without falsely claiming success.
+  - **Race Condition Resolution**: Prevented `refreshCustomers()` from fetching stale un-updated data by awaiting the Supabase update response before triggering list refetches.
+  - **Double-Submission Prevention**: Added `isSubmitting` state to `CustomerFormModal.tsx` to disable the submit button while database requests are pending.
+  - **Documentation**: Updated `DATABASE_ARCHITECTURE.md` and `CHANGELOG.md`.
+
 ## [1.34.0] - 2026-08-12
 
 ### Changed & Security

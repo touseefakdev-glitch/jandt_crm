@@ -82,29 +82,53 @@ export const CustomerDetail: React.FC = () => {
     );
   }
 
-  const handleUpdateCustomer = (data: CustomerFormInput) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleUpdateCustomer = async (data: CustomerFormInput) => {
     if (!user) return;
-    const updated = localDb.updateCustomer(customer.id, data, user.id);
-    if (updated) {
-      setCustomer(updated);
-      toast({ type: 'success', title: 'Customer updated', message: `Customer "${updated.company_name}" updated successfully.` });
+    setIsSubmitting(true);
+    try {
+      const updated = await localDb.updateCustomer(customer.id, data, user.id);
+      if (updated) {
+        setCustomer(updated);
+        toast({ type: 'success', title: 'Customer updated', message: `Customer "${updated.company_name}" saved to database.` });
+      }
+      setIsEditModalOpen(false);
+    } catch (err: any) {
+      console.error('[CustomerDetail] Customer update error:', err);
+      toast({
+        type: 'error',
+        title: 'Customer could not be updated',
+        message: err.message || 'A database error occurred while updating the customer.',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsEditModalOpen(false);
   };
 
-  const handleToggleStatus = () => {
+  const handleToggleStatus = async () => {
     if (!user || !isAdmin) return;
     const newStatus = customer.status === 'active' ? 'inactive' : 'active';
-    const updated = localDb.toggleCustomerStatus(customer.id, newStatus, user.id);
-    if (updated) {
-      setCustomer(updated);
+    try {
+      const updated = await localDb.toggleCustomerStatus(customer.id, newStatus, user.id);
+      if (updated) {
+        setCustomer(updated);
+        toast({
+          type: 'success',
+          title: 'Customer status changed',
+          message: `Customer "${updated.company_name}" has been ${newStatus === 'active' ? 'activated' : 'deactivated'}.`,
+        });
+      }
+    } catch (err: any) {
+      console.error('[CustomerDetail] Status toggle error:', err);
       toast({
-        type: 'success',
-        title: 'Customer status changed',
-        message: `Customer "${updated.company_name}" has been ${newStatus === 'active' ? 'activated' : 'deactivated'}.`,
+        type: 'error',
+        title: 'Status change failed',
+        message: err.message || 'Could not update status in database.',
       });
+    } finally {
+      setConfirmStatusOpen(false);
     }
-    setConfirmStatusOpen(false);
   };
 
   const tabs: { key: TabKey; label: string; icon: React.ReactNode; count?: number }[] = [
@@ -498,7 +522,7 @@ export const CustomerDetail: React.FC = () => {
         </Card>
       )}
 
-      <CustomerFormModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} onSubmit={handleUpdateCustomer} customerToEdit={customer} />
+      <CustomerFormModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} onSubmit={handleUpdateCustomer} customerToEdit={customer} isSubmitting={isSubmitting} />
 
       <QueryFormModal
         isOpen={isCreateQueryModalOpen}

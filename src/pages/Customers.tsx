@@ -60,6 +60,8 @@ export const Customers: React.FC = () => {
 
   const totalPages = Math.ceil(totalCustomers / ITEMS_PER_PAGE) || 1;
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleOpenCreateModal = () => {
     setCustomerToEdit(null);
     setIsModalOpen(true);
@@ -70,34 +72,56 @@ export const Customers: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleFormSubmit = (data: CustomerFormInput) => {
+  const handleFormSubmit = async (data: CustomerFormInput) => {
     if (!user) return;
-    if (customerToEdit) {
-      const updated = localDb.updateCustomer(customerToEdit.id, data, user.id);
-      if (updated) {
-        toast({ type: 'success', title: 'Customer updated', message: `Customer "${updated.company_name}" updated successfully.` });
+    setIsSubmitting(true);
+    try {
+      if (customerToEdit) {
+        const updated = await localDb.updateCustomer(customerToEdit.id, data, user.id);
+        if (updated) {
+          toast({ type: 'success', title: 'Customer updated', message: `Customer "${updated.company_name}" saved to database.` });
+        }
+      } else {
+        const created = await localDb.createCustomer(data, user.id);
+        toast({ type: 'success', title: 'Customer created', message: `Customer "${created.company_name}" (${created.customer_code}) created successfully.` });
       }
-    } else {
-      const created = localDb.createCustomer(data, user.id);
-      toast({ type: 'success', title: 'Customer created', message: `Customer "${created.company_name}" (${created.customer_code}) created successfully.` });
+      setIsModalOpen(false);
+      await refreshCustomers();
+    } catch (err: any) {
+      console.error('[Customers] Customer save error:', err);
+      toast({
+        type: 'error',
+        title: 'Customer could not be saved',
+        message: err.message || 'A database error occurred while updating the customer.',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsModalOpen(false);
-    refreshCustomers();
   };
 
-  const handleConfirmToggleStatus = () => {
+  const handleConfirmToggleStatus = async () => {
     if (!deactivateTarget || !user || !isAdmin) return;
     const newStatus: CustomerStatus = deactivateTarget.status === 'active' ? 'inactive' : 'active';
-    const updated = localDb.toggleCustomerStatus(deactivateTarget.id, newStatus, user.id);
-    if (updated) {
+    try {
+      const updated = await localDb.toggleCustomerStatus(deactivateTarget.id, newStatus, user.id);
+      if (updated) {
+        toast({
+          type: 'success',
+          title: 'Customer status changed',
+          message: `Customer "${updated.company_name}" has been ${newStatus === 'active' ? 'activated' : 'deactivated'}.`,
+        });
+        await refreshCustomers();
+      }
+    } catch (err: any) {
+      console.error('[Customers] Toggle status error:', err);
       toast({
-        type: 'success',
-        title: 'Customer status changed',
-        message: `Customer "${updated.company_name}" has been ${newStatus === 'active' ? 'activated' : 'deactivated'}.`,
+        type: 'error',
+        title: 'Status change failed',
+        message: err.message || 'Could not update customer status in database.',
       });
-      refreshCustomers();
+    } finally {
+      setDeactivateTarget(null);
     }
-    setDeactivateTarget(null);
   };
 
   return (
@@ -272,7 +296,7 @@ export const Customers: React.FC = () => {
         )}
       </Card>
 
-      <CustomerFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleFormSubmit} customerToEdit={customerToEdit} />
+      <CustomerFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleFormSubmit} customerToEdit={customerToEdit} isSubmitting={isSubmitting} />
 
       <ConfirmDialog
         isOpen={!!deactivateTarget}

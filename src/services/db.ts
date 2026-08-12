@@ -560,12 +560,13 @@ class LocalDatabaseService {
     return `CUST-${nextNum.toString().padStart(6, '0')}`;
   }
 
-  public createCustomer(input: CustomerFormInput, userId: string): Customer {
+  public async createCustomer(input: CustomerFormInput, userId: string): Promise<Customer> {
     const customers = this.getCustomers();
     const customerCode = this.generateCustomerCode();
 
     const companyName = input.company_name.trim();
     const city = input.city?.trim() || extractCityFromCompanyName(companyName);
+    const validUserId = UUID_RE.test(userId) ? userId : null;
 
     const newCustomer: Customer = {
       id: crypto.randomUUID(),
@@ -587,8 +588,6 @@ class LocalDatabaseService {
       updated_by: userId,
     };
 
-    storageSet(this.customersKey, JSON.stringify([newCustomer, ...customers]));
-
     if (supabase) {
       const cleanRow = {
         id: newCustomer.id,
@@ -606,14 +605,28 @@ class LocalDatabaseService {
         status: newCustomer.status,
         created_at: newCustomer.created_at,
         updated_at: newCustomer.updated_at,
-        created_by: userId || null,
-        updated_by: userId || null,
+        created_by: validUserId,
+        updated_by: validUserId,
       };
-      supabase.from('customers').upsert(cleanRow).then(({ error }) => {
-        if (error) console.error('[Supabase] createCustomer direct write error:', error.message);
-      });
+
+      const { data, error } = await supabase.from('customers').insert(cleanRow).select().single();
+      if (error) {
+        console.error('[Supabase] createCustomer insert error:', error);
+        throw new Error(`Failed to save customer to database: ${error.message}`);
+      }
+      if (data) {
+        const createdFromDb = data as Customer;
+        storageSet(this.customersKey, JSON.stringify([createdFromDb, ...customers]));
+        const userProfile = this.getUserById(userId);
+        return {
+          ...createdFromDb,
+          created_by_profile: userProfile,
+          updated_by_profile: userProfile,
+        };
+      }
     }
 
+    storageSet(this.customersKey, JSON.stringify([newCustomer, ...customers]));
     const userProfile = this.getUserById(userId);
     return {
       ...newCustomer,
@@ -622,63 +635,74 @@ class LocalDatabaseService {
     };
   }
 
-  public updateCustomer(id: string, input: CustomerFormInput, userId: string): Customer | null {
+  public async updateCustomer(id: string, input: CustomerFormInput, userId: string): Promise<Customer | null> {
     const rawData = storageGet(this.customersKey);
     const customers: Customer[] = rawData ? JSON.parse(rawData) : SEED_CUSTOMERS;
     
     const index = customers.findIndex(c => c.id === id);
-    if (index === -1) return null;
+    const existing = index !== -1 ? customers[index] : null;
+    const companyName = input.company_name ? input.company_name.trim() : existing?.company_name || '';
+    const city = input.city ? input.city.trim() : (existing?.city || extractCityFromCompanyName(companyName));
+    const validUserId = UUID_RE.test(userId) ? userId : null;
 
-    const existing = customers[index];
-    const companyName = input.company_name ? input.company_name.trim() : existing.company_name;
-    const city = input.city ? input.city.trim() : (existing.city || extractCityFromCompanyName(companyName));
-
-    const updated: Customer = {
-      ...existing,
+    const updatePayload = {
       company_name: companyName,
-      contact_person: input.contact_person !== undefined ? (input.contact_person?.trim() || null) : existing.contact_person,
-      phone: input.phone !== undefined ? (input.phone?.trim() || null) : existing.phone,
-      whatsapp_number: input.whatsapp_number !== undefined ? (input.whatsapp_number?.trim() || null) : existing.whatsapp_number,
-      email: input.email !== undefined ? (input.email?.trim() || null) : existing.email,
-      address: input.address !== undefined ? (input.address?.trim() || null) : existing.address,
+      contact_person: input.contact_person !== undefined ? (input.contact_person?.trim() || null) : (existing?.contact_person || null),
+      phone: input.phone !== undefined ? (input.phone?.trim() || null) : (existing?.phone || null),
+      whatsapp_number: input.whatsapp_number !== undefined ? (input.whatsapp_number?.trim() || null) : (existing?.whatsapp_number || null),
+      email: input.email !== undefined ? (input.email?.trim() || null) : (existing?.email || null),
+      address: input.address !== undefined ? (input.address?.trim() || null) : (existing?.address || null),
       city: city,
-      route: input.route !== undefined ? (input.route?.trim() || null) : existing.route,
-      country: input.country !== undefined ? (input.country?.trim() || 'Canada') : existing.country,
-      notes: input.notes !== undefined ? (input.notes?.trim() || null) : existing.notes,
-      status: input.status || existing.status,
+      route: input.route !== undefined ? (input.route?.trim() || null) : (existing?.route || null),
+      country: input.country !== undefined ? (input.country?.trim() || 'Canada') : (existing?.country || 'Canada'),
+      notes: input.notes !== undefined ? (input.notes?.trim() || null) : (existing?.notes || null),
+      status: input.status || existing?.status || 'active',
       updated_at: new Date().toISOString(),
-      updated_by: userId,
+      updated_by: validUserId,
     };
 
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('customers')
+        .update(updatePayload)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[Supabase] updateCustomer error:', error);
+        throw new Error(`Customer update failed: ${error.message}`);
+      }
+
+      if (data) {
+        const updatedFromDb = data as Customer;
+        if (index !== -1) {
+          customers[index] = { ...customers[index], ...updatedFromDb };
+        } else {
+          customers.push(updatedFromDb);
+        }
+        storageSet(this.customersKey, JSON.stringify(customers));
+        const updater = this.getUserById(userId);
+        const creator = existing?.created_by ? this.getUserById(existing.created_by) : null;
+        return {
+          ...updatedFromDb,
+          created_by_profile: creator,
+          updated_by_profile: updater,
+        };
+      }
+    }
+
+    if (index === -1) return null;
+    const updated: Customer = {
+      ...existing!,
+      ...updatePayload,
+      updated_by: userId,
+    };
     customers[index] = updated;
     storageSet(this.customersKey, JSON.stringify(customers));
 
-    if (supabase) {
-      const cleanRow = {
-        id: updated.id,
-        customer_code: updated.customer_code,
-        company_name: updated.company_name,
-        contact_person: updated.contact_person,
-        phone: updated.phone,
-        whatsapp_number: updated.whatsapp_number,
-        email: updated.email,
-        address: updated.address,
-        city: updated.city,
-        route: updated.route,
-        country: updated.country,
-        notes: updated.notes,
-        status: updated.status,
-        updated_at: updated.updated_at,
-        updated_by: userId || null,
-      };
-      supabase.from('customers').upsert(cleanRow).then(({ error }) => {
-        if (error) console.error('[Supabase] updateCustomer direct write error:', error.message);
-      });
-    }
-
     const updater = this.getUserById(userId);
-    const creator = existing.created_by ? this.getUserById(existing.created_by) : null;
-
+    const creator = existing?.created_by ? this.getUserById(existing.created_by) : null;
     return {
       ...updated,
       created_by_profile: creator,
@@ -686,32 +710,8 @@ class LocalDatabaseService {
     };
   }
 
-  public toggleCustomerStatus(id: string, status: CustomerStatus, userId: string): Customer | null {
-    const rawData = storageGet(this.customersKey);
-    const customers: Customer[] = rawData ? JSON.parse(rawData) : SEED_CUSTOMERS;
-    
-    const index = customers.findIndex(c => c.id === id);
-    if (index === -1) return null;
-
-    const existing = customers[index];
-    const updated: Customer = {
-      ...existing,
-      status,
-      updated_at: new Date().toISOString(),
-      updated_by: userId,
-    };
-
-    customers[index] = updated;
-    storageSet(this.customersKey, JSON.stringify(customers));
-
-    const updater = this.getUserById(userId);
-    const creator = existing.created_by ? this.getUserById(existing.created_by) : null;
-
-    return {
-      ...updated,
-      created_by_profile: creator,
-      updated_by_profile: updater,
-    };
+  public async toggleCustomerStatus(id: string, status: CustomerStatus, userId: string): Promise<Customer | null> {
+    return this.updateCustomer(id, { status } as CustomerFormInput, userId);
   }
 
   // --- Step 3: Query Categories & Queries Service Methods ---

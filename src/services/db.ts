@@ -3099,7 +3099,8 @@ class LocalDatabaseService {
   public getRouteSchedules(dayOfWeek?: DayOfWeek): RouteSchedule[] {
     try {
       const data = storageGet(this.routeSchedulesKey);
-      let list: RouteSchedule[] = data ? JSON.parse(data) : SEED_ROUTE_SCHEDULES;
+      const parsed: RouteSchedule[] = data ? JSON.parse(data) : [];
+      let list: RouteSchedule[] = (parsed && parsed.length > 0) ? parsed : SEED_ROUTE_SCHEDULES;
       if (dayOfWeek) {
         list = list.filter(r => r.day_of_week === dayOfWeek);
       }

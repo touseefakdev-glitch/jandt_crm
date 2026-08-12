@@ -12,6 +12,7 @@ import {
   UserProfile,
   RouteSchedule,
 } from '../types';
+import { SEED_ROUTE_SCHEDULES } from './db';
 
 /**
  * Server-first query layer (Phase 1).
@@ -700,5 +701,25 @@ export async function fetchRouteSchedules(): Promise<RouteSchedule[]> {
     .order('city_or_route', { ascending: true });
 
   if (error) throw error;
-  return (data as RouteSchedule[]) || [];
+
+  if (!data || data.length === 0) {
+    console.log('[Supabase] route_schedules table is empty in Supabase. Auto-seeding default route schedules...');
+    try {
+      const cleanSeed = SEED_ROUTE_SCHEDULES.map(s => ({
+        id: s.id,
+        day_of_week: s.day_of_week,
+        city_or_route: s.city_or_route,
+        portal: s.portal,
+        active: Boolean(s.active),
+        created_at: s.created_at || new Date().toISOString(),
+        updated_at: s.updated_at || new Date().toISOString(),
+      }));
+      await supabase!.from('route_schedules').upsert(cleanSeed, { onConflict: 'id' });
+    } catch (err) {
+      console.warn('[Supabase] Failed to auto-seed route schedules:', err);
+    }
+    return SEED_ROUTE_SCHEDULES;
+  }
+
+  return data as RouteSchedule[];
 }

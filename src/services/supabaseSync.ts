@@ -405,7 +405,12 @@ export async function initializeFromSupabase(force = false): Promise<void> {
       const remoteCount = remoteData.length;
       if (remoteCount > 0) anyRemoteRows = true;
 
-      storagePrime(lsKey, JSON.stringify(remoteData));
+      // Avoid wiping route schedules with empty array if remote table is not yet seeded
+      if (lsKey === 'jt_crm_route_schedules' && remoteCount === 0) {
+        console.log(`[Supabase] Remote 'route_schedules' table is empty; retaining seed route schedules.`);
+      } else {
+        storagePrime(lsKey, JSON.stringify(remoteData));
+      }
       previousRowIds.set(
         lsKey,
         new Set(remoteData.map((row) => (row as { id?: unknown }).id as string))

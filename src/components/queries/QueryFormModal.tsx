@@ -156,10 +156,14 @@ export const QueryFormModal: React.FC<QueryFormModalProps> = ({
     });
   };
 
-  const handleCreateNewCustomer = (customerData: CustomerFormInput) => {
-    const created = localDb.createCustomer(customerData, 'a1111111-1111-1111-1111-111111111111');
-    setSelectedCustomerId(created.id);
-    setIsNewCustomerModalOpen(false);
+  const handleCreateNewCustomer = async (customerData: CustomerFormInput) => {
+    try {
+      const created = await localDb.createCustomer(customerData, 'a1111111-1111-1111-1111-111111111111');
+      setSelectedCustomerId(created.id);
+      setIsNewCustomerModalOpen(false);
+    } catch (err) {
+      console.error('[QueryFormModal] Create customer error:', err);
+    }
   };
 
   return (

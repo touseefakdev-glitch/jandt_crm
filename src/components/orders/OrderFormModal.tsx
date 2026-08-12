@@ -473,10 +473,14 @@ export const OrderFormModal: React.FC<OrderFormModalProps> = ({
       <CustomerFormModal
         isOpen={isCustomerModalOpen}
         onClose={() => setIsCustomerModalOpen(false)}
-        onSubmit={(newCustomerData) => {
-          const created = localDb.createCustomer(newCustomerData, selectedSalesAgentId || 'a1111111-1111-1111-1111-111111111111');
-          setSelectedCustomerId(created.id);
-          setIsCustomerModalOpen(false);
+        onSubmit={async (newCustomerData) => {
+          try {
+            const created = await localDb.createCustomer(newCustomerData, selectedSalesAgentId || 'a1111111-1111-1111-1111-111111111111');
+            setSelectedCustomerId(created.id);
+            setIsCustomerModalOpen(false);
+          } catch (err) {
+            console.error('[OrderFormModal] Create customer failed:', err);
+          }
         }}
       />
     </>

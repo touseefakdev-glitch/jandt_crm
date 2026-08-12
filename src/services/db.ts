@@ -3,6 +3,8 @@ import { supabase, storageGet, storageSet, storagePrime } from './supabaseSync';
 export { supabase };
 import { extractCityFromCompanyName } from '../utils/cityExtractor';
 import { isOperationError, isOrderDifferent } from '../utils/orderWorkflow';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 import { 
   Team, 
   UserProfile, 

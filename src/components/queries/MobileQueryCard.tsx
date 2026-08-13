@@ -13,7 +13,7 @@ interface MobileQueryCardProps {
 export const MobileQueryCard: React.FC<MobileQueryCardProps> = ({ query, onSelect }) => {
   const navigate = useNavigate();
 
-  const categoryMeta = QUERY_ISSUE_CATEGORIES.find((c) => c.key === query.issue_type) || QUERY_ISSUE_CATEGORIES[7];
+  const categoryMeta = QUERY_ISSUE_CATEGORIES.find((c) => c.key === query.issue_type) || QUERY_ISSUE_CATEGORIES[5];
   const statusConf = QUERY_STATUS_CONFIG[query.status] || QUERY_STATUS_CONFIG.open;
   const priorityConf = QUERY_PRIORITY_CONFIG[query.priority] || QUERY_PRIORITY_CONFIG.medium;
 

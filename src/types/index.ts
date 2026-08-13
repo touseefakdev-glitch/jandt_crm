@@ -574,7 +574,8 @@ export interface DailyOrderOperation {
   id: string;
   customer_id: string;
   customer?: Customer;
-  operation_date: string; // YYYY-MM-DD
+  operation_date: string; // YYYY-MM-DD (Order Processing Date)
+  delivery_date?: string | null; // YYYY-MM-DD (Scheduled Delivery Date)
   route: string; // City / Route name
 
   order_received: boolean;

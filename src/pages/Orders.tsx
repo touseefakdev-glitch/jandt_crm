@@ -8,6 +8,13 @@ import { permissions } from '../services/permissions';
 import { cn } from '../utils/cn';
 import { formatDate, timeAgo } from '../utils/format';
 import {
+  getVancouverToday,
+  formatDateLong,
+  formatDateShort,
+  getOffsetDateString,
+  getDeliveryDateFromProcessingDate,
+} from '../utils/dateUtils';
+import {
   ORDER_WORKFLOW_STEPS,
   DailyOpStepKey,
   OrdersQuickFilter,
@@ -78,7 +85,7 @@ type AreaView = 'ALL' | 'KELOWNA' | 'OUTSIDE_KELOWNA';
 
 const PAGE_SIZE = 25;
 
-const todayStr = () => new Date().toISOString().split('T')[0];
+const todayStr = () => getVancouverToday();
 
 const QUICK_FILTERS: { value: OrdersQuickFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -201,7 +208,7 @@ export const Orders: React.FC = () => {
     });
   }, [selectedDateStr, selectedRoute, portal, operationalArea, searchTerm, statusFilter, orderMatchFilter, exceptionFilter, assignedUserId, sortBy, dbVersion]);
 
-  const { operations: baseOperations, activeRoutes, weekday } = baseData;
+  const { operations: baseOperations, activeRoutes, weekday, deliveryWeekday, deliveryDate, processingDate } = baseData;
 
   const visibleOperations = useMemo(
     () => baseOperations.filter(o => matchesQuickFilter(o, quickFilter)),
@@ -219,6 +226,9 @@ export const Orders: React.FC = () => {
       .filter(d => d.date > todayStr())
       .slice(0, 5);
   }, [dbVersion]);
+
+  const isToday = selectedDateStr === todayStr();
+  const isTomorrow = selectedDateStr === getOffsetDateString(todayStr(), 1);
 
   const totalPages = Math.max(1, Math.ceil(visibleOperations.length / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
@@ -258,28 +268,18 @@ export const Orders: React.FC = () => {
   }, [baseOperations]);
 
   const handlePreviousDay = () => {
-    const d = new Date(selectedDateStr + 'T12:00:00');
-    d.setDate(d.getDate() - 1);
-    setSelectedDateStr(d.toISOString().split('T')[0]);
+    setSelectedDateStr(getOffsetDateString(selectedDateStr, -1));
   };
 
   const handleNextDay = () => {
-    const d = new Date(selectedDateStr + 'T12:00:00');
-    d.setDate(d.getDate() + 1);
-    setSelectedDateStr(d.toISOString().split('T')[0]);
+    setSelectedDateStr(getOffsetDateString(selectedDateStr, 1));
   };
 
   const handleToday = () => setSelectedDateStr(todayStr());
 
   const handleTomorrow = () => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    setSelectedDateStr(d.toISOString().split('T')[0]);
+    setSelectedDateStr(getOffsetDateString(todayStr(), 1));
   };
-
-  const tomorrowStr = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })();
-  const isToday = selectedDateStr === todayStr();
-  const isTomorrow = selectedDateStr === tomorrowStr;
 
   const formatWeekdayTitle = (dayStr: string) => dayStr.charAt(0).toUpperCase() + dayStr.slice(1);
 
@@ -629,8 +629,46 @@ export const Orders: React.FC = () => {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <DatabaseErrorBanner />
+
+      {/* Primary Business Calendar Badge: Order Processing vs Scheduled Delivery */}
+      <div className="p-4 bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 text-white rounded-xl shadow-xs border border-sky-800/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-sky-400 font-bold shrink-0 mt-0.5">
+            <CalendarClock className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-sky-300 bg-sky-500/20 px-2 py-0.5 rounded border border-sky-400/30">
+                Order Processing Day
+              </span>
+              <span className="text-[10px] text-slate-300 font-mono">
+                America/Vancouver (Pacific Time)
+              </span>
+            </div>
+            <h3 className="text-base font-extrabold text-white tracking-tight mt-1">
+              PROCESSING TODAY: <span className="text-sky-300">{formatDateLong(processingDate || selectedDateStr)}</span>
+            </h3>
+            <p className="text-xs text-slate-300 mt-0.5">
+              Workload for upcoming delivery routes is processed the day before scheduled delivery.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 bg-emerald-950/80 border border-emerald-500/40 px-4 py-2.5 rounded-xl shrink-0">
+          <Truck className="w-5 h-5 text-emerald-400 shrink-0" />
+          <div>
+            <span className="text-[10px] text-emerald-400 uppercase tracking-wider font-extrabold block">
+              Scheduled Delivery Day
+            </span>
+            <span className="text-xs font-bold text-white block">
+              DELIVERY TOMORROW: <span className="text-emerald-300 font-extrabold">{formatDateLong(deliveryDate)}</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
       <PageHeader
         icon={<CalendarClock className="w-5 h-5" />}
         iconBg="bg-navy-900"
@@ -699,10 +737,10 @@ export const Orders: React.FC = () => {
               </div>
               <div className="min-w-0">
                 <span className="text-[11px] font-extrabold uppercase tracking-widest text-teal-700 block">
-                  {isToday ? 'Today' : isTomorrow ? 'Tomorrow' : formatDate(selectedDateStr)}
+                  {isToday ? 'Today (Processing)' : isTomorrow ? 'Tomorrow (Processing)' : formatDate(selectedDateStr)}
                 </span>
                 <h2 className="text-lg font-black text-slate-900 tracking-tight leading-tight truncate">
-                  {formatDate(selectedDateStr, { weekday: 'long', month: 'long', day: 'numeric' })}
+                  Processing: {formatDate(processingDate || selectedDateStr, { weekday: 'short', month: 'short', day: 'numeric' })} → Delivery: {formatDate(deliveryDate, { weekday: 'short', month: 'short', day: 'numeric' })}
                 </h2>
                 <p className="text-xs text-slate-500 flex items-center gap-1.5 flex-wrap">
                   <MapPin className="w-3 h-3 text-slate-400" />
@@ -710,7 +748,7 @@ export const Orders: React.FC = () => {
                     ? `${activeRoutes.length} route${activeRoutes.length > 1 ? 's' : ''} · ${activeRoutes.slice(0, 4).join(', ')}${activeRoutes.length > 4 ? '…' : ''}`
                     : 'No active routes scheduled'}
                   <span className="text-slate-300">·</span>
-                  <span>{formatWeekdayTitle(weekday)}</span>
+                  <span>Delivery Day: {formatWeekdayTitle(deliveryWeekday || weekday)}</span>
                   <span className="text-slate-300">·</span>
                   <span className={cn('inline-flex items-center gap-1 font-semibold', syncState === 'live' ? 'text-emerald-600' : syncState === 'polling' ? 'text-amber-600' : 'text-slate-400')}>
                     {syncState === 'live' ? <Wifi className="w-3 h-3" /> : syncState === 'polling' ? <Clock className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}

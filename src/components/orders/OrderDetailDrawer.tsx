@@ -109,8 +109,12 @@ export const OrderDetailDrawer: React.FC<OrderDetailDrawerProps> = ({
         {/* Overview */}
         <div className="grid grid-cols-2 gap-3">
           <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Delivery Date</span>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-sky-700 block">Processing Date</span>
             <span className="text-xs font-bold text-slate-900 mt-0.5 block">{formatDate(op.operation_date)}</span>
+          </div>
+          <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-700 block">Scheduled Delivery</span>
+            <span className="text-xs font-bold text-emerald-800 mt-0.5 block">{formatDate(op.delivery_date || op.operation_date)}</span>
           </div>
           <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
             <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">Operational Area</span>

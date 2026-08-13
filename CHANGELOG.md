@@ -5,6 +5,23 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.36.0] - 2026-08-13
+
+### Changed & Business Logic
+- **Order Processing Calendar — Previous-Day Order Processing Rule Implementation.**
+  - **Previous-Day Processing Engine**: Implemented official business rule where orders are received and processed on the **calendar day before scheduled delivery**.
+  - **Automatic Processing & Delivery Date Calculation**:
+    - `processing_date = getProcessingDateFromDeliveryDate(delivery_date)` (`-1 day`).
+    - `delivery_date = getDeliveryDateFromProcessingDate(processing_date)` (`+1 day`).
+    - Mon delivery ➔ Sun processing, Tue delivery ➔ Mon processing, Wed delivery ➔ Tue processing, Thu delivery ➔ Wed processing, Fri delivery ➔ Thu processing, Sat delivery ➔ Fri processing, Sun delivery ➔ Sat processing.
+  - **Orders Dashboard UI Enhancements**: Added prominent header card displaying **PROCESSING TODAY** (e.g. Wednesday, August 19) and **DELIVERY TOMORROW** (e.g. Thursday, August 20) with route-specific badges.
+- **Timezone Standardization — America/Vancouver (Pacific Time)**:
+  - Created `src/config/businessConfig.ts` and `src/utils/dateUtils.ts`.
+  - All date pickers, business day calculations, timestamps, and route schedule lookups operate using `America/Vancouver` timezone with full daylight saving awareness.
+- **Currency & Formatting — CAD ($)**:
+  - Updated `src/utils/format.ts` to format all monetary values in Canadian Dollar (`CAD`) using `en-CA` locale (`$25.00`, `$1,250.00`).
+- **Documentation**: Created `DELIVERY_PROCESSING_SCHEDULE.md` and updated `PROJECT_SPEC.md` & `CHANGELOG.md`.
+
 ## [1.35.1] - 2026-08-13
 
 ### Fixed

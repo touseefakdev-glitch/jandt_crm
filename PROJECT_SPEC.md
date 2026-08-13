@@ -123,6 +123,13 @@ Handover items referencing orders render the order number (`ORD-000456`), custom
 
 ## Order Management System
 
+> **CRITICAL BUSINESS RULE — PREVIOUS-DAY ORDER PROCESSING CALENDAR**:
+> Orders are received and processed on the **CALENDAR DAY BEFORE scheduled delivery**. The delivery schedule determines WHICH customers/routes are delivered on a day, but the CRM's order-processing date is the **BUSINESS DAY BEFORE DELIVERY** (e.g. Thursday Princeton delivery is processed during Wednesday).
+> - Timezone: `America/Vancouver` (Pacific Time).
+> - Currency: `CAD` (Canadian Dollar, `$`). Locale: `en-CA`.
+> - `processing_date = getProcessingDateFromDeliveryDate(delivery_date)` (`-1 day`).
+> - `delivery_date = getDeliveryDateFromProcessingDate(processing_date)` (`+1 day`).
+
 > **CRITICAL BUSINESS RULE — NO INVENTORY TRACKING**:
 > J&T Supplies does **NOT** maintain physical inventory inside this CRM. Product `quantity` ordered represents customer demand quantity, NOT stock levels or warehouse deductions. Product availability status (`available`, `out_of_stock`, `discontinued`) is purely informational. Selecting an `out_of_stock` product triggers a warning alert with expected availability details, but does not block the order.
 

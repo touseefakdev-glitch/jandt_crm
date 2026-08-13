@@ -13,7 +13,7 @@ import {
   isOperationError,
   isStepDone,
 } from '../../utils/orderWorkflow';
-import { timeAgo } from '../../utils/format';
+import { formatDate, timeAgo } from '../../utils/format';
 import { cn } from '../../utils/cn';
 import { Avatar } from '../ui/Avatar';
 import { useClickOutside } from '../../hooks/useClickOutside';
@@ -158,8 +158,8 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
                   }}
                   className="w-full px-3 py-2.5 text-left font-semibold text-[#132A4A] hover:bg-[#F4F7FB] flex items-center gap-2"
                 >
-                  <Scale className="w-3.5 h-3.5 text-indigo-600" />
-                  Set Order Match
+                  <Scale className="w-3.5 h-3.5 text-teal-600" />
+                  Order Match Status
                 </button>
               )}
 
@@ -172,7 +172,7 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
                   className="w-full px-3 py-2.5 text-left font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2"
                 >
                   <AlertTriangle className="w-3.5 h-3.5" />
-                  Report Issue / Query
+                  Report Operation Issue
                 </button>
               )}
 
@@ -196,11 +196,15 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
       {/* Customer Name & Route */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0">
-          <h3 className="text-sm font-extrabold text-[#132A4A] leading-snug truncate">{customerName}</h3>
+          <h3 className="font-extrabold text-sm text-slate-900 leading-snug truncate">
+            {customerName}
+          </h3>
           <p className="text-xs text-[#52606D] flex items-center gap-1.5 mt-0.5 truncate">
             <span>{customerCity}</span>
             <span>•</span>
             <span className="font-semibold text-navy-800">{op.route}</span>
+            <span>•</span>
+            <span className="text-[10px] font-semibold text-emerald-700">Deliv: {formatDate(op.delivery_date || op.operation_date)}</span>
           </p>
         </div>
         <Avatar name={customerName} size="sm" className="shrink-0" />

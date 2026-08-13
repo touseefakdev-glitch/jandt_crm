@@ -3,6 +3,7 @@ import { supabase, storageGet, storageSet, storagePrime } from './supabaseSync';
 export { supabase };
 import { extractCityFromCompanyName } from '../utils/cityExtractor';
 import { isOperationError, isOrderDifferent } from '../utils/orderWorkflow';
+import { getVancouverToday, getDeliveryDateFromProcessingDate, getVancouverWeekday } from '../utils/dateUtils';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 import { 
@@ -3263,14 +3264,17 @@ class LocalDatabaseService {
     assignedUserId?: string; // 'all' / '' = everyone, otherwise a profile id
     sortBy?: string;
     operationalArea?: OperationalArea; // client-side area enforcement (defense in depth)
-  }): { operations: DailyOrderOperation[]; activeRoutes: string[]; weekday: DayOfWeek } {
+  }): { operations: DailyOrderOperation[]; activeRoutes: string[]; weekday: DayOfWeek; deliveryWeekday: DayOfWeek; deliveryDate: string; processingDate: string } {
     try {
-      const selectedDate = new Date(options.date + 'T12:00:00');
-      const dayNames: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-      const weekday = dayNames[selectedDate.getDay()];
+      const processingDateStr = options.date ? options.date.substring(0, 10) : getVancouverToday();
+      const deliveryDateStr = getDeliveryDateFromProcessingDate(processingDateStr);
 
-      // Get active route schedules for this weekday
-      let schedules = this.getRouteSchedules(weekday).filter(s => s.active);
+      const processingWeekday = getVancouverWeekday(processingDateStr);
+      const deliveryWeekday = getVancouverWeekday(deliveryDateStr);
+
+      // Business Rule: Order Processing Day = Business Day before Delivery Day.
+      // Therefore, active routes to process on processingDateStr are the delivery routes scheduled for deliveryWeekday.
+      let schedules = this.getRouteSchedules(deliveryWeekday).filter(s => s.active);
       if (options.portal && options.portal !== 'all') {
         schedules = schedules.filter(s => s.portal === options.portal);
       }
@@ -3292,7 +3296,14 @@ class LocalDatabaseService {
       const targetRoute = options.route || '';
 
       if (activeRoutes.length === 0) {
-        return { operations: [], activeRoutes, weekday };
+        return {
+          operations: [],
+          activeRoutes,
+          weekday: processingWeekday,
+          deliveryWeekday,
+          deliveryDate: deliveryDateStr,
+          processingDate: processingDateStr,
+        };
       }
 
       const normalize = (v: string | null | undefined): string => (v || '').trim().toLowerCase();
@@ -3324,18 +3335,18 @@ class LocalDatabaseService {
 
       const users = this.getUsers();
       const queries = this.getQueries();
-      const targetDateStr = options.date ? options.date.substring(0, 10) : '';
 
       // Ensure operation record exists for each customer for date & route
       const resultOps: DailyOrderOperation[] = customers.map(cust => {
         let opIndex = updatedOpsList.findIndex(o => {
           const opDateStr = o.operation_date ? o.operation_date.substring(0, 10) : '';
-          return o.customer_id === cust.id && opDateStr === targetDateStr;
+          return o.customer_id === cust.id && opDateStr === processingDateStr;
         });
         let op: DailyOrderOperation;
 
         if (opIndex >= 0) {
           op = updatedOpsList[opIndex];
+          if (!op.delivery_date) op.delivery_date = deliveryDateStr;
           if (!op.operational_area) {
             op.operational_area = areaForRoute(op.route);
           }
@@ -3343,7 +3354,8 @@ class LocalDatabaseService {
           op = {
             id: crypto.randomUUID(),
             customer_id: cust.id,
-            operation_date: targetDateStr || options.date,
+            operation_date: processingDateStr,
+            delivery_date: deliveryDateStr,
             route: routeForCustomer(cust),
             order_received: false,
             sales_order_generated: false,
@@ -3440,9 +3452,25 @@ class LocalDatabaseService {
         return (a.customer?.company_name || '').localeCompare(b.customer?.company_name || '');
       });
 
-      return { operations: filtered, activeRoutes, weekday };
+      return {
+        operations: filtered,
+        activeRoutes,
+        weekday: processingWeekday,
+        deliveryWeekday,
+        deliveryDate: deliveryDateStr,
+        processingDate: processingDateStr,
+      };
     } catch {
-      return { operations: [], activeRoutes: [], weekday: 'monday' };
+      const fallbackToday = getVancouverToday();
+      const fallbackDeliv = getDeliveryDateFromProcessingDate(fallbackToday);
+      return {
+        operations: [],
+        activeRoutes: [],
+        weekday: 'monday',
+        deliveryWeekday: 'tuesday',
+        deliveryDate: fallbackDeliv,
+        processingDate: fallbackToday,
+      };
     }
   }
 
@@ -3452,6 +3480,7 @@ class LocalDatabaseService {
       id: op.id,
       customer_id: op.customer_id,
       operation_date: op.operation_date ? op.operation_date.substring(0, 10) : null,
+      delivery_date: op.delivery_date ? op.delivery_date.substring(0, 10) : null,
       route: op.route,
       order_received: Boolean(op.order_received),
       order_received_at: op.order_received_at || null,

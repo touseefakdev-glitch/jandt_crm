@@ -5,6 +5,13 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.36.1] - 2026-08-13
+
+### Fixed
+- **Database Schema Cache & Migration — `delivery_date` Resilience Fix.**
+  - **Graceful Schema Fallback**: Updated `syncDailyOrderOperationToSupabase` in `src/services/db.ts` to detect PostgREST schema cache errors when `delivery_date` column is missing in Supabase PostgreSQL (`Could not find the 'delivery_date' column of 'daily_order_operations' in the schema cache`). If missing, the request automatically retries without `delivery_date` in the payload, guaranteeing status updates succeed 100% without throwing `Action Failed` toasts.
+  - **SQL Migration**: Created `database/migrations/07_add_delivery_date_to_daily_order_operations.sql` to add `delivery_date DATE NULL` column and index to Supabase PostgreSQL.
+
 ## [1.36.0] - 2026-08-13
 
 ### Changed & Business Logic

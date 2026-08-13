@@ -3513,11 +3513,23 @@ class LocalDatabaseService {
       updated_by: op.updated_by || null,
     };
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('daily_order_operations')
       .upsert(cleanRow, { onConflict: 'id' })
       .select()
       .single();
+
+    if (error && (error.message?.includes('delivery_date') || error.details?.includes('delivery_date') || error.code === 'PGRST204')) {
+      console.warn('[Supabase] delivery_date column missing in schema cache, retrying payload without delivery_date...');
+      const { delivery_date, ...rowWithoutDeliveryDate } = cleanRow;
+      const retry = await supabase
+        .from('daily_order_operations')
+        .upsert(rowWithoutDeliveryDate, { onConflict: 'id' })
+        .select()
+        .single();
+      data = retry.data;
+      error = retry.error;
+    }
 
     if (error) {
       console.error('[Supabase] direct daily_order_operations write error:', error.message);

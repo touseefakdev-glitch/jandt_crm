@@ -5,6 +5,35 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.37.0] - 2026-08-13
+
+### Rebuilt — Customer Issue & Resolution Center (Queries Module)
+- **Rebuilt Customer Issue & Resolution Center**: Redesigned the Queries Module into a simple, non-technical operational system for handling customer issues.
+- **8 Primary Operational Issue Categories**:
+  1. `Wrong Item Received` (`wrong_item`)
+  2. `Item Return / Invoice Change Request` (`invoice_change`)
+  3. `Price Issue` (`price_issue`)
+  4. `Quality Issue` (`quality_issue`)
+  5. `Item Not Received` (`item_not_received`)
+  6. `Item Returned` (`item_returned`)
+  7. `Back Order / Send on Next Delivery` (`back_order`)
+  8. `Other Customer Issue` (`other`)
+- **Independent Back Order Subsystem**:
+  - Automatically creates a Back Order item when action *"Send on Next Delivery"* or issue *"Item Not Received"* / *"Back Order"* is chosen.
+  - Auto-calculates next scheduled delivery date based on the customer's route/city schedule in `America/Vancouver` Pacific time.
+  - **Key Rule**: Resolving or closing a Customer Query does **NOT** cancel or clear the pending Back Order. The Back Order remains active in the **Pending Back Orders** tab until fulfilled (`COMPLETED`).
+- **Customer-First 5-Step Issue Wizard (`+ NEW CUSTOMER ISSUE`)**:
+  - Step 1: Customer Search & Selection with live Customer Info Panel (Phone, WhatsApp, City, Route, Open Queries, Back Orders).
+  - Step 2: Issue Category Selection (8 visual category cards).
+  - Step 3: Catalog Product & Order Selection.
+  - Step 4: Dynamic Problem Form (adapts fields e.g. Expected vs Billed Price for Price Issue, Expected vs Received Item for Wrong Item).
+  - Step 5: Resolution Action, Priority, and Back Order toggle.
+- **Dashboard & Queries View**:
+  - Clickable KPI summary cards: `OPEN`, `IN PROGRESS`, `WAITING`, `BACK ORDERS`, `RESOLVED TODAY`.
+  - Dual search bars for instant Customer and Item search.
+  - Dedicated **Pending Back Orders** tab for tracking and updating fulfillment status (`PENDING` ➔ `SCHEDULED` ➔ `SENT` ➔ `COMPLETED`).
+- **Database Migration**: Created `database/migrations/08_create_back_orders_table.sql` creating `public.back_orders` table and adding issue fields to `public.queries` with RLS policies and indexes.
+
 ## [1.36.1] - 2026-08-13
 
 ### Fixed

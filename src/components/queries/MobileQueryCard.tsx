@@ -1,67 +1,80 @@
 import React from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { CustomerQuery } from '../../types';
-import { getQueryPriorityBadge, getQueryStatusBadge } from '../../utils/badges';
-import { formatDateTime } from '../../utils/format';
-import { Avatar } from '../ui/Avatar';
-import { Badge } from '../ui/Badge';
-import { HelpCircle, ChevronRight, ShoppingBag, Package, User } from 'lucide-react';
+import { QUERY_ISSUE_CATEGORIES, QUERY_STATUS_CONFIG, QUERY_PRIORITY_CONFIG } from '../../utils/queryConstants';
+import { formatDateShort } from '../../utils/dateUtils';
+import { ChevronRight, User, ShoppingBag, Package } from 'lucide-react';
 
 interface MobileQueryCardProps {
   query: CustomerQuery;
+  onSelect?: () => void;
 }
 
-export const MobileQueryCard: React.FC<MobileQueryCardProps> = ({ query }) => {
+export const MobileQueryCard: React.FC<MobileQueryCardProps> = ({ query, onSelect }) => {
   const navigate = useNavigate();
+
+  const categoryMeta = QUERY_ISSUE_CATEGORIES.find((c) => c.key === query.issue_type) || QUERY_ISSUE_CATEGORIES[7];
+  const statusConf = QUERY_STATUS_CONFIG[query.status] || QUERY_STATUS_CONFIG.open;
+  const priorityConf = QUERY_PRIORITY_CONFIG[query.priority] || QUERY_PRIORITY_CONFIG.medium;
+
+  const handleClick = () => {
+    if (onSelect) {
+      onSelect();
+    } else {
+      navigate(`/queries/${query.id}`);
+    }
+  };
 
   return (
     <div
-      onClick={() => navigate(`/queries/${query.id}`)}
-      className="crm-card p-4 transition-all active:scale-[0.99] hover:border-teal-400 cursor-pointer relative"
+      onClick={handleClick}
+      className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs transition-all active:scale-[0.99] hover:border-brand-400 cursor-pointer space-y-2.5"
     >
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <span className="font-mono text-xs font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-mono text-xs font-extrabold text-brand-700 bg-brand-50 px-2 py-0.5 rounded border border-brand-200">
           {query.query_number}
         </span>
         <div className="flex items-center gap-1.5">
-          <Badge badge={getQueryPriorityBadge(query.priority)} />
-          <Badge badge={getQueryStatusBadge(query.status)} />
+          <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold border ${priorityConf.badgeClass}`}>
+            {priorityConf.label}
+          </span>
+          <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold border ${statusConf.badgeClass}`}>
+            {statusConf.label}
+          </span>
         </div>
       </div>
 
-      <div className="mb-2">
-        <h3 className="text-sm font-bold text-[#132A4A] leading-snug line-clamp-2">{query.subject}</h3>
+      <div>
+        <h3 className="text-sm font-extrabold text-slate-900 leading-snug line-clamp-2">{query.subject}</h3>
         {query.customer && (
-          <p className="text-xs font-semibold text-[#52606D] mt-1 truncate">
-            {query.customer.company_name} <span className="font-mono text-[10px] text-[#7B8CA4]">({query.customer.customer_code})</span>
+          <p className="text-xs font-semibold text-slate-600 mt-0.5 truncate">
+            {query.customer.company_name} <span className="font-mono text-[11px] text-slate-500 font-bold">({query.customer.customer_code})</span>
           </p>
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 mb-3">
-        {query.category && (
-          <span className="text-[10px] bg-slate-100 text-slate-600 font-medium px-1.5 py-0.5 rounded border border-slate-200 truncate">
-            {query.category.name}
-          </span>
-        )}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${categoryMeta.badgeClass}`}>
+          {categoryMeta.shortLabel}
+        </span>
         {query.order && (
-          <span className="text-[10px] bg-emerald-50 text-emerald-800 font-mono font-semibold px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-0.5 truncate">
-            <ShoppingBag className="w-2.5 h-2.5" /> {query.order.order_number}
+          <span className="text-[10px] bg-emerald-50 text-emerald-800 font-mono font-semibold px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-0.5">
+            <ShoppingBag className="w-2.5 h-2.5" /> Order #{query.order.order_number}
           </span>
         )}
         {query.product && (
-          <span className="text-[10px] bg-purple-50 text-purple-800 font-mono font-semibold px-1.5 py-0.5 rounded border border-purple-200 flex items-center gap-0.5 truncate">
+          <span className="text-[10px] bg-purple-50 text-purple-800 font-mono font-semibold px-2 py-0.5 rounded border border-purple-200 flex items-center gap-0.5">
             <Package className="w-2.5 h-2.5" /> {query.product.sku}
           </span>
         )}
       </div>
 
-      <div className="flex items-center justify-between pt-2 border-t border-[#E9EFF5] text-xs">
-        <span className="text-[11px] text-[#52606D] flex items-center gap-1 truncate">
-          <User className="w-3 h-3 text-[#7B8CA4]" />
+      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+        <span className="text-[11px] text-slate-500 flex items-center gap-1">
+          <User className="w-3 h-3 text-slate-400" />
           {query.assigned_to_profile?.full_name || 'Unassigned'}
         </span>
-        <span className="text-xs font-bold text-teal-600 flex items-center gap-0.5 shrink-0">
+        <span className="text-xs font-bold text-brand-600 flex items-center gap-0.5">
           View <ChevronRight className="w-4 h-4" />
         </span>
       </div>

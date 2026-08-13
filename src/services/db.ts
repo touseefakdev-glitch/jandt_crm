@@ -3,7 +3,7 @@ import { supabase, storageGet, storageSet, storagePrime } from './supabaseSync';
 export { supabase };
 import { extractCityFromCompanyName } from '../utils/cityExtractor';
 import { isOperationError, isOrderDifferent } from '../utils/orderWorkflow';
-import { getVancouverToday, getDeliveryDateFromProcessingDate, getVancouverWeekday } from '../utils/dateUtils';
+import { getVancouverToday, getDeliveryDateFromProcessingDate, getVancouverWeekday, calculateNextDeliveryDateForCustomer } from '../utils/dateUtils';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 import { 
@@ -14,6 +14,8 @@ import {
   CustomerStatus,
   QueryCategory,
   CustomerQuery,
+  BackOrderItem,
+  BackOrderStatus,
   QueryActivity,
   QueryInternalNote,
   QueryAttachment,
@@ -786,6 +788,230 @@ class LocalDatabaseService {
     return `QRY-${nextNum.toString().padStart(6, '0')}`;
   }
 
+  private backOrdersKey = 'jt_crm_back_orders_v1';
+
+  private getBackOrdersRaw(): BackOrderItem[] {
+    try {
+      const data = storageGet(this.backOrdersKey);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  public getBackOrders(filters: { customer_id?: string; status?: string; searchTerm?: string } = {}): BackOrderItem[] {
+    let list = this.getBackOrdersRaw();
+    const customers = this.getCustomers();
+    const products = this.getProducts();
+
+    list = list.map(item => ({
+      ...item,
+      customer: customers.find(c => c.id === item.customer_id) || null,
+      product: item.product_id ? products.find(p => p.id === item.product_id) || null : null,
+    }));
+
+    if (filters.customer_id) {
+      list = list.filter(b => b.customer_id === filters.customer_id);
+    }
+    if (filters.status && filters.status !== 'all') {
+      list = list.filter(b => b.status === filters.status);
+    }
+    if (filters.searchTerm && filters.searchTerm.trim()) {
+      const q = filters.searchTerm.toLowerCase().trim();
+      list = list.filter(b =>
+        b.product_name_snapshot.toLowerCase().includes(q) ||
+        (b.sku_snapshot && b.sku_snapshot.toLowerCase().includes(q)) ||
+        (b.customer && b.customer.company_name.toLowerCase().includes(q)) ||
+        (b.customer && b.customer.city && b.customer.city.toLowerCase().includes(q)) ||
+        b.reason.toLowerCase().includes(q)
+      );
+    }
+
+    return list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  public createBackOrder(input: {
+    query_id: string;
+    customer_id: string;
+    product_id?: string | null;
+    product_name_snapshot: string;
+    sku_snapshot?: string | null;
+    quantity: number;
+    reason: string;
+    original_order_id?: string | null;
+    original_order_number?: string | null;
+    original_delivery_date?: string | null;
+    next_delivery_date?: string;
+    notes?: string | null;
+  }): BackOrderItem {
+    const list = this.getBackOrdersRaw();
+    const cust = this.getCustomerById(input.customer_id);
+    const calculatedNextDelivery = input.next_delivery_date || calculateNextDeliveryDateForCustomer(cust?.route || cust?.city);
+
+    const bo: BackOrderItem = {
+      id: crypto.randomUUID(),
+      query_id: input.query_id,
+      customer_id: input.customer_id,
+      product_id: input.product_id || null,
+      product_name_snapshot: input.product_name_snapshot,
+      sku_snapshot: input.sku_snapshot || null,
+      quantity: input.quantity || 1,
+      reason: input.reason,
+      original_order_id: input.original_order_id || null,
+      original_order_number: input.original_order_number || null,
+      original_delivery_date: input.original_delivery_date || null,
+      next_delivery_date: calculatedNextDelivery,
+      status: 'PENDING',
+      notes: input.notes || null,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    storageSet(this.backOrdersKey, JSON.stringify([bo, ...list]));
+    this.syncBackOrderToSupabase(bo).catch(err => console.warn('[Supabase] async back_order sync warning:', err));
+    return bo;
+  }
+
+  public updateBackOrderStatus(id: string, status: BackOrderStatus): BackOrderItem | null {
+    const list = this.getBackOrdersRaw();
+    const index = list.findIndex(b => b.id === id);
+    if (index === -1) return null;
+
+    list[index] = {
+      ...list[index],
+      status,
+      updated_at: new Date().toISOString(),
+    };
+
+    storageSet(this.backOrdersKey, JSON.stringify(list));
+    this.syncBackOrderToSupabase(list[index]).catch(err => console.warn('[Supabase] async back_order sync warning:', err));
+    return list[index];
+  }
+
+  public async syncBackOrderToSupabase(bo: BackOrderItem): Promise<{ data: any; error: any }> {
+    if (!supabase) return { data: bo, error: null };
+    const cleanRow = {
+      id: bo.id,
+      query_id: bo.query_id,
+      customer_id: bo.customer_id,
+      product_id: bo.product_id || null,
+      product_name_snapshot: bo.product_name_snapshot,
+      sku_snapshot: bo.sku_snapshot || null,
+      quantity: bo.quantity,
+      reason: bo.reason,
+      original_order_id: bo.original_order_id || null,
+      original_order_number: bo.original_order_number || null,
+      original_delivery_date: bo.original_delivery_date || null,
+      next_delivery_date: bo.next_delivery_date,
+      status: bo.status,
+      notes: bo.notes || null,
+      created_at: bo.created_at,
+      updated_at: bo.updated_at,
+    };
+
+    const { data, error } = await supabase
+      .from('back_orders')
+      .upsert(cleanRow, { onConflict: 'id' })
+      .select()
+      .single();
+
+    if (error) {
+      console.warn('[Supabase] back_orders write warning:', error.message);
+      return { data: null, error };
+    }
+    return { data, error: null };
+  }
+
+  public async syncQueryToSupabase(query: CustomerQuery): Promise<{ data: any; error: any }> {
+    if (!supabase) return { data: query, error: null };
+    const cleanRow = {
+      id: query.id,
+      query_number: query.query_number,
+      customer_id: query.customer_id,
+      order_id: query.order_id || null,
+      product_id: query.product_id || null,
+      subject: query.subject,
+      description: query.description,
+      category_id: query.category_id || null,
+      issue_type: query.issue_type || null,
+      action_required: query.action_required || null,
+      expected_price: query.expected_price || null,
+      charged_price: query.charged_price || null,
+      price_difference: query.price_difference || null,
+      expected_item: query.expected_item || null,
+      received_item: query.received_item || null,
+      quantity_affected: query.quantity_affected || null,
+      invoice_number_ref: query.invoice_number_ref || null,
+      back_order_id: query.back_order_id || null,
+      priority: query.priority,
+      status: query.status,
+      assigned_to: query.assigned_to || null,
+      assigned_team_id: query.assigned_team_id || null,
+      created_by: query.created_by || null,
+      created_at: query.created_at,
+      updated_at: query.updated_at,
+      resolved_at: query.resolved_at || null,
+      resolved_by: query.resolved_by || null,
+      resolution: query.resolution || null,
+      closed_at: query.closed_at || null,
+      closed_by: query.closed_by || null,
+      closure_reason: query.closure_reason || null,
+      reopened_at: query.reopened_at || null,
+      reopened_by: query.reopened_by || null,
+      reopen_reason: query.reopen_reason || null,
+      internal_notes: query.internal_notes || null,
+    };
+
+    let { data, error } = await supabase
+      .from('queries')
+      .upsert(cleanRow, { onConflict: 'id' })
+      .select()
+      .single();
+
+    if (error && (error.message?.includes('column') || error.code === 'PGRST204')) {
+      const fallbackRow = {
+        id: query.id,
+        query_number: query.query_number,
+        customer_id: query.customer_id,
+        order_id: query.order_id || null,
+        product_id: query.product_id || null,
+        subject: query.subject,
+        description: query.description,
+        category_id: query.category_id || null,
+        priority: query.priority,
+        status: query.status,
+        assigned_to: query.assigned_to || null,
+        assigned_team_id: query.assigned_team_id || null,
+        created_by: query.created_by || null,
+        created_at: query.created_at,
+        updated_at: query.updated_at,
+        resolved_at: query.resolved_at || null,
+        resolved_by: query.resolved_by || null,
+        resolution: query.resolution || null,
+        closed_at: query.closed_at || null,
+        closed_by: query.closed_by || null,
+        closure_reason: query.closure_reason || null,
+        reopened_at: query.reopened_at || null,
+        reopened_by: query.reopened_by || null,
+        reopen_reason: query.reopen_reason || null,
+        internal_notes: query.internal_notes || null,
+      };
+      const retry = await supabase
+        .from('queries')
+        .upsert(fallbackRow, { onConflict: 'id' })
+        .select()
+        .single();
+      data = retry.data;
+      error = retry.error;
+    }
+
+    if (error) {
+      console.warn('[Supabase] queries write warning:', error.message);
+      return { data: null, error };
+    }
+    return { data, error: null };
+  }
+
   private getQueriesRaw(): CustomerQuery[] {
     try {
       const data = storageGet(this.queriesKey);
@@ -800,6 +1026,7 @@ class LocalDatabaseService {
       status?: string;
       priority?: string;
       category_id?: string;
+      issue_type?: string;
       assigned_to?: string;
       team_id?: string;
       customer_id?: string;
@@ -815,6 +1042,7 @@ class LocalDatabaseService {
     const products = this.getProducts();
     const teams = this.getTeams();
     const orders = this.getOrders();
+    const backOrders = this.getBackOrders();
 
     queries = queries.map(q => {
       const assignedUser = q.assigned_to ? users.find(u => u.id === q.assigned_to) || null : null;
@@ -826,6 +1054,7 @@ class LocalDatabaseService {
         order: q.order_id ? orders.find(o => o.id === q.order_id) || null : null,
         category: q.category_id ? categories.find(cat => cat.id === q.category_id) || null : null,
         product: q.product_id ? products.find(p => p.id === q.product_id) || null : null,
+        back_order: q.back_order_id ? backOrders.find(b => b.id === q.back_order_id) || null : (backOrders.find(b => b.query_id === q.id) || null),
         assigned_to_profile: assignedUser,
         assigned_team_id: assignedTeamId,
         assigned_team: assignedTeamId ? teams.find(t => t.id === assignedTeamId) || null : null,
@@ -853,6 +1082,9 @@ class LocalDatabaseService {
     if (filters.category_id && filters.category_id !== 'all') {
       queries = queries.filter(q => q.category_id === filters.category_id);
     }
+    if (filters.issue_type && filters.issue_type !== 'all') {
+      queries = queries.filter(q => q.issue_type === filters.issue_type);
+    }
     if (filters.assigned_to && filters.assigned_to !== 'all') {
       queries = queries.filter(q => q.assigned_to === filters.assigned_to);
     }
@@ -867,11 +1099,15 @@ class LocalDatabaseService {
       queries = queries.filter(q =>
         q.query_number.toLowerCase().includes(qStr) ||
         q.subject.toLowerCase().includes(qStr) ||
+        (q.issue_type && q.issue_type.toLowerCase().includes(qStr)) ||
         (q.customer && q.customer.company_name.toLowerCase().includes(qStr)) ||
         (q.customer && q.customer.customer_code.toLowerCase().includes(qStr)) ||
         (q.customer && q.customer.phone && q.customer.phone.toLowerCase().includes(qStr)) ||
+        (q.customer && q.customer.city && q.customer.city.toLowerCase().includes(qStr)) ||
+        (q.customer && q.customer.route && q.customer.route.toLowerCase().includes(qStr)) ||
         (q.order && q.order.order_number.toLowerCase().includes(qStr)) ||
         (q.product && q.product.sku.toLowerCase().includes(qStr)) ||
+        (q.product && q.product.product_name.toLowerCase().includes(qStr)) ||
         (q.assigned_to_profile && q.assigned_to_profile.full_name.toLowerCase().includes(qStr))
       );
     }
@@ -899,6 +1135,15 @@ class LocalDatabaseService {
       subject: input.subject.trim(),
       description: input.description.trim(),
       category_id: input.category_id || null,
+      issue_type: input.issue_type || null,
+      action_required: input.action_required || null,
+      expected_price: input.expected_price || null,
+      charged_price: input.charged_price || null,
+      price_difference: input.price_difference || null,
+      expected_item: input.expected_item || null,
+      received_item: input.received_item || null,
+      quantity_affected: input.quantity_affected || null,
+      invoice_number_ref: input.invoice_number_ref || null,
       priority: input.priority || 'medium',
       status: initialStatus,
       assigned_to: input.assigned_to || null,
@@ -918,7 +1163,40 @@ class LocalDatabaseService {
       internal_notes: input.internal_notes?.trim() || null,
     };
 
+    // Auto-create Back Order if action is Send on Next Delivery or explicit flag / category
+    const shouldCreateBackOrder = Boolean(
+      input.create_back_order ||
+      input.action_required === 'send_next_delivery' ||
+      input.issue_type === 'item_not_received' ||
+      input.issue_type === 'back_order'
+    );
+
+    if (shouldCreateBackOrder) {
+      const cust = this.getCustomerById(input.customer_id);
+      const prod = input.product_id ? this.getProductById(input.product_id) : null;
+      const ord = input.order_id ? this.getOrderById(input.order_id) : null;
+      const nextDelivDate = calculateNextDeliveryDateForCustomer(cust?.route || cust?.city);
+
+      const bo = this.createBackOrder({
+        query_id: newQuery.id,
+        customer_id: input.customer_id,
+        product_id: input.product_id || null,
+        product_name_snapshot: prod ? prod.product_name : input.received_item || input.subject,
+        sku_snapshot: prod ? prod.sku : null,
+        quantity: input.quantity_affected || 1,
+        reason: input.description || input.subject,
+        original_order_id: input.order_id || null,
+        original_order_number: ord ? ord.order_number : null,
+        original_delivery_date: ord?.expected_delivery_date || null,
+        next_delivery_date: nextDelivDate,
+        notes: input.internal_notes || null,
+      });
+
+      newQuery.back_order_id = bo.id;
+    }
+
     storageSet(this.queriesKey, JSON.stringify([newQuery, ...queries]));
+    this.syncQueryToSupabase(newQuery).catch(err => console.warn('[Supabase] async query sync warning:', err));
 
     this.logActivity({
       query_id: newQuery.id,

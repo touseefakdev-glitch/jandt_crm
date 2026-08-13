@@ -1,4 +1,4 @@
-import { BUSINESS_TIMEZONE, DEFAULT_LOCALE } from '../config/businessConfig';
+import { BUSINESS_TIMEZONE, DEFAULT_LOCALE, ROUTE_DELIVERY_SCHEDULE } from '../config/businessConfig';
 import { DayOfWeek } from '../types';
 
 /**
@@ -92,4 +92,26 @@ export function formatDateShort(dateStr: string | null | undefined): string {
     month: 'short',
     day: 'numeric',
   });
+}
+
+/**
+ * Calculates the next scheduled delivery date (YYYY-MM-DD) for a customer
+ * based on their route or city schedule in America/Vancouver time.
+ */
+export function calculateNextDeliveryDateForCustomer(customerRouteOrCity?: string | null): string {
+  const todayStr = getVancouverToday();
+  const routeOrCity = (customerRouteOrCity || '').trim().toLowerCase();
+
+  // Look ahead up to 7 days for the next active route delivery day
+  for (let offset = 1; offset <= 7; offset++) {
+    const candidateDateStr = getOffsetDateString(todayStr, offset);
+    const weekday = getVancouverWeekday(candidateDateStr);
+    const routesForDay = (ROUTE_DELIVERY_SCHEDULE as any)[weekday] || [];
+    if (routesForDay.some((r: string) => r.trim().toLowerCase() === routeOrCity)) {
+      return candidateDateStr;
+    }
+  }
+
+  // Fallback to tomorrow if route not found
+  return getOffsetDateString(todayStr, 1);
 }

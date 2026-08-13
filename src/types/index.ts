@@ -80,6 +80,30 @@ export interface QueryCategory {
   created_at: string;
 }
 
+export type BackOrderStatus = 'PENDING' | 'SCHEDULED' | 'SENT' | 'COMPLETED';
+
+export interface BackOrderItem {
+  id: string;
+  query_id: string;
+  query?: CustomerQuery | null;
+  customer_id: string;
+  customer?: Customer | null;
+  product_id?: string | null;
+  product?: Product | null;
+  product_name_snapshot: string;
+  sku_snapshot?: string | null;
+  quantity: number;
+  reason: string;
+  original_order_id?: string | null;
+  original_order_number?: string | null;
+  original_delivery_date?: string | null;
+  next_delivery_date: string; // YYYY-MM-DD
+  status: BackOrderStatus;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CustomerQuery {
   id: string;
   query_number: string;
@@ -93,6 +117,17 @@ export interface CustomerQuery {
   description: string;
   category_id: string | null;
   category?: QueryCategory | null;
+  issue_type?: string | null;
+  action_required?: string | null;
+  expected_price?: number | null;
+  charged_price?: number | null;
+  price_difference?: number | null;
+  expected_item?: string | null;
+  received_item?: string | null;
+  quantity_affected?: number | null;
+  invoice_number_ref?: string | null;
+  back_order_id?: string | null;
+  back_order?: BackOrderItem | null;
   priority: QueryPriority;
   status: QueryStatus;
   assigned_to: string | null;
@@ -124,6 +159,16 @@ export interface QueryFormInput {
   subject: string;
   description: string;
   category_id?: string;
+  issue_type?: string;
+  action_required?: string;
+  expected_price?: number;
+  charged_price?: number;
+  price_difference?: number;
+  expected_item?: string;
+  received_item?: string;
+  quantity_affected?: number;
+  invoice_number_ref?: string;
+  create_back_order?: boolean;
   priority?: QueryPriority;
   order_id?: string;
   product_id?: string;

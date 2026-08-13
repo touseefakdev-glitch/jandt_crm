@@ -1,7 +1,7 @@
-# J&T Supplies CRM - Technical & Product Specification
+# J&T Supplies CRM - Technical & Product Specification (v1.37.0)
 
 ## Project Overview
-**J&T Supplies CRM** is a production-ready internal Customer Relationship Management application designed to streamline customer service, order fulfillment, product availability tracking, shift handovers, and operational auditing for J&T Supplies. The application supports multi-role access tailored to administrators, sales representatives, and customer support staff.
+**J&T Supplies CRM** is a production-ready internal Customer Relationship Management application designed to streamline customer service, order fulfillment, product availability tracking, shift handovers, customer issue resolution, and operational auditing for J&T Supplies. The application supports multi-role access tailored to administrators, sales representatives, and customer support staff.
 
 ---
 

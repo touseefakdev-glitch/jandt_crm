@@ -5,6 +5,15 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.35.1] - 2026-08-13
+
+### Fixed
+- **Critical Frontend Bug Fix — Application-Wide Input Focus Loss.**
+  - **Decoupled `onClose` Prop in Modal & Drawer**: Introduced `onCloseRef` in `src/components/ui/Modal.tsx` and `src/components/ui/Drawer.tsx` to maintain a stable reference to `onClose` across component re-renders.
+  - **Isolated Lifecycle Effects**: Separated keyboard event handling from open/close lifecycle effects in `Modal.tsx` and `Drawer.tsx`. The open/close lifecycle effect now depends strictly on `[isOpen]`, preventing effect teardowns and focus-restoration calls (`previouslyFocused.current?.focus()`) from executing during form state re-renders.
+  - **Continuous Typing Restored**: Resolved focus loss across all text inputs, textareas, and search fields in Customer forms, Product forms, Order forms, Query forms, Drawers, and Table search bars.
+  - **Documentation**: Created `UI_BUG_FIXES.md` and updated `CHANGELOG.md`.
+
 ## [1.35.0] - 2026-08-13
 
 ### Fixed

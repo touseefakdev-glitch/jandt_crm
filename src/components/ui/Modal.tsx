@@ -40,12 +40,19 @@ export const Modal: React.FC<ModalProps> = ({
 }) => {
   const panelRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
 
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && closeOnEsc) {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current?.();
       }
       if (e.key === 'Tab') {
         const focusables = panelRef.current?.querySelectorAll<HTMLElement>(
@@ -62,23 +69,38 @@ export const Modal: React.FC<ModalProps> = ({
           first.focus();
         }
       }
-    },
-    [closeOnEsc, onClose]
-  );
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, closeOnEsc]);
 
   useEffect(() => {
     if (!isOpen) return;
+
     previouslyFocused.current = document.activeElement as HTMLElement;
-    const timer = setTimeout(() => panelRef.current?.querySelector<HTMLElement>('button, [href], input, select, textarea')?.focus(), 50);
+
+    const timer = setTimeout(() => {
+      if (panelRef.current && !panelRef.current.contains(document.activeElement)) {
+        const firstFocusable = panelRef.current.querySelector<HTMLElement>(
+          'button, [href], input, select, textarea'
+        );
+        firstFocusable?.focus();
+      }
+    }, 50);
+
     document.body.style.overflow = 'hidden';
-    document.addEventListener('keydown', handleKeyDown);
+
     return () => {
       clearTimeout(timer);
       document.body.style.overflow = '';
-      document.removeEventListener('keydown', handleKeyDown);
-      previouslyFocused.current?.focus();
+      if (previouslyFocused.current && typeof previouslyFocused.current.focus === 'function') {
+        previouslyFocused.current.focus();
+      }
     };
-  }, [isOpen, handleKeyDown]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

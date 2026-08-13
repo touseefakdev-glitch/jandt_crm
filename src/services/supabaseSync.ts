@@ -31,6 +31,7 @@ export const TABLE_MAP: Record<string, string> = {
   // Level 3: Customers, Products, Notifications & Handovers
   jt_crm_customers:          'customers',
   jt_crm_products:           'products',
+  jt_crm_product_history:    'product_availability_history',
   jt_crm_notifications:      'notifications',
   jt_crm_handovers:          'shift_handovers',
 
@@ -328,7 +329,7 @@ function sanitizeRow(table: string, row: Record<string, unknown>): Record<string
   if (table === 'notifications') delete clean['user_id'];
 
   // Convert empty string UUID foreign keys to null so PostgreSQL UUID fields do not fail
-  ['assigned_to', 'assigned_team_id', 'created_by', 'resolved_by', 'closed_by', 'reopened_by', 'customer_id', 'order_id', 'product_id', 'category_id', 'performed_by', 'author_id', 'uploaded_by', 'team_id', 'user_id', 'brand_id', 'order_received_by', 'sales_order_generated_by', 'invoiced_by', 'dispatched_by', 'pod_sent_by', 'updated_by', 'error_query_id', 'operation_id'].forEach((field) => {
+  ['assigned_to', 'assigned_team_id', 'created_by', 'resolved_by', 'closed_by', 'reopened_by', 'customer_id', 'order_id', 'product_id', 'category_id', 'performed_by', 'author_id', 'uploaded_by', 'team_id', 'user_id', 'brand_id', 'order_received_by', 'sales_order_generated_by', 'invoiced_by', 'dispatched_by', 'pod_sent_by', 'updated_by', 'error_query_id', 'operation_id', 'changed_by'].forEach((field) => {
     if (clean[field] === '') {
       clean[field] = null;
     }

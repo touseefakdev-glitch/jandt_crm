@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Product, ProductAvailabilityStatus, ProductAvailabilityHistory } from '../types';
 import { localDb } from '../services/db';
+import { canUseServerQueries, fetchProductAvailabilityHistory } from '../services/queryService';
 import { ProductFormModal } from '../components/products/ProductFormModal';
 import { ProductAvailabilityModal } from '../components/products/ProductAvailabilityModal';
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState, PageHeader, Table, Tabs, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
@@ -44,10 +45,19 @@ export const ProductDetail: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const loadProductData = (prodId: string) => {
+  const loadProductData = async (prodId: string) => {
     const p = localDb.getProductById(prodId);
     setProduct(p);
     if (p) {
+      if (canUseServerQueries()) {
+        try {
+          const remoteHist = await fetchProductAvailabilityHistory(p.id);
+          setHistory(remoteHist);
+          return;
+        } catch (err) {
+          console.warn('[ProductDetail] Failed to load remote availability history, fallback to local:', err);
+        }
+      }
       setHistory(localDb.getProductAvailabilityHistory(p.id));
     }
   };

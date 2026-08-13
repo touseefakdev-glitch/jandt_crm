@@ -2,6 +2,7 @@ import { supabase, isServerReadsBlocked } from './supabaseSync';
 import {
   Customer,
   Product,
+  ProductAvailabilityHistory,
   CustomerQuery,
   CRMNotification,
   QueryCategory,
@@ -519,6 +520,27 @@ export async function fetchOutOfStockPage(
     pageSize: params.pageSize,
   });
   return result;
+}
+
+export async function fetchProductAvailabilityHistory(
+  productId: string
+): Promise<ProductAvailabilityHistory[]> {
+  throwIfServerUnavailable();
+  const { data, error } = await supabase!
+    .from('product_availability_history')
+    .select('*')
+    .eq('product_id', productId)
+    .order('changed_at', { ascending: false });
+
+  if (error) throw error;
+  const rows = (data as ProductAvailabilityHistory[]) || [];
+  const userIds = rows.map((h) => h.changed_by || '').filter(Boolean);
+  const profiles = await lookupRows<{ id: string; full_name: string }>('profiles', 'id, full_name', userIds);
+
+  return rows.map((h) => ({
+    ...h,
+    changed_by_profile: h.changed_by ? (profiles.get(h.changed_by) as UserProfile | null) || null : null,
+  }));
 }
 
 // ---------------------------------------------------------------------------

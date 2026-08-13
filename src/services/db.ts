@@ -1,5 +1,5 @@
 // Supabase client + in-memory store + write-through helpers are provided by supabaseSync
-import { supabase, storageGet, storageSet, storagePrime } from './supabaseSync';
+import { supabase, storageGet, storageSet, storagePrime, flushPendingSyncs } from './supabaseSync';
 export { supabase };
 import { extractCityFromCompanyName } from '../utils/cityExtractor';
 import { isOperationError, isOrderDifferent } from '../utils/orderWorkflow';
@@ -2484,6 +2484,8 @@ class LocalDatabaseService {
       });
     }
 
+    flushPendingSyncs().catch((err) => console.error('[Supabase] Flush pending syncs failed:', err));
+
     return this.getProductById(newProduct.id)!;
   }
 
@@ -2574,6 +2576,8 @@ class LocalDatabaseService {
       expectedDate: expectedDate,
       actorUserId: userId,
     });
+
+    flushPendingSyncs().catch((err) => console.error('[Supabase] Flush pending syncs failed:', err));
 
     return this.getProductById(productId);
   }

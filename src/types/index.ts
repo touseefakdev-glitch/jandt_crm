@@ -128,6 +128,9 @@ export interface CustomerQuery {
   invoice_number_ref?: string | null;
   back_order_id?: string | null;
   back_order?: BackOrderItem | null;
+  reference_type?: string | null;
+  reference_id?: string | null;
+  reference_label?: string | null;
   priority: QueryPriority;
   status: QueryStatus;
   assigned_to: string | null;
@@ -156,8 +159,12 @@ export interface CustomerQuery {
 
 export interface QueryFormInput {
   customer_id: string;
-  subject: string;
+  category?: string;
   description: string;
+  reference_type?: 'product' | 'invoice' | 'order' | '';
+  reference_id?: string;
+  reference_label?: string;
+  subject?: string;
   category_id?: string;
   issue_type?: string;
   action_required?: string;

@@ -3,14 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { localDb } from '../services/db';
 import { CustomerQuery, QueryFormInput, BackOrderItem, BackOrderStatus } from '../types';
-import { QUERY_ISSUE_CATEGORIES, QUERY_STATUS_CONFIG, QUERY_PRIORITY_CONFIG, BACK_ORDER_STATUS_CONFIG } from '../utils/queryConstants';
+import { QUERY_ISSUE_CATEGORIES, QUERY_STATUS_CONFIG, BACK_ORDER_STATUS_CONFIG } from '../utils/queryConstants';
 import { formatDateShort } from '../utils/dateUtils';
-import { formatDateTime } from '../utils/format';
 import { QueryFormModal } from '../components/queries/QueryFormModal';
 import { MobileQueryCard } from '../components/queries/MobileQueryCard';
 import {
-  Avatar,
-  Badge,
   Button,
   Card,
   EmptyState,
@@ -18,7 +15,6 @@ import {
   PageHeader,
   Pagination,
   Select,
-  StatCard,
   Table,
   TableToolbar,
   Tabs,
@@ -34,135 +30,90 @@ import {
   Plus,
   Search,
   Inbox,
-  User,
-  Users,
-  X,
-  PackageCheck,
-  Package,
   CalendarPlus,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
   Truck,
-  RotateCcw,
-  Tag,
-  ReceiptText,
-  ShieldAlert,
-  PackageSearch,
-  PackageX,
   ArrowRight,
-  ExternalLink,
+  Package,
 } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 15;
 
-type ViewTab = 'queries' | 'back_orders';
+type ViewTab = 'all' | 'open' | 'in_progress' | 'resolved' | 'closed' | 'back_orders';
 
 export const Queries: React.FC = () => {
   const { user, dbVersion } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [activeViewTab, setActiveViewTab] = useState<ViewTab>('queries');
-
-  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
-  const [productSearchTerm, setProductSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [issueTypeFilter, setIssueTypeFilter] = useState<string>('all');
-  const [priorityFilter, setPriorityFilter] = useState<string>('all');
-  const [backOrderStatusFilter, setBackOrderStatusFilter] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<ViewTab>('all');
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [issueSearch, setIssueSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const categories = useMemo(() => localDb.getCategories(), [dbVersion]);
-  const agents = useMemo(() => localDb.getUsers(), [dbVersion]);
-
-  // Load queries and back orders from localDb
   const allQueries = useMemo(() => localDb.getQueries({}, user?.id), [dbVersion]);
   const allBackOrders = useMemo(() => localDb.getBackOrders(), [dbVersion]);
 
-  // Derived KPI Counts
-  const stats = useMemo(() => {
-    const openCount = allQueries.filter((q) => ['new', 'open', 'assigned'].includes(q.status)).length;
-    const inProgressCount = allQueries.filter((q) => q.status === 'in_progress').length;
-    const waitingCount = allQueries.filter((q) => q.status === 'waiting_customer').length;
-    const backOrdersCount = allBackOrders.filter((b) => b.status === 'PENDING' || b.status === 'SCHEDULED').length;
-    const resolvedCount = allQueries.filter((q) => q.status === 'resolved' || q.status === 'closed').length;
-
-    return { openCount, inProgressCount, waitingCount, backOrdersCount, resolvedCount };
-  }, [allQueries, allBackOrders]);
-
-  // Filtered Queries
+  // Filter Queries
   const filteredQueries = useMemo(() => {
     let result = allQueries;
 
-    if (statusFilter !== 'all') {
-      if (statusFilter === 'open') {
+    if (activeTab !== 'all' && activeTab !== 'back_orders') {
+      if (activeTab === 'open') {
         result = result.filter((q) => ['new', 'open', 'assigned'].includes(q.status));
-      } else {
-        result = result.filter((q) => q.status === statusFilter);
+      } else if (activeTab === 'in_progress') {
+        result = result.filter((q) => q.status === 'in_progress' || q.status === 'waiting_customer');
+      } else if (activeTab === 'resolved') {
+        result = result.filter((q) => q.status === 'resolved');
+      } else if (activeTab === 'closed') {
+        result = result.filter((q) => q.status === 'closed');
       }
     }
 
-    if (issueTypeFilter !== 'all') {
-      result = result.filter((q) => q.issue_type === issueTypeFilter);
+    if (categoryFilter !== 'all') {
+      result = result.filter((q) => q.issue_type === categoryFilter || q.category_id === categoryFilter);
     }
 
-    if (priorityFilter !== 'all') {
-      result = result.filter((q) => q.priority === priorityFilter);
-    }
-
-    if (customerSearchTerm.trim()) {
-      const q = customerSearchTerm.toLowerCase().trim();
+    if (customerSearch.trim()) {
+      const q = customerSearch.toLowerCase().trim();
       result = result.filter(
         (query) =>
-          query.query_number.toLowerCase().includes(q) ||
           (query.customer && query.customer.company_name.toLowerCase().includes(q)) ||
-          (query.customer && query.customer.customer_code.toLowerCase().includes(q)) ||
-          (query.customer && query.customer.phone && query.customer.phone.toLowerCase().includes(q)) ||
-          (query.customer && query.customer.city && query.customer.city.toLowerCase().includes(q)) ||
-          (query.customer && query.customer.route && query.customer.route.toLowerCase().includes(q))
+          (query.customer && query.customer.customer_code.toLowerCase().includes(q))
       );
     }
 
-    if (productSearchTerm.trim()) {
-      const q = productSearchTerm.toLowerCase().trim();
+    if (issueSearch.trim()) {
+      const q = issueSearch.toLowerCase().trim();
       result = result.filter(
         (query) =>
+          query.query_number.toLowerCase().includes(q) ||
           query.subject.toLowerCase().includes(q) ||
           query.description.toLowerCase().includes(q) ||
+          (query.reference_label && query.reference_label.toLowerCase().includes(q)) ||
           (query.product && query.product.product_name.toLowerCase().includes(q)) ||
           (query.product && query.product.sku.toLowerCase().includes(q)) ||
-          (query.expected_item && query.expected_item.toLowerCase().includes(q)) ||
-          (query.received_item && query.received_item.toLowerCase().includes(q))
+          (query.order && query.order.order_number.toLowerCase().includes(q))
       );
     }
 
     return result;
-  }, [allQueries, statusFilter, issueTypeFilter, priorityFilter, customerSearchTerm, productSearchTerm]);
+  }, [allQueries, activeTab, categoryFilter, customerSearch, issueSearch]);
 
-  // Filtered Back Orders
+  // Filter Back Orders
   const filteredBackOrders = useMemo(() => {
     let result = allBackOrders;
 
-    if (backOrderStatusFilter !== 'all') {
-      result = result.filter((b) => b.status === backOrderStatusFilter);
+    if (customerSearch.trim()) {
+      const q = customerSearch.toLowerCase().trim();
+      result = result.filter((b) => b.customer && b.customer.company_name.toLowerCase().includes(q));
     }
 
-    if (customerSearchTerm.trim()) {
-      const q = customerSearchTerm.toLowerCase().trim();
-      result = result.filter(
-        (b) =>
-          (b.customer && b.customer.company_name.toLowerCase().includes(q)) ||
-          (b.customer && b.customer.city && b.customer.city.toLowerCase().includes(q)) ||
-          (b.customer && b.customer.route && b.customer.route.toLowerCase().includes(q))
-      );
-    }
-
-    if (productSearchTerm.trim()) {
-      const q = productSearchTerm.toLowerCase().trim();
+    if (issueSearch.trim()) {
+      const q = issueSearch.toLowerCase().trim();
       result = result.filter(
         (b) =>
           b.product_name_snapshot.toLowerCase().includes(q) ||
@@ -172,11 +123,10 @@ export const Queries: React.FC = () => {
     }
 
     return result;
-  }, [allBackOrders, backOrderStatusFilter, customerSearchTerm, productSearchTerm]);
+  }, [allBackOrders, customerSearch, issueSearch]);
 
-  const totalPages = Math.ceil(
-    (activeViewTab === 'queries' ? filteredQueries.length : filteredBackOrders.length) / ITEMS_PER_PAGE
-  ) || 1;
+  const currentListLength = activeTab === 'back_orders' ? filteredBackOrders.length : filteredQueries.length;
+  const totalPages = Math.ceil(currentListLength / ITEMS_PER_PAGE) || 1;
 
   const pagedQueries = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -190,16 +140,6 @@ export const Queries: React.FC = () => {
 
   if (!user) return null;
 
-  const handleClearFilters = () => {
-    setCustomerSearchTerm('');
-    setProductSearchTerm('');
-    setStatusFilter('all');
-    setIssueTypeFilter('all');
-    setPriorityFilter('all');
-    setBackOrderStatusFilter('all');
-    setCurrentPage(1);
-  };
-
   const handleCreateQuery = (data: QueryFormInput) => {
     setIsSubmitting(true);
     try {
@@ -207,15 +147,15 @@ export const Queries: React.FC = () => {
       setIsCreateModalOpen(false);
       toast({
         type: 'success',
-        title: 'Customer issue logged',
-        message: `Issue ${created.query_number} saved successfully.`,
+        title: 'Query Created',
+        message: `${created.query_number} has been created and set to OPEN.`,
       });
       navigate(`/queries/${created.id}`);
     } catch (err: any) {
       toast({
         type: 'error',
-        title: 'Creation failed',
-        message: err.message || 'Unable to log customer issue.',
+        title: 'Creation Failed',
+        message: err.message || 'Could not create query.',
       });
     } finally {
       setIsSubmitting(false);
@@ -227,270 +167,187 @@ export const Queries: React.FC = () => {
       localDb.updateBackOrderStatus(id, newStatus);
       toast({
         type: 'success',
-        title: 'Back Order updated',
-        message: `Status changed to ${newStatus}.`,
+        title: 'Back Order Updated',
+        message: `Status updated to ${newStatus}.`,
       });
     } catch {
-      toast({ type: 'error', title: 'Update failed', message: 'Could not update Back Order status.' });
+      toast({ type: 'error', title: 'Update Failed', message: 'Could not update Back Order status.' });
     }
   };
 
-  const getIssueCategoryBadge = (issueType?: string | null) => {
-    const cat = QUERY_ISSUE_CATEGORIES.find((c) => c.key === issueType) || QUERY_ISSUE_CATEGORIES[7];
+  const getCategoryBadge = (issueType?: string | null) => {
+    const cat = QUERY_ISSUE_CATEGORIES.find((c) => c.key === issueType) || QUERY_ISSUE_CATEGORIES[5];
     return (
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border ${cat.badgeClass}`}>
-        {cat.shortLabel}
+      <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold border ${cat.badgeClass}`}>
+        {cat.name}
       </span>
     );
+  };
+
+  const getReferenceLabel = (q: CustomerQuery) => {
+    if (q.reference_label) return q.reference_label;
+    if (q.product) return `${q.product.product_name} (${q.product.sku})`;
+    if (q.order) return `Order #${q.order.order_number}`;
+    if (q.invoice_number_ref) return `Invoice ${q.invoice_number_ref}`;
+    return '—';
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        icon={<HelpCircle className="w-5 h-5 text-brand-400" />}
-        title="Customer Issue & Resolution Center"
-        description="Log, track, resolve customer operational issues, price mismatches, quality returns, and pending back orders"
+        icon={<HelpCircle className="w-5 h-5 text-brand-500" />}
+        title="Queries"
+        description="Log and track customer problems, returns, price issues, quality complaints, and back orders"
         actions={
           <Button onClick={() => setIsCreateModalOpen(true)} icon={<Plus className="w-4 h-4" />}>
-            New Customer Issue
+            + NEW QUERY
           </Button>
         }
       />
 
-      {/* KPI Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <div
-          onClick={() => {
-            setActiveViewTab('queries');
-            setStatusFilter('open');
-          }}
-          className="cursor-pointer transition-transform hover:scale-[1.01]"
-        >
-          <StatCard title="Open Issues" value={stats.openCount} icon={<Inbox className="w-4 h-4" />} accent="brand" description="Needs attention" />
-        </div>
-
-        <div
-          onClick={() => {
-            setActiveViewTab('queries');
-            setStatusFilter('in_progress');
-          }}
-          className="cursor-pointer transition-transform hover:scale-[1.01]"
-        >
-          <StatCard title="In Progress" value={stats.inProgressCount} icon={<Clock className="w-4 h-4" />} accent="amber" description="Active work" />
-        </div>
-
-        <div
-          onClick={() => {
-            setActiveViewTab('queries');
-            setStatusFilter('waiting_customer');
-          }}
-          className="cursor-pointer transition-transform hover:scale-[1.01]"
-        >
-          <StatCard title="Waiting Info" value={stats.waitingCount} icon={<HelpCircle className="w-4 h-4" />} accent="violet" description="Pending response" />
-        </div>
-
-        <div
-          onClick={() => setActiveViewTab('back_orders')}
-          className="cursor-pointer transition-transform hover:scale-[1.01]"
-        >
-          <StatCard title="Pending Back Orders" value={stats.backOrdersCount} icon={<CalendarPlus className="w-4 h-4" />} accent="teal" description="Next delivery queue" />
-        </div>
-
-        <div
-          onClick={() => {
-            setActiveViewTab('queries');
-            setStatusFilter('resolved');
-          }}
-          className="cursor-pointer transition-transform hover:scale-[1.01]"
-        >
-          <StatCard title="Resolved / Closed" value={stats.resolvedCount} icon={<CheckCircle2 className="w-4 h-4" />} accent="green" description="Completed" />
-        </div>
-      </div>
-
-      {/* Main View Tabs */}
       <TableToolbar>
+        {/* Simple Tab Filters */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 mb-3">
           <Tabs
             size="md"
             tabs={[
-              { value: 'queries', label: `Customer Issues (${filteredQueries.length})` },
-              { value: 'back_orders', label: `Pending Back Orders (${filteredBackOrders.length})` },
+              { value: 'all', label: 'All Queries' },
+              { value: 'open', label: 'Open' },
+              { value: 'in_progress', label: 'In Progress' },
+              { value: 'resolved', label: 'Resolved' },
+              { value: 'closed', label: 'Closed' },
+              { value: 'back_orders', label: `Back Orders (${allBackOrders.length})` },
             ]}
-            active={activeViewTab}
+            active={activeTab}
             onChange={(v) => {
-              setActiveViewTab(v as ViewTab);
+              setActiveTab(v as ViewTab);
               setCurrentPage(1);
             }}
           />
 
           <Button size="sm" onClick={() => setIsCreateModalOpen(true)} icon={<Plus className="w-3.5 h-3.5" />}>
-            Log Issue
+            + New Query
           </Button>
         </div>
 
-        {/* Dual Fast Search & Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Fast Searches */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Input
             type="text"
-            value={customerSearchTerm}
+            value={customerSearch}
             onChange={(e) => {
-              setCustomerSearchTerm(e.target.value);
+              setCustomerSearch(e.target.value);
               setCurrentPage(1);
             }}
-            placeholder="Search customer, phone, city, route..."
+            placeholder="Search customer..."
             icon={<Search className="w-4 h-4 text-slate-400" />}
-            className="pl-9"
+            className="pl-9 text-sm"
           />
 
           <Input
             type="text"
-            value={productSearchTerm}
+            value={issueSearch}
             onChange={(e) => {
-              setProductSearchTerm(e.target.value);
+              setIssueSearch(e.target.value);
               setCurrentPage(1);
             }}
-            placeholder="Search product or SKU..."
-            icon={<Package className="w-4 h-4 text-slate-400" />}
-            className="pl-9"
+            placeholder="Search issue or reference..."
+            icon={<Search className="w-4 h-4 text-slate-400" />}
+            className="pl-9 text-sm"
           />
 
-          {activeViewTab === 'queries' ? (
-            <>
-              <Select
-                value={issueTypeFilter}
-                onChange={(e) => {
-                  setIssueTypeFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="all">All Issue Categories</option>
-                {QUERY_ISSUE_CATEGORIES.map((c) => (
-                  <option key={c.key} value={c.key}>
-                    {c.name}
-                  </option>
-                ))}
-              </Select>
-
-              <Select
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="all">All Statuses</option>
-                <option value="open">Open Issues</option>
-                <option value="in_progress">In Progress</option>
-                <option value="waiting_customer">Waiting</option>
-                <option value="resolved">Resolved</option>
-                <option value="closed">Closed</option>
-              </Select>
-            </>
-          ) : (
+          {activeTab !== 'back_orders' && (
             <Select
-              value={backOrderStatusFilter}
+              value={categoryFilter}
               onChange={(e) => {
-                setBackOrderStatusFilter(e.target.value);
+                setCategoryFilter(e.target.value);
                 setCurrentPage(1);
               }}
+              className="text-sm font-semibold"
             >
-              <option value="all">All Back Order Statuses</option>
-              <option value="PENDING">Pending</option>
-              <option value="SCHEDULED">Scheduled</option>
-              <option value="SENT">Sent</option>
-              <option value="COMPLETED">Completed</option>
+              <option value="all">All Categories</option>
+              {QUERY_ISSUE_CATEGORIES.map((c) => (
+                <option key={c.key} value={c.key}>
+                  {c.name}
+                </option>
+              ))}
             </Select>
           )}
         </div>
       </TableToolbar>
 
-      {/* Content View: Customer Queries vs Back Orders */}
-      {activeViewTab === 'queries' ? (
+      {/* Main Table View */}
+      {activeTab !== 'back_orders' ? (
         <>
           {/* Desktop Table View */}
           <Card className="hidden md:block overflow-hidden">
             <Table>
               <THead>
                 <Tr>
+                  <Th>Query</Th>
                   <Th>Customer</Th>
-                  <Th>Issue Category</Th>
-                  <Th>Product / Order</Th>
-                  <Th>Action Required</Th>
-                  <Th>Priority</Th>
+                  <Th>Category</Th>
+                  <Th>Reference</Th>
+                  <Th>Issue</Th>
                   <Th>Status</Th>
                   <Th>Created</Th>
-                  <Th align="right">Action</Th>
+                  <Th align="right"></Th>
                 </Tr>
               </THead>
               <TBody>
                 {pagedQueries.length > 0 ? (
                   pagedQueries.map((q) => {
                     const statusConf = QUERY_STATUS_CONFIG[q.status] || QUERY_STATUS_CONFIG.open;
-                    const priorityConf = QUERY_PRIORITY_CONFIG[q.priority] || QUERY_PRIORITY_CONFIG.medium;
                     return (
                       <Tr key={q.id} className="hover:bg-slate-50 transition-colors">
+                        {/* Query Number */}
+                        <Td>
+                          <Link to={`/queries/${q.id}`} className="font-mono font-extrabold text-brand-700 hover:underline">
+                            {q.query_number}
+                          </Link>
+                        </Td>
+
                         {/* Customer */}
                         <Td>
-                          <div>
-                            <Link to={`/customers/${q.customer_id}`} className="font-extrabold text-slate-900 hover:text-brand-600 block truncate max-w-[200px]">
-                              {q.customer?.company_name || 'Customer'}
-                            </Link>
-                            <span className="text-xs text-slate-500 block truncate">
-                              {q.customer?.city ? `${q.customer.city} (${q.customer.route || 'Route'})` : q.customer?.phone || '—'}
-                            </span>
-                          </div>
+                          <Link to={`/customers/${q.customer_id}`} className="font-bold text-slate-900 hover:text-brand-600 truncate block max-w-[180px]">
+                            {q.customer?.company_name || 'Customer'}
+                          </Link>
                         </Td>
 
-                        {/* Issue Category */}
-                        <Td>{getIssueCategoryBadge(q.issue_type)}</Td>
+                        {/* Category */}
+                        <Td>{getCategoryBadge(q.issue_type)}</Td>
 
-                        {/* Product / Order */}
+                        {/* Reference */}
                         <Td>
-                          <div className="text-xs max-w-[220px]">
-                            {q.product ? (
-                              <span className="font-bold text-slate-900 block truncate">{q.product.product_name}</span>
-                            ) : q.expected_item ? (
-                              <span className="font-bold text-slate-900 block truncate">{q.expected_item}</span>
-                            ) : (
-                              <span className="font-bold text-slate-900 block truncate">{q.subject}</span>
-                            )}
-                            {q.order && (
-                              <span className="font-mono text-brand-700 font-semibold block text-[11px]">Order #{q.order.order_number}</span>
-                            )}
-                          </div>
-                        </Td>
-
-                        {/* Action Required */}
-                        <Td>
-                          <span className="text-xs font-bold text-slate-800 capitalize">
-                            {(q.action_required || 'investigate').replace(/_/g, ' ')}
+                          <span className="text-xs font-semibold text-slate-700 truncate block max-w-[200px]">
+                            {getReferenceLabel(q)}
                           </span>
                         </Td>
 
-                        {/* Priority */}
+                        {/* Issue Explanation */}
                         <Td>
-                          <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold border ${priorityConf.badgeClass}`}>
-                            {priorityConf.label}
+                          <span className="text-xs text-slate-800 line-clamp-2 max-w-[280px]" title={q.description}>
+                            {q.description}
                           </span>
                         </Td>
 
                         {/* Status */}
                         <Td>
-                          <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold border ${statusConf.badgeClass}`}>
+                          <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-extrabold border ${statusConf.badgeClass}`}>
                             {statusConf.label}
                           </span>
                         </Td>
 
                         {/* Created */}
                         <Td>
-                          <span className="text-xs text-slate-500 font-medium block whitespace-nowrap">
+                          <span className="text-xs text-slate-500 font-medium whitespace-nowrap">
                             {formatDateShort(q.created_at)}
                           </span>
                         </Td>
 
                         {/* Action */}
                         <Td align="right">
-                          <Button size="sm" variant="outline" onClick={() => navigate(`/queries/${q.id}`)} icon={<ArrowRight className="w-3 h-3" />}>
+                          <Button size="sm" variant="outline" onClick={() => navigate(`/queries/${q.id}`)} icon={<ArrowRight className="w-3.5 h-3.5" />}>
                             View
                           </Button>
                         </Td>
@@ -502,8 +359,8 @@ export const Queries: React.FC = () => {
                     <Td colSpan={8}>
                       <EmptyState
                         icon={<Inbox className="w-10 h-10 text-slate-400" />}
-                        title="Everything is clear"
-                        description="No customer issues match the selected search filters."
+                        title="No queries found"
+                        description="No customer issues match the current search filters."
                       />
                     </Td>
                   </Tr>
@@ -521,8 +378,8 @@ export const Queries: React.FC = () => {
             ) : (
               <EmptyState
                 icon={<Inbox className="w-10 h-10 text-slate-400" />}
-                title="Everything is clear"
-                description="No customer issues match the selected search filters."
+                title="No queries found"
+                description="No customer issues match the current search filters."
               />
             )}
           </div>
@@ -534,10 +391,10 @@ export const Queries: React.FC = () => {
             <THead>
               <Tr>
                 <Th>Customer</Th>
-                <Th>Back Order Item</Th>
+                <Th>Item</Th>
                 <Th>Qty</Th>
-                <Th>Reason / Issue</Th>
-                <Th>Next Scheduled Delivery</Th>
+                <Th>Reason</Th>
+                <Th>Next Delivery</Th>
                 <Th>Status</Th>
                 <Th align="right">Update Status</Th>
               </Tr>
@@ -549,12 +406,7 @@ export const Queries: React.FC = () => {
                   return (
                     <Tr key={b.id} className="hover:bg-slate-50 transition-colors">
                       <Td>
-                        <div>
-                          <span className="font-extrabold text-slate-900 block">{b.customer?.company_name || 'Customer'}</span>
-                          <span className="text-xs text-slate-500 block font-bold">
-                            {b.customer?.city} {b.customer?.route ? `(${b.customer.route})` : ''}
-                          </span>
-                        </div>
+                        <span className="font-extrabold text-slate-900 block">{b.customer?.company_name || 'Customer'}</span>
                       </Td>
                       <Td>
                         <div className="text-xs">
@@ -599,7 +451,7 @@ export const Queries: React.FC = () => {
                   <Td colSpan={7}>
                     <EmptyState
                       icon={<CalendarPlus className="w-10 h-10 text-slate-400" />}
-                      title="No pending back orders"
+                      title="No back orders"
                       description="There are currently no items queued for next delivery."
                     />
                   </Td>
@@ -615,13 +467,13 @@ export const Queries: React.FC = () => {
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
-          totalItems={activeViewTab === 'queries' ? filteredQueries.length : filteredBackOrders.length}
+          totalItems={currentListLength}
           pageSize={ITEMS_PER_PAGE}
           onPageChange={(p) => setCurrentPage(p)}
         />
       )}
 
-      {/* Create Customer Issue Modal */}
+      {/* Create Query Modal */}
       {isCreateModalOpen && (
         <QueryFormModal
           isOpen={isCreateModalOpen}

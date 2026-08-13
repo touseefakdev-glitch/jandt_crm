@@ -1,90 +1,64 @@
-# Customer Issue & Resolution Center (Queries Module) — v1.37.0 Specification
+# Simplified 4-Field Customer Issue & Resolution Center (Queries Module)
 
 ## Overview
 
-The **Queries Module** in J&T CRM has been completely audited and rebuilt into a simple, non-technical **Customer Issue & Resolution Center**.
-
-It is specifically tailored for daily operational workflow handling customer issues:
-1. **Wrong Item Received** (`wrong_item`)
-2. **Item Return / Invoice Change Request** (`invoice_change`)
-3. **Price Issue** (`price_issue`)
-4. **Quality Issue** (`quality_issue`)
-5. **Item Not Received** (`item_not_received`)
-6. **Item Returned** (`item_returned`)
-7. **Back Order / Send on Next Delivery** (`back_order`)
-8. **Other Customer Issue** (`other`)
+The **Queries Module** in JT Supplies CRM is designed as a fast 10–15 second customer problem report system. An agent receives a customer call/complaint and logs it immediately without filling complicated multi-step forms.
 
 ---
 
-## Core Operational Questions
+## 1. Core 4-Field Creation Form
 
-Every customer issue record immediately answers four fundamental operational questions:
+Creating a new Query requires ONLY 4 simple inputs:
 
-| Question | CRM Implementation |
-|---|---|
-| **WHO?** | Customer Company Name, Customer Code, Phone, WhatsApp, City, Route, Next Delivery Date |
-| **WHAT?** | Product Item Name, SKU, Catalog Price, Order #, Expected vs Billed Price / Received Item |
-| **WHAT TO DO?** | Resolution Action (`Replace Item`, `Return Item`, `Credit Customer`, `Correct Invoice`, `Correct Price`, `Send on Next Delivery`) |
-| **IS IT DONE?** | Issue Status (`OPEN`, `IN_PROGRESS`, `WAITING`, `RESOLVED`, `CLOSED`) |
-
----
-
-## Independent Back Order Subsystem
-
-### Business Rule
-> **Closing or resolving a Customer Issue does NOT cancel or delete a pending Back Order.**
-
-- When a customer issue is logged with action *"Send on Next Delivery"* or category *"Item Not Received"* / *"Back Order"*, a dedicated **Back Order** record is automatically created in `public.back_orders`.
-- **Next Delivery Date Calculation**: Calculated dynamically using the customer's route/city delivery schedule in `America/Vancouver` Pacific time.
-- **Statuses**: `PENDING` ➔ `SCHEDULED` ➔ `SENT` ➔ `COMPLETED`.
-- Back orders remain visible and active in the **Pending Back Orders** view tab until physically fulfilled and marked `COMPLETED`.
+1. **Customer \***: Search by Customer Name (e.g. `ABC Medical Supplies`). Selecting a customer displays a quick confirmation badge (`ABC Medical Supplies — Kelowna`).
+2. **Category \***: Dropdown with 6 short categories:
+   - `Wrong Item Received`
+   - `Return Request`
+   - `Price Issue`
+   - `Quality Issue`
+   - `Item Not Received`
+   - `Other`
+3. **Reference** *(Optional)*: Selector for `Product` | `Invoice` | `Order` + search box to link a specific SKU, Invoice #, or Order # if applicable.
+4. **Explain the issue \***: Large text area (`"Briefly explain what happened..."`).
 
 ---
 
-## Database Architecture
+## 2. Automatic Defaults & Workflow
 
-### Supabase Table: `public.queries`
-- `issue_type`: VARCHAR(100) (1 of 8 primary categories)
-- `action_required`: VARCHAR(100)
-- `expected_price`: NUMERIC(12,2)
-- `charged_price`: NUMERIC(12,2)
-- `price_difference`: NUMERIC(12,2)
-- `expected_item`: VARCHAR(255)
-- `received_item`: VARCHAR(255)
-- `quantity_affected`: NUMERIC(10,2)
-- `invoice_number_ref`: VARCHAR(100)
-- `back_order_id`: UUID
-
-### Supabase Table: `public.back_orders`
-- `id`: UUID (Primary Key)
-- `query_id`: UUID (FK ➔ `queries.id`)
-- `customer_id`: UUID (FK ➔ `customers.id`)
-- `product_id`: UUID (FK ➔ `products.id`)
-- `product_name_snapshot`: VARCHAR(255)
-- `sku_snapshot`: VARCHAR(100)
-- `quantity`: NUMERIC(10,2)
-- `reason`: TEXT
-- `original_order_id`: UUID (FK ➔ `orders.id`)
-- `original_order_number`: VARCHAR(100)
-- `original_delivery_date`: DATE
-- `next_delivery_date`: DATE (America/Vancouver route schedule)
-- `status`: VARCHAR(50) (`PENDING` | `SCHEDULED` | `SENT` | `COMPLETED`)
-- `created_at`, `updated_at`: TIMESTAMPTZ
+- **Default Status**: Every newly created Query automatically starts as **`OPEN`** (`QRY-XXXXXX`).
+- **Default Priority**: Defaults to `Normal` (`medium`).
+- **No Initial Clutter**: Priority selectors, quantities, prices, action dropdowns, and assignee selectors are eliminated from initial creation.
 
 ---
 
-## User Workflows
+## 3. Operations & Management Workflow
 
-### 1. Logging a Customer Issue (`+ NEW CUSTOMER ISSUE`)
-1. Click **+ New Customer Issue** from header or toolbar.
-2. **Step 1 (WHO)**: Search and select Customer. Live panel reveals customer contact info, open queries, and pending back orders.
-3. **Step 2 (WHAT TYPE)**: Select 1 of 8 visual issue category cards.
-4. **Step 3 (ITEM/ORDER)**: Select catalog product and/or customer order.
-5. **Step 4 (DETAILS)**: Provide title, problem description, and issue-specific fields (prices, items, quantities).
-6. **Step 5 (ACTION & SAVE)**: Select required resolution action and toggle optional Back Order creation. Save.
+Management actions take place on the Query details page (`/queries/:id`):
 
-### 2. Resolving a Customer Issue
-1. Open Query Detail (`/queries/:id`).
-2. Click **Start Working** (`IN_PROGRESS`).
-3. Click **Resolve Issue** (`RESOLVED`). Resolution text is saved and timestamped with agent ID.
-4. Click **Close Issue** (`CLOSED`).
+```
++ NEW QUERY (10–15 sec)
+       ↓
+  Default OPEN
+       ↓
+Open Query Details (/queries/:id)
+       ↓
+ ┌─────────────────────────────────────────────────────────┐
+ │ Management Actions:                                     │
+ │ • Start Working (IN PROGRESS)                           │
+ │ • Wait for Info (WAITING)                               │
+ │ • Assign Agent                                          │
+ │ • + Create Back Order (Queue item for next delivery)   │
+ │ • Post Internal Notes                                   │
+ │ • Resolve Query                                         │
+ └─────────────────────────────────────────────────────────┘
+       ↓
+   RESOLVED / CLOSED
+```
+
+---
+
+## 4. Back Orders Management
+
+If a query involves missing items or items that need to be delivered later (e.g., `Item Not Received`), the user clicks **`+ Create Back Order`** on the Query Detail page.
+
+The item is queued for the customer's next scheduled delivery date calculated in `America/Vancouver` Pacific time. Query resolution (`RESOLVED`/`CLOSED`) does not delete the Back Order record. Back Orders remain `PENDING`/`SCHEDULED` until dispatched.

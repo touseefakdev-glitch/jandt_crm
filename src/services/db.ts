@@ -943,6 +943,9 @@ class LocalDatabaseService {
       quantity_affected: query.quantity_affected || null,
       invoice_number_ref: query.invoice_number_ref || null,
       back_order_id: query.back_order_id || null,
+      reference_type: query.reference_type || null,
+      reference_id: query.reference_id || null,
+      reference_label: query.reference_label || null,
       priority: query.priority,
       status: query.status,
       assigned_to: query.assigned_to || null,
@@ -1143,19 +1146,24 @@ class LocalDatabaseService {
   public createQuery(input: QueryFormInput, userId: string): CustomerQuery {
     const queries = this.getQueriesRaw();
     const queryNumber = this.generateQueryNumber();
-    const assignedUser = input.assigned_to ? this.getUserById(input.assigned_to) : null;
-    const initialStatus: QueryStatus = input.assigned_to ? 'assigned' : 'new';
+    const initialStatus: QueryStatus = 'open';
+
+    const issueTypeKey = input.category || input.issue_type || 'wrong_item';
+    const computedSubject = input.subject || `${issueTypeKey.replace(/_/g, ' ').toUpperCase()}${input.reference_label ? ` — ${input.reference_label}` : ''}`;
 
     const newQuery: CustomerQuery = {
       id: crypto.randomUUID(),
       query_number: queryNumber,
       customer_id: input.customer_id,
-      order_id: input.order_id || null,
-      product_id: input.product_id || null,
-      subject: input.subject.trim(),
+      order_id: input.order_id || (input.reference_type === 'order' || input.reference_type === 'invoice' ? input.reference_id : null),
+      product_id: input.product_id || (input.reference_type === 'product' ? input.reference_id : null),
+      subject: computedSubject,
       description: input.description.trim(),
       category_id: input.category_id || null,
-      issue_type: input.issue_type || null,
+      issue_type: issueTypeKey,
+      reference_type: input.reference_type || null,
+      reference_id: input.reference_id || null,
+      reference_label: input.reference_label || null,
       action_required: input.action_required || null,
       expected_price: input.expected_price || null,
       charged_price: input.charged_price || null,
@@ -1163,11 +1171,11 @@ class LocalDatabaseService {
       expected_item: input.expected_item || null,
       received_item: input.received_item || null,
       quantity_affected: input.quantity_affected || null,
-      invoice_number_ref: input.invoice_number_ref || null,
+      invoice_number_ref: input.invoice_number_ref || (input.reference_type === 'invoice' ? input.reference_label : null),
       priority: input.priority || 'medium',
       status: initialStatus,
       assigned_to: input.assigned_to || null,
-      assigned_team_id: assignedUser ? assignedUser.team_id : null,
+      assigned_team_id: null,
       created_by: userId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -1201,10 +1209,10 @@ class LocalDatabaseService {
         query_id: newQuery.id,
         customer_id: input.customer_id,
         product_id: input.product_id || null,
-        product_name_snapshot: prod ? prod.product_name : input.received_item || input.subject,
+        product_name_snapshot: prod ? prod.product_name : (input.received_item || computedSubject || 'Back Order Item'),
         sku_snapshot: prod ? prod.sku : null,
         quantity: input.quantity_affected || 1,
-        reason: input.description || input.subject,
+        reason: input.description || computedSubject || 'Back order item requested',
         original_order_id: input.order_id || null,
         original_order_number: ord ? ord.order_number : null,
         original_delivery_date: ord?.expected_delivery_date || null,
@@ -1237,7 +1245,7 @@ class LocalDatabaseService {
         queryNumber: queryNumber,
         queryId: newQuery.id,
         customerName: cust ? cust.company_name : 'Customer',
-        subject: input.subject,
+        subject: computedSubject,
         assignedAgentId: input.assigned_to || undefined,
         actorUserId: userId,
       });

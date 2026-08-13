@@ -5,6 +5,23 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.38.0] - 2026-08-13
+
+### Rebuilt — Simplified 4-Field Customer Issue Report (Queries Module)
+- **Drastic Query Creation Simplification**:
+  - Rebuilt Create Query modal into a 10-15 second, 4-field issue report form:
+    1. `Customer *` (Instant search by Customer Name)
+    2. `Category *` (6 short categories: `Wrong Item Received`, `Return Request`, `Price Issue`, `Quality Issue`, `Item Not Received`, `Other`)
+    3. `Reference` (Optional `Product` | `Invoice` | `Order` selector + search input)
+    4. `Explain the issue *` (Large description area)
+- **Automatic Defaults & Zero Clutter**:
+  - Default Status automatically set to **`OPEN`** (`QRY-XXXXXX`).
+  - Removed initial creation clutter (Priority selector, Quantity, Prices, Action selector, Assignee selector).
+- **Management Actions & Back Orders**:
+  - Status changes, Agent assignment, Notes, and **`[ + Create Back Order ]`** modal moved to the Query Details page (`/queries/:id`).
+- **Supabase Persistence & Realtime**:
+  - Full write-through sync for queries and fallback support between `queries` and `customer_queries` tables.
+
 ## [1.37.0] - 2026-08-13
 
 ### Rebuilt — Customer Issue & Resolution Center (Queries Module)

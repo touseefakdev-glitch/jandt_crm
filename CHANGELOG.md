@@ -5,6 +5,16 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.35.0] - 2026-08-13
+
+### Fixed
+- **Fixed Order persistence and realtime synchronization.**
+  - **Supabase Single Source of Truth**: Refactored `localDb.updateDailyOrderOperationStep`, `revertDailyOrderOperationStep`, `updateDailyOrderMatch`, `reportDailyOrderOperationError`, `advanceOrderStatus`, and `updateOrder` to be `async` methods that await direct targeted Supabase PostgreSQL updates (`supabase.from('daily_order_operations').upsert(...)` / `.update(...)`).
+  - **Zero Fake Success**: Eliminated unawaited background writes. UI action handlers in `Orders.tsx`, `OrderDetailDrawer.tsx`, `MobileOrderCard.tsx`, and `OrderDetail.tsx` await Supabase confirmation before updating local caches or displaying success notifications. If Supabase returns an error or affects 0 rows, an error toast is displayed and UI state reverts.
+  - **RLS & Trigger Migration**: Added `database/migrations/06_fix_orders_rls.sql` providing permissive RLS policies for `daily_order_operations`, `daily_order_operation_history`, `route_schedules`, `orders`, and `order_status_history`, guaranteeing that authenticated and anon app client mutations succeed without RLS rejection.
+  - **Stale Event Protection**: Enhanced `realtime.ts` with `updated_at` timestamp watermark checks to prevent out-of-order realtime events from overwriting newer local state.
+  - **Documentation**: Created `ORDERS_DATA_FLOW.md` and updated `PROJECT_SPEC.md` and `CHANGELOG.md`.
+
 ## [1.34.1] - 2026-08-12
 
 ### Fixed & Security

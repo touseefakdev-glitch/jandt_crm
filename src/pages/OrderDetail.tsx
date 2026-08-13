@@ -122,13 +122,13 @@ export const OrderDetail: React.FC = () => {
     setIsStatusModalOpen(true);
   };
 
-  const handleStatusSubmit = (
+  const handleStatusSubmit = async (
     targetStatus: OrderStatus,
     extraData?: { notes?: string; cancellation_reason?: string; is_admin_override?: boolean }
   ) => {
     if (!user) return;
     try {
-      localDb.advanceOrderStatus(order.id, targetStatus, user.id, extraData);
+      await localDb.advanceOrderStatus(order.id, targetStatus, user.id, extraData);
       setIsStatusModalOpen(false);
       loadOrderData(order.id);
       toast({

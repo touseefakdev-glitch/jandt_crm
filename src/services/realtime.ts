@@ -45,9 +45,17 @@ function mergeRow(key: string, row: Record<string, unknown>): void {
   let changed: boolean;
 
   if (idx >= 0) {
-    const merged = { ...list[idx], ...row };
+    const existing = list[idx];
+    if (existing.updated_at && row.updated_at) {
+      const existingTime = new Date(existing.updated_at as string).getTime();
+      const newTime = new Date(row.updated_at as string).getTime();
+      if (!isNaN(existingTime) && !isNaN(newTime) && newTime < existingTime) {
+        return;
+      }
+    }
+    const merged = { ...existing, ...row };
     // Skip identical writes to avoid re-broadcasting the same row forever
-    changed = JSON.stringify(merged) !== JSON.stringify(list[idx]);
+    changed = JSON.stringify(merged) !== JSON.stringify(existing);
     if (changed) list[idx] = merged;
   } else {
     list.unshift(row);

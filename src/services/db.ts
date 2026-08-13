@@ -1720,7 +1720,50 @@ class LocalDatabaseService {
     return this.getOrderById(newOrder.id)!;
   }
 
-  public updateOrder(id: string, input: OrderFormInput & { is_admin_override?: boolean }, userId: string): Order | null {
+  private async syncOrderToSupabase(o: Order): Promise<{ data: any; error: any }> {
+    if (!supabase) return { data: o, error: null };
+    const cleanRow = {
+      id: o.id,
+      order_number: o.order_number,
+      customer_id: o.customer_id,
+      sales_agent_id: o.sales_agent_id || null,
+      order_date: o.order_date || new Date().toISOString(),
+      expected_delivery_date: o.expected_delivery_date || null,
+      current_status: o.current_status,
+      subtotal: o.subtotal || 0,
+      total_discount: o.total_discount || 0,
+      total_tax: o.total_tax || 0,
+      grand_total: o.grand_total || 0,
+      notes: o.notes || null,
+      created_by: o.created_by || null,
+      created_at: o.created_at || new Date().toISOString(),
+      updated_by: o.updated_by || null,
+      updated_at: o.updated_at || new Date().toISOString(),
+      order_received_at: o.order_received_at || null,
+      sales_order_done_at: o.sales_order_done_at || null,
+      invoiced_at: o.invoiced_at || null,
+      dispatched_at: o.dispatched_at || null,
+      signed_invoice_sent_at: o.signed_invoice_sent_at || null,
+      completed_at: o.completed_at || null,
+      cancelled_at: o.cancelled_at || null,
+      cancellation_reason: o.cancellation_reason || null,
+      cancelled_by: o.cancelled_by || null,
+    };
+
+    const { data, error } = await supabase
+      .from('orders')
+      .upsert(cleanRow, { onConflict: 'id' })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[Supabase] direct orders write error:', error.message);
+      return { data: null, error };
+    }
+    return { data, error: null };
+  }
+
+  public async updateOrder(id: string, input: OrderFormInput & { is_admin_override?: boolean }, userId: string): Promise<Order | null> {
     const orders = this.getOrdersRaw();
     const index = orders.findIndex(o => o.id === id);
     if (index === -1) return null;
@@ -1742,7 +1785,6 @@ class LocalDatabaseService {
       customer_id: input.customer_id,
       customer_reference: input.customer_reference !== undefined ? input.customer_reference.trim() : existing.customer_reference,
       sales_agent_id: input.sales_agent_id !== undefined ? input.sales_agent_id : existing.sales_agent_id,
-      team_id: input.team_id !== undefined ? input.team_id : existing.team_id,
       order_date: input.order_date || existing.order_date,
       expected_delivery_date: input.expected_delivery_date || existing.expected_delivery_date,
       subtotal: totals.subtotal,
@@ -1754,7 +1796,14 @@ class LocalDatabaseService {
       updated_by: userId,
     };
 
-    orders[index] = updated;
+    const syncRes = await this.syncOrderToSupabase(updated);
+    if (syncRes.error) {
+      throw new Error(`Failed to save order update to Supabase: ${syncRes.error.message}`);
+    }
+
+    const finalOrder = syncRes.data ? { ...updated, ...syncRes.data } : updated;
+
+    orders[index] = finalOrder;
     storageSet(this.ordersKey, JSON.stringify(orders));
 
     // Update Items
@@ -1789,12 +1838,12 @@ class LocalDatabaseService {
     return this.getOrderById(id);
   }
 
-  public advanceOrderStatus(
+  public async advanceOrderStatus(
     orderId: string,
     targetStatus: OrderStatus,
     currentUserId: string,
     extraData?: { notes?: string; cancellation_reason?: string; is_admin_override?: boolean }
-  ): Order | null {
+  ): Promise<Order | null> {
     const orders = this.getOrdersRaw();
     const index = orders.findIndex(o => o.id === orderId);
     if (index === -1) return null;
@@ -1861,7 +1910,15 @@ class LocalDatabaseService {
       updated.cancellation_reason = extraData!.cancellation_reason!.trim();
     }
 
-    orders[index] = updated;
+    // Await Supabase confirmation
+    const syncRes = await this.syncOrderToSupabase(updated);
+    if (syncRes.error) {
+      throw new Error(`Order status change could not be saved to Supabase: ${syncRes.error.message}`);
+    }
+
+    const finalOrder = syncRes.data ? { ...updated, ...syncRes.data } : updated;
+
+    orders[index] = finalOrder;
     storageSet(this.ordersKey, JSON.stringify(orders));
 
     let actionLabel = `Status Advanced: ${targetStatus.replace(/_/g, ' ').toUpperCase()}`;
@@ -3389,55 +3446,63 @@ class LocalDatabaseService {
     }
   }
 
-  private syncDailyOrderOperationToSupabase(op: DailyOrderOperation): void {
-  if (!supabase) return;
-  const cleanRow = {
-    id: op.id,
-    customer_id: op.customer_id,
-    operation_date: op.operation_date ? op.operation_date.substring(0, 10) : null,
-    route: op.route,
-    order_received: Boolean(op.order_received),
-    order_received_at: op.order_received_at || null,
-    order_received_by: op.order_received_by || null,
-    sales_order_generated: Boolean(op.sales_order_generated),
-    sales_order_number: op.sales_order_number || null,
-    sales_order_generated_at: op.sales_order_generated_at || null,
-    sales_order_generated_by: op.sales_order_generated_by || null,
-    invoiced: Boolean(op.invoiced),
-    invoice_number: op.invoice_number || null,
-    invoiced_at: op.invoiced_at || null,
-    invoiced_by: op.invoiced_by || null,
-    dispatched: Boolean(op.dispatched),
-    dispatched_at: op.dispatched_at || null,
-    dispatched_by: op.dispatched_by || null,
-    pod_sent: Boolean(op.pod_sent),
-    pod_sent_at: op.pod_sent_at || null,
-    pod_sent_by: op.pod_sent_by || null,
-    order_match: op.order_match || null,
-    difference_note: op.difference_note || null,
-    invoice_updated: Boolean(op.invoice_updated),
-    error_flag: Boolean(op.error_flag),
-    exception_status: op.exception_status || 'NONE',
-    exception_note: op.exception_note || null,
-    error_query_id: op.error_query_id || null,
-    operational_area: op.operational_area || 'OUTSIDE_KELOWNA',
-    status: op.status,
-    created_at: op.created_at || new Date().toISOString(),
-    updated_at: op.updated_at || new Date().toISOString(),
-    updated_by: op.updated_by || null,
-  };
+  private async syncDailyOrderOperationToSupabase(op: DailyOrderOperation): Promise<{ data: any; error: any }> {
+    if (!supabase) return { data: op, error: null };
+    const cleanRow = {
+      id: op.id,
+      customer_id: op.customer_id,
+      operation_date: op.operation_date ? op.operation_date.substring(0, 10) : null,
+      route: op.route,
+      order_received: Boolean(op.order_received),
+      order_received_at: op.order_received_at || null,
+      order_received_by: op.order_received_by || null,
+      sales_order_generated: Boolean(op.sales_order_generated),
+      sales_order_number: op.sales_order_number || null,
+      sales_order_generated_at: op.sales_order_generated_at || null,
+      sales_order_generated_by: op.sales_order_generated_by || null,
+      invoiced: Boolean(op.invoiced),
+      invoice_number: op.invoice_number || null,
+      invoiced_at: op.invoiced_at || null,
+      invoiced_by: op.invoiced_by || null,
+      dispatched: Boolean(op.dispatched),
+      dispatched_at: op.dispatched_at || null,
+      dispatched_by: op.dispatched_by || null,
+      pod_sent: Boolean(op.pod_sent),
+      pod_sent_at: op.pod_sent_at || null,
+      pod_sent_by: op.pod_sent_by || null,
+      order_match: op.order_match || null,
+      difference_note: op.difference_note || null,
+      invoice_updated: Boolean(op.invoice_updated),
+      error_flag: Boolean(op.error_flag),
+      exception_status: op.exception_status || 'NONE',
+      exception_note: op.exception_note || null,
+      error_query_id: op.error_query_id || null,
+      operational_area: op.operational_area || 'OUTSIDE_KELOWNA',
+      status: op.status,
+      created_at: op.created_at || new Date().toISOString(),
+      updated_at: op.updated_at || new Date().toISOString(),
+      updated_by: op.updated_by || null,
+    };
 
-  supabase.from('daily_order_operations').upsert(cleanRow, { onConflict: 'id' }).then(({ error }) => {
-    if (error) console.error('[Supabase] direct daily_order_operations write error:', error.message);
-  });
-}
+    const { data, error } = await supabase
+      .from('daily_order_operations')
+      .upsert(cleanRow, { onConflict: 'id' })
+      .select()
+      .single();
 
-  public updateDailyOrderOperationStep(
+    if (error) {
+      console.error('[Supabase] direct daily_order_operations write error:', error.message);
+      return { data: null, error };
+    }
+    return { data, error: null };
+  }
+
+  public async updateDailyOrderOperationStep(
     id: string,
     step: 'order_received' | 'sales_order_generated' | 'invoiced' | 'dispatched' | 'pod_sent',
     referenceNumber: string | null,
     userId: string
-  ): DailyOrderOperation | null {
+  ): Promise<DailyOrderOperation | null> {
     try {
       const opsData = storageGet(this.dailyOrderOperationsKey);
       const opsList: DailyOrderOperation[] = opsData ? JSON.parse(opsData) : [];
@@ -3513,17 +3578,26 @@ class LocalDatabaseService {
 
       updated.updated_at = now;
       updated.updated_by = userId;
-      opsList[index] = updated;
+
+      // FIRST: Await Supabase persistence confirmation
+      const syncResult = await this.syncDailyOrderOperationToSupabase(updated);
+      if (syncResult.error) {
+        throw new Error(`Order status could not be saved to Supabase: ${syncResult.error.message || 'Database error'}`);
+      }
+
+      const finalOp = syncResult.data ? { ...updated, ...syncResult.data } : updated;
+
+      // Save to local store AFTER Supabase success
+      opsList[index] = finalOp;
       storageSet(this.dailyOrderOperationsKey, JSON.stringify(opsList));
-      this.syncDailyOrderOperationToSupabase(updated);
 
       // Log history
       this.logDailyOperationHistory({
         operation_id: id,
-        customer_id: updated.customer_id,
+        customer_id: finalOp.customer_id,
         action: `Completed step: ${step.replace(/_/g, ' ')}`,
         previous_state: previousState,
-        new_state: updated.status,
+        new_state: finalOp.status,
         reference_number: referenceNumber,
         user_id: userId,
         timestamp: now,
@@ -3534,24 +3608,24 @@ class LocalDatabaseService {
         action: step === 'pod_sent' ? 'daily_operation_pod_sent' : 'daily_operation_update',
         entity_type: 'daily_order_operation',
         entity_id: id,
-        entity_number: updated.sales_order_number || updated.invoice_number || id,
-        summary: `Updated daily operation status to ${updated.status} for step '${step}'`,
+        entity_number: finalOp.sales_order_number || finalOp.invoice_number || id,
+        summary: `Updated daily operation status to ${finalOp.status} for step '${step}'`,
         previous_value: previousState,
-        new_value: updated.status,
+        new_value: finalOp.status,
       });
 
-      return updated;
+      return finalOp;
     } catch (err: any) {
       throw new Error(err.message || 'Failed to update daily order operation step.');
     }
   }
 
-  public revertDailyOrderOperationStep(
+  public async revertDailyOrderOperationStep(
     id: string,
     step: 'order_received' | 'sales_order_generated' | 'invoiced' | 'dispatched' | 'pod_sent',
     reason: string,
     userId: string
-  ): DailyOrderOperation | null {
+  ): Promise<DailyOrderOperation | null> {
     try {
       if (!reason || !reason.trim()) {
         throw new Error('A reason is required to revert a workflow step.');
@@ -3641,16 +3715,24 @@ class LocalDatabaseService {
 
       updated.updated_at = now;
       updated.updated_by = userId;
-      opsList[index] = updated;
+
+      // FIRST: Await Supabase persistence confirmation
+      const syncResult = await this.syncDailyOrderOperationToSupabase(updated);
+      if (syncResult.error) {
+        throw new Error(`Order revert could not be saved to Supabase: ${syncResult.error.message || 'Database error'}`);
+      }
+
+      const finalOp = syncResult.data ? { ...updated, ...syncResult.data } : updated;
+
+      opsList[index] = finalOp;
       storageSet(this.dailyOrderOperationsKey, JSON.stringify(opsList));
-      this.syncDailyOrderOperationToSupabase(updated);
 
       this.logDailyOperationHistory({
         operation_id: id,
-        customer_id: updated.customer_id,
+        customer_id: finalOp.customer_id,
         action: `Reverted step: ${step.replace(/_/g, ' ')}`,
         previous_state: previousState,
-        new_state: updated.status,
+        new_state: finalOp.status,
         reason: reason.trim(),
         user_id: userId,
         timestamp: now,
@@ -3663,21 +3745,21 @@ class LocalDatabaseService {
         entity_id: id,
         summary: `Reverted step '${step}' for reason: ${reason.trim()}`,
         previous_value: previousState,
-        new_value: updated.status,
+        new_value: finalOp.status,
       });
 
-      return updated;
+      return finalOp;
     } catch (err: any) {
       throw new Error(err.message || 'Failed to revert workflow step.');
     }
   }
 
-  public reportDailyOrderOperationError(
+  public async reportDailyOrderOperationError(
     id: string,
     issueDescription: string,
     priority: 'normal' | 'high' | 'urgent',
     userId: string
-  ): { operation: DailyOrderOperation; query: CustomerQuery } {
+  ): Promise<{ operation: DailyOrderOperation; query: CustomerQuery }> {
     try {
       if (!issueDescription || !issueDescription.trim()) {
         throw new Error('Error description is required.');
@@ -3718,12 +3800,20 @@ class LocalDatabaseService {
         updated_by: userId,
       };
 
-      opsList[index] = updated;
+      // FIRST: Await Supabase confirmation
+      const syncResult = await this.syncDailyOrderOperationToSupabase(updated);
+      if (syncResult.error) {
+        throw new Error(`Daily operation error report could not be saved to Supabase: ${syncResult.error.message || 'Database error'}`);
+      }
+
+      const finalOp = syncResult.data ? { ...updated, ...syncResult.data } : updated;
+
+      opsList[index] = finalOp;
       storageSet(this.dailyOrderOperationsKey, JSON.stringify(opsList));
 
       this.logDailyOperationHistory({
         operation_id: id,
-        customer_id: updated.customer_id,
+        customer_id: finalOp.customer_id,
         action: `Reported Error: ${query.query_number}`,
         previous_state: previousState,
         new_state: 'error',
@@ -3743,7 +3833,7 @@ class LocalDatabaseService {
         new_value: 'error',
       });
 
-      return { operation: updated, query };
+      return { operation: finalOp, query };
     } catch (err: any) {
       throw new Error(err.message || 'Failed to report daily operation error.');
     }
@@ -3754,13 +3844,13 @@ class LocalDatabaseService {
    * does not match the invoice (DIFFERENT), a difference note is mandatory and
    * the invoice is flagged as needing to be updated.
    */
-  public updateDailyOrderMatch(
+  public async updateDailyOrderMatch(
     id: string,
     match: 'SAME' | 'DIFFERENT',
     differenceNote: string | null,
     invoiceUpdated: boolean,
     userId: string
-  ): DailyOrderOperation | null {
+  ): Promise<DailyOrderOperation | null> {
     try {
       if (match === 'DIFFERENT' && (!differenceNote || !differenceNote.trim())) {
         throw new Error('A difference note is required when the order does not match the invoice.');
@@ -3787,13 +3877,20 @@ class LocalDatabaseService {
         updated_by: userId,
       };
 
-      opsList[index] = updated;
+      // FIRST: Await Supabase persistence confirmation
+      const syncResult = await this.syncDailyOrderOperationToSupabase(updated);
+      if (syncResult.error) {
+        throw new Error(`Order match update could not be saved to Supabase: ${syncResult.error.message || 'Database error'}`);
+      }
+
+      const finalOp = syncResult.data ? { ...updated, ...syncResult.data } : updated;
+
+      opsList[index] = finalOp;
       storageSet(this.dailyOrderOperationsKey, JSON.stringify(opsList));
-      this.syncDailyOrderOperationToSupabase(updated);
 
       this.logDailyOperationHistory({
         operation_id: id,
-        customer_id: updated.customer_id,
+        customer_id: finalOp.customer_id,
         action: `Order match updated: ${match}`,
         previous_state: previousMatch,
         new_state: match,
@@ -3807,13 +3904,13 @@ class LocalDatabaseService {
         action: 'daily_operation_match_updated',
         entity_type: 'daily_order_operation',
         entity_id: id,
-        entity_number: updated.sales_order_number || updated.invoice_number || id,
+        entity_number: finalOp.sales_order_number || finalOp.invoice_number || id,
         summary: `Updated order match to ${match}${match === 'DIFFERENT' ? ` — ${differenceNote!.trim()}` : ''}`,
         previous_value: previousMatch,
         new_value: match,
       });
 
-      return updated;
+      return finalOp;
     } catch (err: any) {
       throw new Error(err.message || 'Failed to update daily order match.');
     }

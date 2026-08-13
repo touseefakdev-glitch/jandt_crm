@@ -283,14 +283,14 @@ export const Orders: React.FC = () => {
 
   const formatWeekdayTitle = (dayStr: string) => dayStr.charAt(0).toUpperCase() + dayStr.slice(1);
 
-  const handleToggleOrderReceived = (op: DailyOrderOperation) => {
+  const handleToggleOrderReceived = async (op: DailyOrderOperation) => {
     if (!canUpdate) { toast({ type: 'error', title: 'Permission Denied', message: 'You do not have permission to update daily operations.' }); return; }
     if (op.order_received) {
       if (!canRevert) { toast({ type: 'error', title: 'Permission Denied', message: 'Only Sales Agents and Admins can revert completed steps.' }); return; }
       setActiveUndoModal({ op, step: 'order_received', stepName: 'Order Received' });
     } else {
       try {
-        localDb.updateDailyOrderOperationStep(op.id, 'order_received', null, user!.id);
+        await localDb.updateDailyOrderOperationStep(op.id, 'order_received', null, user!.id);
         markSelfAction();
         toast({ type: 'success', title: 'Order Received', message: `Marked Order Received for ${op.customer?.company_name}` });
       } catch (err: any) { toast({ type: 'error', title: 'Action Failed', message: err.message }); }
@@ -319,7 +319,7 @@ export const Orders: React.FC = () => {
     }
   };
 
-  const handleToggleDispatched = (op: DailyOrderOperation) => {
+  const handleToggleDispatched = async (op: DailyOrderOperation) => {
     if (!canUpdate) { toast({ type: 'error', title: 'Permission Denied', message: 'You do not have permission to update daily operations.' }); return; }
     if (op.dispatched) {
       if (!canRevert) { toast({ type: 'error', title: 'Permission Denied', message: 'Only Sales Agents and Admins can revert completed steps.' }); return; }
@@ -327,41 +327,44 @@ export const Orders: React.FC = () => {
     } else {
       if (!op.invoiced) { toast({ type: 'error', title: 'Dependency Required', message: 'Customer must be Invoiced before Dispatch.' }); return; }
       try {
-        localDb.updateDailyOrderOperationStep(op.id, 'dispatched', null, user!.id);
+        await localDb.updateDailyOrderOperationStep(op.id, 'dispatched', null, user!.id);
         markSelfAction();
         toast({ type: 'success', title: 'Dispatched', message: `Marked Dispatched for ${op.customer?.company_name}` });
       } catch (err: any) { toast({ type: 'error', title: 'Action Failed', message: err.message }); }
     }
   };
 
-  const handleConfirmSOSubmit = (soNumber: string) => {
+  const handleConfirmSOSubmit = async (soNumber: string) => {
     if (!activeSOModalOp) return;
     try {
-      localDb.updateDailyOrderOperationStep(activeSOModalOp.id, 'sales_order_generated', soNumber, user!.id);
+      await localDb.updateDailyOrderOperationStep(activeSOModalOp.id, 'sales_order_generated', soNumber, user!.id);
       markSelfAction();
       toast({ type: 'success', title: 'Sales Order Saved', message: `Recorded SO #${soNumber} for ${activeSOModalOp.customer?.company_name}` });
+      setActiveSOModalOp(null);
     } catch (err: any) { toast({ type: 'error', title: 'Action Failed', message: err.message }); }
   };
 
-  const handleConfirmInvoiceSubmit = (invoiceNumber: string) => {
+  const handleConfirmInvoiceSubmit = async (invoiceNumber: string) => {
     if (!activeInvoiceModalOp) return;
     try {
-      localDb.updateDailyOrderOperationStep(activeInvoiceModalOp.id, 'invoiced', invoiceNumber, user!.id);
+      await localDb.updateDailyOrderOperationStep(activeInvoiceModalOp.id, 'invoiced', invoiceNumber, user!.id);
       markSelfAction();
       toast({ type: 'success', title: 'Invoice Saved', message: `Recorded INV #${invoiceNumber} for ${activeInvoiceModalOp.customer?.company_name}` });
+      setActiveInvoiceModalOp(null);
     } catch (err: any) { toast({ type: 'error', title: 'Action Failed', message: err.message }); }
   };
 
-  const handleConfirmReportError = (description: string, priority: 'normal' | 'high' | 'urgent') => {
+  const handleConfirmReportError = async (description: string, priority: 'normal' | 'high' | 'urgent') => {
     if (!activeErrorModalOp) return;
     try {
-      const res = localDb.reportDailyOrderOperationError(activeErrorModalOp.id, description, priority, user!.id);
+      const res = await localDb.reportDailyOrderOperationError(activeErrorModalOp.id, description, priority, user!.id);
       markSelfAction();
       toast({ type: 'info', title: 'Error Ticket Created', message: `Created Customer Query ${res.query.query_number} for ${activeErrorModalOp.customer?.company_name}` });
+      setActiveErrorModalOp(null);
     } catch (err: any) { toast({ type: 'error', title: 'Action Failed', message: err.message }); }
   };
 
-  const handleTogglePODSent = (op: DailyOrderOperation) => {
+  const handleTogglePODSent = async (op: DailyOrderOperation) => {
     if (!canUpdate) { toast({ type: 'error', title: 'Permission Denied', message: 'You do not have permission to update daily operations.' }); return; }
     if (op.pod_sent) {
       if (!canRevert) { toast({ type: 'error', title: 'Permission Denied', message: 'Only Sales Agents and Admins can revert completed steps.' }); return; }
@@ -369,7 +372,7 @@ export const Orders: React.FC = () => {
     } else {
       if (!op.dispatched) { toast({ type: 'error', title: 'Dependency Required', message: 'Customer must be Dispatched before the POD can be marked as sent.' }); return; }
       try {
-        localDb.updateDailyOrderOperationStep(op.id, 'pod_sent', null, user!.id);
+        await localDb.updateDailyOrderOperationStep(op.id, 'pod_sent', null, user!.id);
         markSelfAction();
         toast({ type: 'success', title: 'POD Sent', message: `Marked POD as sent for ${op.customer?.company_name}` });
       } catch (err: any) { toast({ type: 'error', title: 'Action Failed', message: err.message }); }
@@ -381,23 +384,25 @@ export const Orders: React.FC = () => {
     setActiveOrderMatchOp(op);
   };
 
-  const handleConfirmOrderMatch = (match: 'SAME' | 'DIFFERENT', differenceNote: string | null, invoiceUpdated: boolean) => {
+  const handleConfirmOrderMatch = async (match: 'SAME' | 'DIFFERENT', differenceNote: string | null, invoiceUpdated: boolean) => {
     if (!activeOrderMatchOp) return;
     try {
-      localDb.updateDailyOrderMatch(activeOrderMatchOp.id, match, differenceNote, invoiceUpdated, user!.id);
+      await localDb.updateDailyOrderMatch(activeOrderMatchOp.id, match, differenceNote, invoiceUpdated, user!.id);
       markSelfAction();
       toast({ type: 'success', title: 'Order Match Saved', message: `Recorded order match as ${match} for ${activeOrderMatchOp.customer?.company_name}` });
+      setActiveOrderMatchOp(null);
     } catch (err: any) { toast({ type: 'error', title: 'Action Failed', message: err.message }); }
   };
 
-  const handleConfirmUndoStep = (reason: string) => {
+  const handleConfirmUndoStep = async (reason: string) => {
     if (!activeUndoModal) return;
     try {
       if (activeUndoModal.step !== 'order_match') {
-        localDb.revertDailyOrderOperationStep(activeUndoModal.op.id, activeUndoModal.step as any, reason, user!.id);
+        await localDb.revertDailyOrderOperationStep(activeUndoModal.op.id, activeUndoModal.step as any, reason, user!.id);
       }
       markSelfAction();
       toast({ type: 'info', title: 'Step Reverted', message: `Reverted ${activeUndoModal.stepName} for ${activeUndoModal.op.customer?.company_name}` });
+      setActiveUndoModal(null);
     } catch (err: any) { toast({ type: 'error', title: 'Revert Failed', message: err.message }); }
   };
 

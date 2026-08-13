@@ -353,7 +353,34 @@ export async function fetchQueriesPage(
 
   query = query.order('updated_at', { ascending: false }).range(from, to);
 
-  const { data, count, error } = await query;
+  let { data, count, error } = await query;
+
+  if (error && error.message?.includes('relation')) {
+    let altQuery = supabase!.from('queries').select(QUERY_SELECT_COLUMNS, { count: 'exact' });
+    if (workspace === 'my' && userId) altQuery = altQuery.eq('assigned_to', userId);
+    else if (workspace === 'team' && workspaceTeamId) altQuery = altQuery.eq('assigned_team_id', workspaceTeamId);
+
+    if (status && status !== 'all') {
+      if (status === 'open') {
+        altQuery = altQuery.in('status', ['new', 'open', 'assigned']);
+      } else {
+        altQuery = altQuery.eq('status', status);
+      }
+    }
+    if (priority && priority !== 'all') altQuery = altQuery.eq('priority', priority);
+    if (category_id && category_id !== 'all') altQuery = altQuery.eq('category_id', category_id);
+    if (assigned_to && assigned_to !== 'all') altQuery = altQuery.eq('assigned_to', assigned_to);
+    if (team_id && team_id !== 'all') altQuery = altQuery.eq('assigned_team_id', team_id);
+
+    altQuery = altQuery.order('updated_at', { ascending: false }).range(from, to);
+    const altRes = await altQuery;
+    if (!altRes.error) {
+      data = altRes.data;
+      count = altRes.count;
+      error = null;
+    }
+  }
+
   if (error) throw error;
   const rows = (data as unknown as CustomerQuery[]) || [];
 
@@ -504,7 +531,14 @@ async function countWhere(
 ): Promise<number> {
   let q = createCountQuery(table);
   q = apply(q);
-  const { count, error } = await q;
+  let { count, error } = await q;
+  if (error && (table === 'customer_queries' || table === 'queries')) {
+    const altTable = table === 'customer_queries' ? 'queries' : 'customer_queries';
+    let altQ = createCountQuery(altTable);
+    altQ = apply(altQ);
+    const altRes = await altQ;
+    if (!altRes.error) return altRes.count || 0;
+  }
   if (error) throw error;
   return count || 0;
 }

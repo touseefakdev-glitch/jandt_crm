@@ -962,13 +962,24 @@ class LocalDatabaseService {
       internal_notes: query.internal_notes || null,
     };
 
-    let { data, error } = await supabase
+    // Attempt upsert to 'queries' table first
+    let res = await supabase
       .from('queries')
       .upsert(cleanRow, { onConflict: 'id' })
       .select()
       .single();
 
-    if (error && (error.message?.includes('column') || error.code === 'PGRST204')) {
+    // Fallback to 'customer_queries' if 'queries' table doesn't exist
+    if (res.error && res.error.message?.includes('relation')) {
+      res = await supabase
+        .from('customer_queries')
+        .upsert(cleanRow, { onConflict: 'id' })
+        .select()
+        .single();
+    }
+
+    // Schema cache column mismatch fallback
+    if (res.error && (res.error.message?.includes('column') || res.error.code === 'PGRST204')) {
       const fallbackRow = {
         id: query.id,
         query_number: query.query_number,
@@ -996,20 +1007,29 @@ class LocalDatabaseService {
         reopen_reason: query.reopen_reason || null,
         internal_notes: query.internal_notes || null,
       };
-      const retry = await supabase
+      
+      const retryQueries = await supabase
         .from('queries')
         .upsert(fallbackRow, { onConflict: 'id' })
         .select()
         .single();
-      data = retry.data;
-      error = retry.error;
+
+      if (retryQueries.error) {
+        res = await supabase
+          .from('customer_queries')
+          .upsert(fallbackRow, { onConflict: 'id' })
+          .select()
+          .single();
+      } else {
+        res = retryQueries;
+      }
     }
 
-    if (error) {
-      console.warn('[Supabase] queries write warning:', error.message);
-      return { data: null, error };
+    if (res.error) {
+      console.warn('[Supabase] queries write warning:', res.error.message);
+      return { data: null, error: res.error };
     }
-    return { data, error: null };
+    return { data: res.data, error: null };
   }
 
   private getQueriesRaw(): CustomerQuery[] {
@@ -1259,6 +1279,7 @@ class LocalDatabaseService {
 
     queries[index] = updated;
     storageSet(this.queriesKey, JSON.stringify(queries));
+    this.syncQueryToSupabase(updated).catch(err => console.warn('[Supabase] async query sync warning:', err));
 
     this.logActivity({
       query_id: id,
@@ -1294,6 +1315,7 @@ class LocalDatabaseService {
 
     queries[index] = updated;
     storageSet(this.queriesKey, JSON.stringify(queries));
+    this.syncQueryToSupabase(updated).catch(err => console.warn('[Supabase] async query sync warning:', err));
 
     const assigneeName = assignee ? assignee.full_name : 'Unassigned Queue';
 
@@ -1378,6 +1400,7 @@ class LocalDatabaseService {
 
     queries[index] = updated;
     storageSet(this.queriesKey, JSON.stringify(queries));
+    this.syncQueryToSupabase(updated).catch(err => console.warn('[Supabase] async query sync warning:', err));
 
     this.logActivity({
       query_id: queryId,

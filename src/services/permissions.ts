@@ -79,19 +79,19 @@ export class PermissionsService {
 
   public static canUpdateDailyOperations(user: UserProfile | null): PermissionCheckResult {
     if (!user) return { allowed: false, reason: 'Authentication required.' };
-    if (user.role === 'admin' || user.role === 'sales_agent') return { allowed: true };
+    if (user.role === 'admin' || user.role === 'sales_agent' || user.role === 'sales_support') return { allowed: true };
     return { allowed: false, reason: 'Support Agents have read-only access to daily operations.' };
   }
 
   public static canRevertDailyOperations(user: UserProfile | null): PermissionCheckResult {
     if (!user) return { allowed: false, reason: 'Authentication required.' };
-    if (user.role === 'admin' || user.role === 'sales_agent') return { allowed: true };
+    if (user.role === 'admin' || user.role === 'sales_agent' || user.role === 'sales_support') return { allowed: true };
     return { allowed: false, reason: 'Only Sales Agents and Admins can revert completed workflow steps.' };
   }
 
   public static canUpdateOrderMatch(user: UserProfile | null): PermissionCheckResult {
     if (!user) return { allowed: false, reason: 'Authentication required.' };
-    if (user.role === 'admin' || user.role === 'sales_agent') return { allowed: true };
+    if (user.role === 'admin' || user.role === 'sales_agent' || user.role === 'sales_support') return { allowed: true };
     return { allowed: false, reason: 'Support Agents have read-only access to order matching.' };
   }
 
@@ -103,37 +103,37 @@ export class PermissionsService {
 
   public static canCreateOrders(user: UserProfile | null): PermissionCheckResult {
     if (!user) return { allowed: false, reason: 'Authentication required.' };
-    if (user.role === 'admin' || user.role === 'sales_agent') return { allowed: true };
+    if (user.role === 'admin' || user.role === 'sales_agent' || user.role === 'sales_support') return { allowed: true };
     return { allowed: false, reason: 'Support Agents are restricted from creating new customer orders.' };
   }
 
   public static canProgressOrderWorkflow(user: UserProfile | null): PermissionCheckResult {
     if (!user) return { allowed: false, reason: 'Authentication required.' };
-    if (user.role === 'admin' || user.role === 'sales_agent') return { allowed: true };
+    if (user.role === 'admin' || user.role === 'sales_agent' || user.role === 'sales_support') return { allowed: true };
     return { allowed: false, reason: 'Support Agents cannot progress order workflow stages.' };
   }
 
   public static canCancelOrder(user: UserProfile | null): PermissionCheckResult {
     if (!user) return { allowed: false, reason: 'Authentication required.' };
-    if (user.role === 'admin' || user.role === 'sales_agent') return { allowed: true };
+    if (user.role === 'admin' || user.role === 'sales_agent' || user.role === 'sales_support') return { allowed: true };
     return { allowed: false, reason: 'Only Sales Agents and Admins can cancel orders.' };
   }
 
   // --- Query / Support Ticket Permissions ---
   public static canViewQueries(user: UserProfile | null): boolean {
     if (!user) return false;
-    return user.role === 'admin' || user.role === 'support_agent';
+    return user.role === 'admin' || user.role === 'support_agent' || user.role === 'sales_support';
   }
 
   public static canManageQueries(user: UserProfile | null): PermissionCheckResult {
     if (!user) return { allowed: false, reason: 'Authentication required.' };
-    if (user.role === 'admin' || user.role === 'support_agent') return { allowed: true };
+    if (user.role === 'admin' || user.role === 'support_agent' || user.role === 'sales_support') return { allowed: true };
     return { allowed: false, reason: 'Sales Agents are restricted from managing support tickets.' };
   }
 
   public static canViewInternalSupportNotes(user: UserProfile | null): boolean {
     if (!user) return false;
-    return user.role === 'admin' || user.role === 'support_agent';
+    return user.role === 'admin' || user.role === 'support_agent' || user.role === 'sales_support';
   }
 
   // --- Shift Handover Permissions ---

@@ -90,13 +90,61 @@ export const SEED_TEAMS: Team[] = [
   },
 ];
 
-// Initial Demo Accounts Seed Data (Single Admin Account)
+// Initial Demo Accounts Seed Data
 export const SEED_USERS: UserProfile[] = [
   {
     id: 'a1111111-1111-1111-1111-111111111111',
     email: 'tauseef@jtsupplies.com',
     full_name: 'Tauseef (Admin)',
     role: 'admin',
+    team_id: '11111111-1111-1111-1111-111111111111',
+    team: SEED_TEAMS[0],
+    operational_area: 'BOTH',
+    is_active: true,
+    created_at: new Date('2026-01-01').toISOString(),
+    updated_at: new Date('2026-01-01').toISOString(),
+  },
+  {
+    id: 'b2222222-2222-2222-2222-222222222222',
+    email: 'sohail@jtsupplies.com',
+    full_name: 'Sohail (Sales & Support)',
+    role: 'sales_support',
+    team_id: '11111111-1111-1111-1111-111111111111',
+    team: SEED_TEAMS[0],
+    operational_area: 'BOTH',
+    is_active: true,
+    created_at: new Date('2026-01-01').toISOString(),
+    updated_at: new Date('2026-01-01').toISOString(),
+  },
+  {
+    id: 'c3333333-3333-3333-3333-333333333333',
+    email: 'muzammil@jtsupplies.com',
+    full_name: 'Muzammil (Sales & Support)',
+    role: 'sales_support',
+    team_id: '11111111-1111-1111-1111-111111111111',
+    team: SEED_TEAMS[0],
+    operational_area: 'BOTH',
+    is_active: true,
+    created_at: new Date('2026-01-01').toISOString(),
+    updated_at: new Date('2026-01-01').toISOString(),
+  },
+  {
+    id: 'd4444444-4444-4444-4444-444444444444',
+    email: 'abdulrehman@jtsupplies.com',
+    full_name: 'Abdul Rehman (Sales & Support)',
+    role: 'sales_support',
+    team_id: '11111111-1111-1111-1111-111111111111',
+    team: SEED_TEAMS[0],
+    operational_area: 'BOTH',
+    is_active: true,
+    created_at: new Date('2026-01-01').toISOString(),
+    updated_at: new Date('2026-01-01').toISOString(),
+  },
+  {
+    id: 'e5555555-5555-5555-5555-555555555555',
+    email: 'sukhjeet@jtsupplies.com',
+    full_name: 'Sukhjeet (Order Mgmt)',
+    role: 'sales_agent',
     team_id: '11111111-1111-1111-1111-111111111111',
     team: SEED_TEAMS[0],
     operational_area: 'BOTH',
@@ -483,9 +531,21 @@ class LocalDatabaseService {
   public getUsers(): UserProfile[] {
     try {
       const data = storageGet(this.usersKey);
-      const users: UserProfile[] = data ? JSON.parse(data) : SEED_USERS;
+      let users: UserProfile[] = data ? JSON.parse(data) : SEED_USERS;
+      let updated = false;
+
+      for (const seedUser of SEED_USERS) {
+        if (!users.some(u => u.email.toLowerCase() === seedUser.email.toLowerCase() || u.id === seedUser.id)) {
+          users.push(seedUser);
+          updated = true;
+        }
+      }
+
+      if (updated) {
+        storageSet(this.usersKey, JSON.stringify(users));
+      }
+
       const teams = this.getTeams();
-      
       return users.map(u => ({
         ...u,
         team: teams.find(t => t.id === u.team_id) || null

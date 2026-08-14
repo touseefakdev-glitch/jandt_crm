@@ -139,7 +139,8 @@ export const AdminUsers: React.FC = () => {
         <Select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
           <option value="all">All Roles</option>
           <option value="admin">System Admin</option>
-          <option value="sales_agent">Sales Agent</option>
+          <option value="sales_support">Sales & Support (Both)</option>
+          <option value="sales_agent">Sales Agent (Order Mgmt)</option>
           <option value="support_agent">Support Agent</option>
         </Select>
 

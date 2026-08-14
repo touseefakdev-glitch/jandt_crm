@@ -40,6 +40,12 @@ export const roleBadges: Record<UserRole, BadgeStyle> = {
     dot: 'bg-amber-500',
     label: 'Support Agent',
   },
+  sales_support: {
+    subtle: 'bg-indigo-50 text-indigo-800 ring-indigo-200',
+    solid: 'bg-indigo-600 text-white',
+    dot: 'bg-indigo-500',
+    label: 'Sales & Support',
+  },
 };
 
 export const getRoleBadge = (role: UserRole): BadgeStyle => roleBadges[role];

@@ -31,14 +31,14 @@ interface SidebarNavItem {
 }
 
 const NAV_ITEMS: SidebarNavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
-  { id: 'orders', label: 'Daily Operations', path: '/orders', icon: ShoppingBag, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
-  { id: 'customers', label: 'Customers', path: '/customers', icon: Users, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
-  { id: 'products', label: 'Products Catalog', path: '/products', icon: Package, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
-  { id: 'queries', label: 'Support Queries', path: '/queries', icon: HelpCircle, allowedRoles: ['admin', 'support_agent'], section: 'operations' },
-  { id: 'out-of-stock', label: 'Out of Stock', path: '/out-of-stock', icon: AlertTriangle, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
-  { id: 'notifications', label: 'Notifications', path: '/notifications', icon: Bell, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
-  { id: 'shift-handover', label: 'Shift Handover', path: '/shift-handover', icon: ArrowLeftRight, allowedRoles: ['admin', 'sales_agent', 'support_agent'], section: 'operations' },
+  { id: 'dashboard', label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, allowedRoles: ['admin', 'sales_agent', 'support_agent', 'sales_support'], section: 'operations' },
+  { id: 'orders', label: 'Daily Operations', path: '/orders', icon: ShoppingBag, allowedRoles: ['admin', 'sales_agent', 'support_agent', 'sales_support'], section: 'operations' },
+  { id: 'customers', label: 'Customers', path: '/customers', icon: Users, allowedRoles: ['admin', 'sales_agent', 'support_agent', 'sales_support'], section: 'operations' },
+  { id: 'products', label: 'Products Catalog', path: '/products', icon: Package, allowedRoles: ['admin', 'sales_agent', 'support_agent', 'sales_support'], section: 'operations' },
+  { id: 'queries', label: 'Support Queries', path: '/queries', icon: HelpCircle, allowedRoles: ['admin', 'support_agent', 'sales_support'], section: 'operations' },
+  { id: 'out-of-stock', label: 'Out of Stock', path: '/out-of-stock', icon: AlertTriangle, allowedRoles: ['admin', 'sales_agent', 'support_agent', 'sales_support'], section: 'operations' },
+  { id: 'notifications', label: 'Notifications', path: '/notifications', icon: Bell, allowedRoles: ['admin', 'sales_agent', 'support_agent', 'sales_support'], section: 'operations' },
+  { id: 'shift-handover', label: 'Shift Handover', path: '/shift-handover', icon: ArrowLeftRight, allowedRoles: ['admin', 'sales_agent', 'support_agent', 'sales_support'], section: 'operations' },
 
   // Administration Section
   { id: 'routes', label: 'Route Schedule', path: '/admin/routes', icon: MapPin, allowedRoles: ['admin'], section: 'administration' },

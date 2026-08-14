@@ -43,7 +43,7 @@ export const OrderFormModal: React.FC<OrderFormModalProps> = ({
   const [customerSearch, setCustomerSearch] = useState('');
 
   const customers = useMemo(() => localDb.getCustomers('', 'active'), [isOpen, isCustomerModalOpen]);
-  const agents = useMemo(() => localDb.getUsers().filter((u) => u.role === 'sales_agent' || u.role === 'admin'), []);
+  const agents = useMemo(() => localDb.getUsers().filter((u) => u.role === 'sales_agent' || u.role === 'sales_support' || u.role === 'admin'), []);
   const catalogProducts = useMemo(() => localDb.getProducts({ activeOnly: true }), [isOpen]);
 
   const filteredCustomers = useMemo(() => {

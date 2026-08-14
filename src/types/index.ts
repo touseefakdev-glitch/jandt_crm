@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'sales_agent' | 'support_agent';
+export type UserRole = 'admin' | 'sales_agent' | 'support_agent' | 'sales_support';
 
 /** Operational area a user is assigned to. Admin/BOTH sees all areas. */
 export type OperationalArea = 'KELOWNA' | 'OUTSIDE_KELOWNA' | 'BOTH';

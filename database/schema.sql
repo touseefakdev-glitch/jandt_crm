@@ -10,7 +10,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- =============================================================================
 -- ENUMS
 -- =============================================================================
-CREATE TYPE user_role AS ENUM ('admin', 'sales_agent', 'support_agent');
+CREATE TYPE user_role AS ENUM ('admin', 'sales_agent', 'support_agent', 'sales_support');
 CREATE TYPE customer_status AS ENUM ('active', 'inactive');
 CREATE TYPE query_priority AS ENUM ('low', 'medium', 'high', 'urgent');
 CREATE TYPE query_status AS ENUM ('new', 'assigned', 'open', 'in_progress', 'waiting_customer', 'resolved', 'closed', 'reopened');
@@ -492,7 +492,7 @@ USING (
     EXISTS (
         SELECT 1 FROM public.profiles
         WHERE profiles.id = auth.uid()
-        AND profiles.role IN ('admin', 'support_agent')
+        AND profiles.role IN ('admin', 'support_agent', 'sales_support')
     )
 );
 
@@ -507,10 +507,10 @@ ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO public.profiles (id, email, full_name, role, team_id) VALUES
     ('a1111111-1111-1111-1111-111111111111', 'tauseef@jtsupplies.com', 'Tauseef (Admin)', 'admin', '11111111-1111-1111-1111-111111111111'),
-    ('b2222222-2222-2222-2222-222222222222', 'muzammil@jtsupplies.com', 'Muzammil (Sales)', 'sales_agent', '11111111-1111-1111-1111-111111111111'),
-    ('c3333333-3333-3333-3333-333333333333', 'abdulrehman@jtsupplies.com', 'Abdul Rehman (Support)', 'support_agent', '22222222-2222-2222-2222-222222222222'),
-    ('d4444444-4444-4444-4444-444444444444', 'sohail@jtsupplies.com', 'Sohail (Sales)', 'sales_agent', '11111111-1111-1111-1111-111111111111'),
-    ('e5555555-5555-5555-5555-555555555555', 'aasil@jtsupplies.com', 'Aasil (Support)', 'support_agent', '22222222-2222-2222-2222-222222222222')
+    ('b2222222-2222-2222-2222-222222222222', 'sohail@jtsupplies.com', 'Sohail (Sales & Support)', 'sales_support', '11111111-1111-1111-1111-111111111111'),
+    ('c3333333-3333-3333-3333-333333333333', 'muzammil@jtsupplies.com', 'Muzammil (Sales & Support)', 'sales_support', '11111111-1111-1111-1111-111111111111'),
+    ('d4444444-4444-4444-4444-444444444444', 'abdulrehman@jtsupplies.com', 'Abdul Rehman (Sales & Support)', 'sales_support', '11111111-1111-1111-1111-111111111111'),
+    ('e5555555-5555-5555-5555-555555555555', 'sukhjeet@jtsupplies.com', 'Sukhjeet (Order Mgmt)', 'sales_agent', '11111111-1111-1111-1111-111111111111')
 ON CONFLICT (email) DO NOTHING;
 
 -- Query Categories (group 0001 in segment 4)

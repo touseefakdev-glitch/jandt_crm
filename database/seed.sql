@@ -20,10 +20,10 @@ ON CONFLICT (id) DO UPDATE SET
 -- ---------------------------------------------------------------------------
 INSERT INTO public.profiles (id, email, full_name, role, team_id, operational_area, is_active) VALUES
     ('a1111111-1111-1111-1111-111111111111', 'tauseef@jtsupplies.com', 'Tauseef (Admin)', 'admin', '11111111-1111-1111-1111-111111111111', 'BOTH', TRUE),
-    ('b2222222-2222-2222-2222-222222222222', 'muzammil@jtsupplies.com', 'Muzammil (Sales)', 'sales_agent', '11111111-1111-1111-1111-111111111111', 'KELOWNA', TRUE),
-    ('c3333333-3333-3333-3333-333333333333', 'abdulrehman@jtsupplies.com', 'Abdul Rehman (Support)', 'support_agent', '22222222-2222-2222-2222-222222222222', 'BOTH', TRUE),
-    ('d4444444-4444-4444-4444-444444444444', 'sohail@jtsupplies.com', 'Sohail (Sales)', 'sales_agent', '11111111-1111-1111-1111-111111111111', 'OUTSIDE_KELOWNA', TRUE),
-    ('e5555555-5555-5555-5555-555555555555', 'aasil@jtsupplies.com', 'Aasil (Support)', 'support_agent', '22222222-2222-2222-2222-222222222222', 'BOTH', TRUE)
+    ('b2222222-2222-2222-2222-222222222222', 'sohail@jtsupplies.com', 'Sohail (Sales & Support)', 'sales_support', '11111111-1111-1111-1111-111111111111', 'BOTH', TRUE),
+    ('c3333333-3333-3333-3333-333333333333', 'muzammil@jtsupplies.com', 'Muzammil (Sales & Support)', 'sales_support', '11111111-1111-1111-1111-111111111111', 'BOTH', TRUE),
+    ('d4444444-4444-4444-4444-444444444444', 'abdulrehman@jtsupplies.com', 'Abdul Rehman (Sales & Support)', 'sales_support', '11111111-1111-1111-1111-111111111111', 'BOTH', TRUE),
+    ('e5555555-5555-5555-5555-555555555555', 'sukhjeet@jtsupplies.com', 'Sukhjeet (Order Mgmt)', 'sales_agent', '11111111-1111-1111-1111-111111111111', 'BOTH', TRUE)
 ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
     full_name = EXCLUDED.full_name,

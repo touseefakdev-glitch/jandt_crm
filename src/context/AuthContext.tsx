@@ -141,6 +141,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true; // Admin has full access to all routes
     }
     
+    if (user.role === 'sales_support') {
+      const allowed = ['/dashboard', '/customers', '/queries', '/orders', '/products', '/out-of-stock', '/notifications', '/shift-handover'];
+      return allowed.some(p => normalized.startsWith(p));
+    }
+
     if (user.role === 'sales_agent') {
       const allowed = ['/dashboard', '/customers', '/orders', '/products', '/out-of-stock', '/notifications', '/shift-handover'];
       return allowed.some(p => normalized.startsWith(p));

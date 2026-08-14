@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Badge, Button, Input } from '../components/ui';
-import { getRoleBadge } from '../utils/badges';
+import { Button, Input } from '../components/ui';
 import { Lock, Mail, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
-import { SEED_USERS } from '../services/db';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -19,15 +17,6 @@ export const Login: React.FC = () => {
     if (!email) return;
     setIsSubmitting(true);
     const success = await login(email, password);
-    setIsSubmitting(false);
-    if (success) navigate('/dashboard');
-  };
-
-  const handleQuickLogin = async (userEmail: string) => {
-    setEmail(userEmail);
-    setPassword('password123');
-    setIsSubmitting(true);
-    const success = await login(userEmail, 'password123');
     setIsSubmitting(false);
     if (success) navigate('/dashboard');
   };
@@ -87,33 +76,6 @@ export const Login: React.FC = () => {
               {!isSubmitting && <ArrowRight className="w-4 h-4" />}
             </Button>
           </form>
-
-          <div className="mt-8 pt-6 border-t border-slate-200">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 text-center">Quick Role Test Login (Demo)</p>
-            <div className="space-y-2">
-              {SEED_USERS.map((seedUser) => {
-                const badge = getRoleBadge(seedUser.role);
-                return (
-                  <button
-                    key={seedUser.id}
-                    type="button"
-                    onClick={() => handleQuickLogin(seedUser.email)}
-                    disabled={isSubmitting}
-                    className="w-full text-left px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300 hover:shadow-card transition-all flex items-center justify-between group"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span className={`w-2 h-2 rounded-full ${badge.dot}`} />
-                      <div>
-                        <div className="text-xs font-semibold text-slate-900">{seedUser.full_name}</div>
-                        <div className="text-[11px] text-slate-500 font-mono">{seedUser.email}</div>
-                      </div>
-                    </div>
-                    <Badge badge={badge} />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
 
           <div className="mt-6 text-center text-xs text-slate-500">Account registration is restricted. Contact your Admin to request user access.</div>
         </div>

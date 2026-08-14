@@ -48,7 +48,8 @@ export const roleBadges: Record<UserRole, BadgeStyle> = {
   },
 };
 
-export const getRoleBadge = (role: UserRole): BadgeStyle => roleBadges[role];
+export const getRoleBadge = (role: UserRole | string | null | undefined): BadgeStyle =>
+  (role && roleBadges[role as UserRole]) || roleBadges.sales_support || roleBadges.admin;
 
 /* --------------------------------- Orders --------------------------------- */
 

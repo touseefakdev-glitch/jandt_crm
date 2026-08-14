@@ -327,6 +327,10 @@ function sanitizeRow(table: string, row: Record<string, unknown>): Record<string
 
   // Alias fields not present in database tables
   if (table === 'notifications') delete clean['user_id'];
+  if (table === 'profiles' && clean['role'] === 'sales_support') {
+    // Gracefully send 'sales_agent' to remote Supabase until migration 09 is applied
+    clean['role'] = 'sales_agent';
+  }
 
   // Convert empty string UUID foreign keys to null so PostgreSQL UUID fields do not fail
   ['assigned_to', 'assigned_team_id', 'created_by', 'resolved_by', 'closed_by', 'reopened_by', 'customer_id', 'order_id', 'product_id', 'category_id', 'performed_by', 'author_id', 'uploaded_by', 'team_id', 'user_id', 'brand_id', 'order_received_by', 'sales_order_generated_by', 'invoiced_by', 'dispatched_by', 'pod_sent_by', 'updated_by', 'error_query_id', 'operation_id', 'changed_by'].forEach((field) => {

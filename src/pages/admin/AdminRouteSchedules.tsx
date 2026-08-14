@@ -186,38 +186,30 @@ export const AdminRouteSchedules: React.FC = () => {
       </TableToolbar>
 
       {/* Route Schedule Table */}
-      <Card flush>
+      <Card flush className="p-3 md:p-0">
         {schedules.length > 0 ? (
-          <Table minWidth={880}>
-            <THead>
-              <Tr hover={false}>
-                <Th width={130}>Day of Week</Th>
-                <Th width={240}>City / Route Name</Th>
-                <Th width={160}>Portal Assignment</Th>
-                <Th width={120}>Status</Th>
-                <Th width={130} align="right">Action</Th>
-              </Tr>
-            </THead>
-            <TBody>
+          <>
+            {/* Mobile View Route Schedule Cards */}
+            <div className="grid grid-cols-1 gap-3 md:hidden">
               {schedules.map((s) => (
-                <Tr key={s.id}>
-                  <Td width={130} className="font-bold text-xs text-slate-900 capitalize font-mono">
-                    {formatDayTitle(s.day_of_week)}
-                  </Td>
-                  <Td width={240} truncate maxWidth={240}>
-                    <span className="font-semibold text-slate-900 text-xs flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-brand-600 shrink-0" />
-                      <span className="truncate">{s.city_or_route}</span>
+                <div key={s.id} className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-xs text-slate-900 capitalize font-mono bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                      {formatDayTitle(s.day_of_week)}
                     </span>
-                  </Td>
-                  <Td width={160}>
                     <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${
                       s.portal === 'kelowna' ? 'bg-sky-100 text-sky-800' : 'bg-purple-100 text-purple-800'
                     }`}>
-                      {s.portal === 'kelowna' ? 'Kelowna Portal' : 'Outside Kelowna'}
+                      {s.portal === 'kelowna' ? 'Kelowna' : 'Outside Kelowna'}
                     </span>
-                  </Td>
-                  <Td width={120}>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+                    <MapPin className="w-3.5 h-3.5 text-brand-600 shrink-0" />
+                    <span>{s.city_or_route}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                     <Badge badge={s.active ? {
                       subtle: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
                       solid: 'bg-emerald-600 text-white',
@@ -229,20 +221,79 @@ export const AdminRouteSchedules: React.FC = () => {
                       dot: 'bg-slate-400',
                       label: 'Inactive',
                     }} />
-                  </Td>
-                  <Td width={130} align="right">
+
                     <Button
                       size="sm"
                       variant={s.active ? 'outline' : 'secondary'}
                       onClick={() => handleToggleActive(s)}
+                      className="min-h-[38px]"
                     >
                       {s.active ? 'Deactivate' : 'Activate'}
                     </Button>
-                  </Td>
-                </Tr>
+                  </div>
+                </div>
               ))}
-            </TBody>
-          </Table>
+            </div>
+
+            {/* Desktop View Table */}
+            <div className="hidden md:block">
+              <Table minWidth={880}>
+                <THead>
+                  <Tr hover={false}>
+                    <Th width={130}>Day of Week</Th>
+                    <Th width={240}>City / Route Name</Th>
+                    <Th width={160}>Portal Assignment</Th>
+                    <Th width={120}>Status</Th>
+                    <Th width={130} align="right">Action</Th>
+                  </Tr>
+                </THead>
+                <TBody>
+                  {schedules.map((s) => (
+                    <Tr key={s.id}>
+                      <Td width={130} className="font-bold text-xs text-slate-900 capitalize font-mono">
+                        {formatDayTitle(s.day_of_week)}
+                      </Td>
+                      <Td width={240} truncate maxWidth={240}>
+                        <span className="font-semibold text-slate-900 text-xs flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-brand-600 shrink-0" />
+                          <span className="truncate">{s.city_or_route}</span>
+                        </span>
+                      </Td>
+                      <Td width={160}>
+                        <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${
+                          s.portal === 'kelowna' ? 'bg-sky-100 text-sky-800' : 'bg-purple-100 text-purple-800'
+                        }`}>
+                          {s.portal === 'kelowna' ? 'Kelowna Portal' : 'Outside Kelowna'}
+                        </span>
+                      </Td>
+                      <Td width={120}>
+                        <Badge badge={s.active ? {
+                          subtle: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+                          solid: 'bg-emerald-600 text-white',
+                          dot: 'bg-emerald-500',
+                          label: 'Active',
+                        } : {
+                          subtle: 'bg-slate-100 text-slate-600 ring-slate-200',
+                          solid: 'bg-slate-500 text-white',
+                          dot: 'bg-slate-400',
+                          label: 'Inactive',
+                        }} />
+                      </Td>
+                      <Td width={130} align="right">
+                        <Button
+                          size="sm"
+                          variant={s.active ? 'outline' : 'secondary'}
+                          onClick={() => handleToggleActive(s)}
+                        >
+                          {s.active ? 'Deactivate' : 'Activate'}
+                        </Button>
+                      </Td>
+                    </Tr>
+                  ))}
+                </TBody>
+              </Table>
+            </div>
+          </>
         ) : (
           <div className="p-12 text-center text-slate-500 text-xs">
             <CalendarIcon className="w-10 h-10 text-slate-300 mx-auto mb-2" />

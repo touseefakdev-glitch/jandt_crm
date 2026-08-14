@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { localDb } from '../services/db';
 import { notificationService } from '../services/notificationService';
@@ -7,6 +7,7 @@ import { fetchDashboardStats, DashboardStats } from '../services/queryService';
 import { useServerQuery } from '../hooks/useServerQuery';
 import { getNotificationPriorityBadge, getQueryPriorityBadge, getQueryStatusBadge, getRoleBadge } from '../utils/badges';
 import { isOperationCompleted, hasOrderException, isStepDone, ORDER_WORKFLOW_STEPS, getPendingStep } from '../utils/orderWorkflow';
+import { MobileQueryCard } from '../components/queries/MobileQueryCard';
 import { Avatar, Badge, Card, CardBody, CardHeader, EmptyState, StatCard, Table, TBody, Td, Th, THead, Tr } from '../components/ui';
 import { cn } from '../utils/cn';
 import {
@@ -47,6 +48,7 @@ const EMPTY_STATS: DashboardStats = {
 const todayStr = () => new Date().toISOString().split('T')[0];
 
 export const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { user, dbVersion } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -381,54 +383,66 @@ export const Dashboard: React.FC = () => {
           }
         />
         {queriesRequiringAttention.length > 0 ? (
-          <Table minWidth={1100}>
-            <THead>
-              <Tr hover={false}>
-                <Th width={110}>Ticket #</Th>
-                <Th width={220}>Customer</Th>
-                <Th width={300}>Subject Line</Th>
-                <Th width={110}>Priority</Th>
-                <Th width={130}>Status</Th>
-                <Th width={170}>Assigned Agent</Th>
-                <Th width={100} align="right">Action</Th>
-              </Tr>
-            </THead>
-            <TBody>
+          <>
+            {/* Mobile View Cards */}
+            <div className="p-3 grid grid-cols-1 gap-3 md:hidden">
               {queriesRequiringAttention.map((q) => (
-                <Tr key={q.id}>
-                  <Td width={110} className="font-mono font-bold text-brand-700">
-                    <Link to={`/queries/${q.id}`} className="hover:underline">{q.query_number}</Link>
-                  </Td>
-                  <Td width={220} truncate className="font-semibold text-slate-900">{q.customer?.company_name || 'Unknown Customer'}</Td>
-                  <Td width={300} truncate maxWidth={300} className="font-medium text-slate-800">{q.subject}</Td>
-                  <Td width={110}>
-                    <Badge badge={getQueryPriorityBadge(q.priority)} />
-                  </Td>
-                  <Td width={130}>
-                    <Badge badge={getQueryStatusBadge(q.status)} />
-                  </Td>
-                  <Td width={170} truncate maxWidth={170}>
-                    {q.assigned_to_profile ? (
-                      <span className="inline-flex items-center gap-2 font-medium text-slate-800">
-                        <Avatar name={q.assigned_to_profile.full_name} size="xs" />
-                        <span className="truncate">{q.assigned_to_profile.full_name}</span>
-                      </span>
-                    ) : (
-                      <span className="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-[11px] whitespace-nowrap">Unassigned</span>
-                    )}
-                  </Td>
-                  <Td width={100} align="right">
-                    <Link
-                      to={`/queries/${q.id}`}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg transition-colors"
-                    >
-                      Manage <ArrowRight className="w-3 h-3" />
-                    </Link>
-                  </Td>
-                </Tr>
+                <MobileQueryCard key={q.id} query={q} onSelect={() => navigate(`/queries/${q.id}`)} />
               ))}
-            </TBody>
-          </Table>
+            </div>
+
+            {/* Desktop View Table */}
+            <div className="hidden md:block">
+              <Table minWidth={1100}>
+                <THead>
+                  <Tr hover={false}>
+                    <Th width={110}>Ticket #</Th>
+                    <Th width={220}>Customer</Th>
+                    <Th width={300}>Subject Line</Th>
+                    <Th width={110}>Priority</Th>
+                    <Th width={130}>Status</Th>
+                    <Th width={170}>Assigned Agent</Th>
+                    <Th width={100} align="right">Action</Th>
+                  </Tr>
+                </THead>
+                <TBody>
+                  {queriesRequiringAttention.map((q) => (
+                    <Tr key={q.id}>
+                      <Td width={110} className="font-mono font-bold text-brand-700">
+                        <Link to={`/queries/${q.id}`} className="hover:underline">{q.query_number}</Link>
+                      </Td>
+                      <Td width={220} truncate className="font-semibold text-slate-900">{q.customer?.company_name || 'Unknown Customer'}</Td>
+                      <Td width={300} truncate maxWidth={300} className="font-medium text-slate-800">{q.subject}</Td>
+                      <Td width={110}>
+                        <Badge badge={getQueryPriorityBadge(q.priority)} />
+                      </Td>
+                      <Td width={130}>
+                        <Badge badge={getQueryStatusBadge(q.status)} />
+                      </Td>
+                      <Td width={170} truncate maxWidth={170}>
+                        {q.assigned_to_profile ? (
+                          <span className="inline-flex items-center gap-2 font-medium text-slate-800">
+                            <Avatar name={q.assigned_to_profile.full_name} size="xs" />
+                            <span className="truncate">{q.assigned_to_profile.full_name}</span>
+                          </span>
+                        ) : (
+                          <span className="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-[11px] whitespace-nowrap">Unassigned</span>
+                        )}
+                      </Td>
+                      <Td width={100} align="right">
+                        <Link
+                          to={`/queries/${q.id}`}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg transition-colors"
+                        >
+                          Manage <ArrowRight className="w-3 h-3" />
+                        </Link>
+                      </Td>
+                    </Tr>
+                  ))}
+                </TBody>
+              </Table>
+            </div>
+          </>
         ) : (
           <EmptyState icon={<HelpCircle className="w-7 h-7" />} title="No active tickets" description="No active support tickets currently require attention." />
         )}

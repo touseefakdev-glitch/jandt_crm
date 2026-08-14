@@ -8,6 +8,7 @@ import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { useServerListQuery } from '../hooks/useServerListQuery';
 import { useServerQuery } from '../hooks/useServerQuery';
 import { ProductAvailabilityModal } from '../components/products/ProductAvailabilityModal';
+import { MobileOutOfStockCard } from '../components/products/MobileOutOfStockCard';
 import { Badge, Button, Card, EmptyState, Input, Pagination, Table, TableToolbar, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
 import { getProductAvailabilityBadge } from '../utils/badges';
 import { formatDate } from '../utils/format';
@@ -145,70 +146,87 @@ export const OutOfStock: React.FC = () => {
         </div>
       </TableToolbar>
 
-      <Card flush>
+      <Card flush className="p-3 md:p-0">
         {outOfStockProducts.length > 0 ? (
-          <Table minWidth={1330}>
-            <THead>
-              <Tr hover={false}>
-                <Th width={140}>SKU</Th>
-                <Th width={280}>Product Name</Th>
-                <Th width={160}>Category</Th>
-                <Th width={150}>Availability Status</Th>
-                <Th width={260}>Unavailability Reason</Th>
-                <Th width={170}>Expected Available Date</Th>
-                <Th width={170} align="right">Actions</Th>
-              </Tr>
-            </THead>
-            <TBody>
+          <>
+            {/* Mobile View Cards */}
+            <div className="grid grid-cols-1 gap-3 md:hidden">
               {outOfStockProducts.map((product) => (
-                <Tr key={product.id}>
-                  <Td width={140} className="font-mono font-bold text-brand-700">
-                    <Link to={`/products/${product.id}`} className="hover:underline">{product.sku}</Link>
-                  </Td>
-                  <Td width={280} truncate className="font-bold text-slate-900">
-                    <Link to={`/products/${product.id}`} className="hover:text-brand-600">{product.product_name}</Link>
-                  </Td>
-                  <Td width={160} truncate className="text-slate-600">{product.category?.name || 'General'}</Td>
-                  <Td width={150}><Badge badge={getProductAvailabilityBadge(product.availability_status)} /></Td>
-                  <Td width={260} truncate maxWidth={260} className="font-medium text-red-900">
-                    {product.availability_notes || <span className="text-slate-400 italic">No notes logged</span>}
-                  </Td>
-                  <Td width={170} className="font-mono font-semibold text-slate-700">
-                    {product.expected_available_date ? (
-                      <span className="inline-flex items-center gap-1 text-slate-800 bg-amber-50 px-2.5 py-1 rounded border border-amber-200">
-                        <Calendar className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                        <span>{formatDate(product.expected_available_date)}</span>
-                      </span>
-                    ) : (
-                      <span className="text-slate-400 italic">Unknown</span>
-                    )}
-                  </Td>
-                  <Td width={170} align="right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Link
-                        to={`/products/${product.id}`}
-                        title="View Product Profile & History"
-                        className="p-1.5 text-slate-600 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
-                      >
-                        <ArrowRight className="w-4 h-4" />
-                      </Link>
-
-                      {isAdmin && (
-                        <Button
-                          size="sm"
-                          variant="success"
-                          icon={<RotateCcw className="w-3.5 h-3.5" />}
-                          onClick={() => setAvailabilityModalProduct(product)}
-                        >
-                          Restore Available
-                        </Button>
-                      )}
-                    </div>
-                  </Td>
-                </Tr>
+                <MobileOutOfStockCard
+                  key={product.id}
+                  product={product}
+                  isAdmin={isAdmin}
+                  onRestore={(p) => setAvailabilityModalProduct(p)}
+                />
               ))}
-            </TBody>
-          </Table>
+            </div>
+
+            {/* Desktop View Table */}
+            <div className="hidden md:block">
+              <Table minWidth={1330}>
+                <THead>
+                  <Tr hover={false}>
+                    <Th width={140}>SKU</Th>
+                    <Th width={280}>Product Name</Th>
+                    <Th width={160}>Category</Th>
+                    <Th width={150}>Availability Status</Th>
+                    <Th width={260}>Unavailability Reason</Th>
+                    <Th width={170}>Expected Available Date</Th>
+                    <Th width={170} align="right">Actions</Th>
+                  </Tr>
+                </THead>
+                <TBody>
+                  {outOfStockProducts.map((product) => (
+                    <Tr key={product.id}>
+                      <Td width={140} className="font-mono font-bold text-brand-700">
+                        <Link to={`/products/${product.id}`} className="hover:underline">{product.sku}</Link>
+                      </Td>
+                      <Td width={280} truncate className="font-bold text-slate-900">
+                        <Link to={`/products/${product.id}`} className="hover:text-brand-600">{product.product_name}</Link>
+                      </Td>
+                      <Td width={160} truncate className="text-slate-600">{product.category?.name || 'General'}</Td>
+                      <Td width={150}><Badge badge={getProductAvailabilityBadge(product.availability_status)} /></Td>
+                      <Td width={260} truncate maxWidth={260} className="font-medium text-red-900">
+                        {product.availability_notes || <span className="text-slate-400 italic">No notes logged</span>}
+                      </Td>
+                      <Td width={170} className="font-mono font-semibold text-slate-700">
+                        {product.expected_available_date ? (
+                          <span className="inline-flex items-center gap-1 text-slate-800 bg-amber-50 px-2.5 py-1 rounded border border-amber-200">
+                            <Calendar className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            <span>{formatDate(product.expected_available_date)}</span>
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 italic">Unknown</span>
+                        )}
+                      </Td>
+                      <Td width={170} align="right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            to={`/products/${product.id}`}
+                            title="View Product Profile & History"
+                            className="p-1.5 text-slate-600 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+                          >
+                            <ArrowRight className="w-4 h-4" />
+                          </Link>
+
+                          {isAdmin && (
+                            <Button
+                              size="sm"
+                              variant="success"
+                              icon={<RotateCcw className="w-3.5 h-3.5" />}
+                              onClick={() => setAvailabilityModalProduct(product)}
+                            >
+                              Restore Available
+                            </Button>
+                          )}
+                        </div>
+                      </Td>
+                    </Tr>
+                  ))}
+                </TBody>
+              </Table>
+            </div>
+          </>
         ) : (
           <EmptyState
             icon={<CheckCircle2 className="w-7 h-7 text-emerald-500" />}

@@ -9,6 +9,7 @@ import { useServerListQuery } from '../hooks/useServerListQuery';
 import { useServerQuery } from '../hooks/useServerQuery';
 import { ProductFormModal } from '../components/products/ProductFormModal';
 import { ProductAvailabilityModal } from '../components/products/ProductAvailabilityModal';
+import { MobileProductCard } from '../components/products/MobileProductCard';
 import { Badge, Button, Card, EmptyState, Input, PageHeader, Pagination, Select, Table, TableToolbar, Tabs, TBody, Td, Th, THead, Tr, useToast } from '../components/ui';
 import { getProductAvailabilityBadge } from '../utils/badges';
 import { formatCurrency, formatDate } from '../utils/format';
@@ -279,86 +280,110 @@ export const Products: React.FC = () => {
         </div>
       </TableToolbar>
 
-      <Card flush>
+      <Card flush className="p-3 md:p-0">
         {paginatedProducts.length > 0 ? (
-          <Table minWidth={1260}>
-            <THead>
-              <Tr hover={false}>
-                <Th width={140}>SKU</Th>
-                <Th width={280}>Product Name</Th>
-                <Th width={160}>Category</Th>
-                <Th width={160}>Brand</Th>
-                <Th width={110}>Unit Price</Th>
-                <Th width={150}>Availability Status</Th>
-                <Th width={130}>Expected Date</Th>
-                <Th width={130} align="right">Actions</Th>
-              </Tr>
-            </THead>
-            <TBody>
+          <>
+            {/* Mobile View Cards */}
+            <div className="grid grid-cols-1 gap-3 md:hidden">
               {paginatedProducts.map((product) => (
-                <Tr key={product.id}>
-                  <Td width={140} className="font-mono font-bold text-brand-700">
-                    <Link to={`/products/${product.id}`} className="hover:underline">{product.sku}</Link>
-                  </Td>
-                  <Td width={280} truncate className="font-bold text-slate-900">
-                    <Link to={`/products/${product.id}`} className="hover:text-brand-600">{product.product_name}</Link>
-                  </Td>
-                  <Td width={160} truncate className="text-slate-600">{product.category?.name || 'Unassigned'}</Td>
-                  <Td width={160} truncate className="text-slate-600">{product.brand?.name || 'Unassigned'}</Td>
-                  <Td width={110} className="font-mono font-extrabold text-slate-900">{formatCurrency(product.unit_price)}</Td>
-                  <Td width={150}><Badge badge={getProductAvailabilityBadge(product.availability_status)} /></Td>
-                  <Td width={130} className="font-mono text-slate-500">
-                    {product.expected_available_date ? (
-                      formatDate(product.expected_available_date)
-                    ) : (
-                      <span className="text-slate-400 italic">—</span>
-                    )}
-                  </Td>
-                  <Td width={130} align="right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Link
-                        to={`/products/${product.id}`}
-                        title="View Product Profile & History"
-                        className="p-1.5 text-slate-600 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
-                      >
-                        <ArrowRight className="w-4 h-4" />
-                      </Link>
-                      {isAdmin && (
-                        <button
-                          onClick={() => {
-                            setProductToEdit(product);
-                            setIsFormModalOpen(true);
-                          }}
-                          title="Edit Product Details"
-                          className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                      )}
-                      {isAdmin && (
-                        <button
-                          onClick={() => {
-                            setAvailabilityModalProduct(product);
-                            setAvailabilityTargetStatus(
-                              product.availability_status === 'out_of_stock' ? 'available' : 'out_of_stock'
-                            );
-                          }}
-                          title={product.availability_status === 'out_of_stock' ? 'Restore Availability' : 'Mark Out of Stock'}
-                          className={`p-1.5 rounded-lg transition-colors ${
-                            product.availability_status === 'out_of_stock'
-                              ? 'text-emerald-600 hover:bg-emerald-50'
-                              : 'text-red-600 hover:bg-red-50'
-                          }`}
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </Td>
-                </Tr>
+                <MobileProductCard
+                  key={product.id}
+                  product={product}
+                  isAdmin={isAdmin}
+                  onEdit={(p) => {
+                    setProductToEdit(p);
+                    setIsFormModalOpen(true);
+                  }}
+                  onChangeAvailability={(p, targetStatus) => {
+                    setAvailabilityModalProduct(p);
+                    setAvailabilityTargetStatus(targetStatus);
+                  }}
+                />
               ))}
-            </TBody>
-          </Table>
+            </div>
+
+            {/* Desktop View Table */}
+            <div className="hidden md:block">
+              <Table minWidth={1260}>
+                <THead>
+                  <Tr hover={false}>
+                    <Th width={140}>SKU</Th>
+                    <Th width={280}>Product Name</Th>
+                    <Th width={160}>Category</Th>
+                    <Th width={160}>Brand</Th>
+                    <Th width={110}>Unit Price</Th>
+                    <Th width={150}>Availability Status</Th>
+                    <Th width={130}>Expected Date</Th>
+                    <Th width={130} align="right">Actions</Th>
+                  </Tr>
+                </THead>
+                <TBody>
+                  {paginatedProducts.map((product) => (
+                    <Tr key={product.id}>
+                      <Td width={140} className="font-mono font-bold text-brand-700">
+                        <Link to={`/products/${product.id}`} className="hover:underline">{product.sku}</Link>
+                      </Td>
+                      <Td width={280} truncate className="font-bold text-slate-900">
+                        <Link to={`/products/${product.id}`} className="hover:text-brand-600">{product.product_name}</Link>
+                      </Td>
+                      <Td width={160} truncate className="text-slate-600">{product.category?.name || 'Unassigned'}</Td>
+                      <Td width={160} truncate className="text-slate-600">{product.brand?.name || 'Unassigned'}</Td>
+                      <Td width={110} className="font-mono font-extrabold text-slate-900">{formatCurrency(product.unit_price)}</Td>
+                      <Td width={150}><Badge badge={getProductAvailabilityBadge(product.availability_status)} /></Td>
+                      <Td width={130} className="font-mono text-slate-500">
+                        {product.expected_available_date ? (
+                          formatDate(product.expected_available_date)
+                        ) : (
+                          <span className="text-slate-400 italic">—</span>
+                        )}
+                      </Td>
+                      <Td width={130} align="right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Link
+                            to={`/products/${product.id}`}
+                            title="View Product Profile & History"
+                            className="p-1.5 text-slate-600 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+                          >
+                            <ArrowRight className="w-4 h-4" />
+                          </Link>
+                          {isAdmin && (
+                            <button
+                              onClick={() => {
+                                setProductToEdit(product);
+                                setIsFormModalOpen(true);
+                              }}
+                              title="Edit Product Details"
+                              className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                          )}
+                          {isAdmin && (
+                            <button
+                              onClick={() => {
+                                setAvailabilityModalProduct(product);
+                                setAvailabilityTargetStatus(
+                                  product.availability_status === 'out_of_stock' ? 'available' : 'out_of_stock'
+                                );
+                              }}
+                              title={product.availability_status === 'out_of_stock' ? 'Restore Availability' : 'Mark Out of Stock'}
+                              className={`p-1.5 rounded-lg transition-colors ${
+                                product.availability_status === 'out_of_stock'
+                                  ? 'text-emerald-600 hover:bg-emerald-50'
+                                  : 'text-red-600 hover:bg-red-50'
+                              }`}
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </Td>
+                    </Tr>
+                  ))}
+                </TBody>
+              </Table>
+            </div>
+          </>
         ) : (
           <EmptyState
             icon={<Package className="w-7 h-7" />}

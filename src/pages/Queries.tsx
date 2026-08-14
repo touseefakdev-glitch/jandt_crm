@@ -7,6 +7,7 @@ import { QUERY_ISSUE_CATEGORIES, QUERY_STATUS_CONFIG, BACK_ORDER_STATUS_CONFIG }
 import { formatDateShort } from '../utils/dateUtils';
 import { QueryFormModal } from '../components/queries/QueryFormModal';
 import { MobileQueryCard } from '../components/queries/MobileQueryCard';
+import { MobileBackOrderCard } from '../components/queries/MobileBackOrderCard';
 import {
   Button,
   Card,
@@ -386,79 +387,99 @@ export const Queries: React.FC = () => {
         </>
       ) : (
         /* Back Orders View Tab */
-        <Card className="overflow-hidden">
-          <Table>
-            <THead>
-              <Tr>
-                <Th>Customer</Th>
-                <Th>Item</Th>
-                <Th>Qty</Th>
-                <Th>Reason</Th>
-                <Th>Next Delivery</Th>
-                <Th>Status</Th>
-                <Th align="right">Update Status</Th>
-              </Tr>
-            </THead>
-            <TBody>
-              {pagedBackOrders.length > 0 ? (
-                pagedBackOrders.map((b) => {
-                  const statusConf = BACK_ORDER_STATUS_CONFIG[b.status] || BACK_ORDER_STATUS_CONFIG.PENDING;
-                  return (
-                    <Tr key={b.id} className="hover:bg-slate-50 transition-colors">
-                      <Td>
-                        <span className="font-extrabold text-slate-900 block">{b.customer?.company_name || 'Customer'}</span>
-                      </Td>
-                      <Td>
-                        <div className="text-xs">
-                          <span className="font-extrabold text-slate-900 block">{b.product_name_snapshot}</span>
-                          {b.sku_snapshot && <span className="font-mono text-slate-500 text-[11px]">{b.sku_snapshot}</span>}
-                        </div>
-                      </Td>
-                      <Td>
-                        <span className="font-mono font-bold text-slate-900">{b.quantity}</span>
-                      </Td>
-                      <Td>
-                        <span className="text-xs text-slate-700 max-w-[200px] truncate block">{b.reason}</span>
-                      </Td>
-                      <Td>
-                        <span className="inline-flex items-center gap-1 text-xs font-bold text-teal-800 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-200">
-                          <Truck className="w-3.5 h-3.5 text-teal-600" />
-                          {formatDateShort(b.next_delivery_date)}
-                        </span>
-                      </Td>
-                      <Td>
-                        <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold border ${statusConf.badgeClass}`}>
-                          {statusConf.label}
-                        </span>
-                      </Td>
-                      <Td align="right">
-                        <Select
-                          value={b.status}
-                          onChange={(e) => handleUpdateBackOrderStatus(b.id, e.target.value as BackOrderStatus)}
-                          className="w-36 text-xs"
-                        >
-                          <option value="PENDING">Pending</option>
-                          <option value="SCHEDULED">Scheduled</option>
-                          <option value="SENT">Sent</option>
-                          <option value="COMPLETED">Completed</option>
-                        </Select>
-                      </Td>
+        <Card className="overflow-hidden p-3 md:p-0">
+          {pagedBackOrders.length > 0 ? (
+            <>
+              {/* Mobile View Back Order Cards */}
+              <div className="grid grid-cols-1 gap-3 md:hidden">
+                {pagedBackOrders.map((b) => (
+                  <MobileBackOrderCard
+                    key={b.id}
+                    item={b}
+                    onUpdateStatus={(item) => {
+                      const nextStatus: Record<BackOrderStatus, BackOrderStatus> = {
+                        PENDING: 'SCHEDULED',
+                        SCHEDULED: 'SENT',
+                        SENT: 'COMPLETED',
+                        COMPLETED: 'PENDING',
+                      };
+                      handleUpdateBackOrderStatus(item.id, nextStatus[item.status] || 'PENDING');
+                    }}
+                  />
+                ))}
+              </div>
+
+              {/* Desktop View Back Orders Table */}
+              <div className="hidden md:block">
+                <Table>
+                  <THead>
+                    <Tr>
+                      <Th>Customer</Th>
+                      <Th>Item</Th>
+                      <Th>Qty</Th>
+                      <Th>Reason</Th>
+                      <Th>Next Delivery</Th>
+                      <Th>Status</Th>
+                      <Th align="right">Update Status</Th>
                     </Tr>
-                  );
-                })
-              ) : (
-                <Tr>
-                  <Td colSpan={7}>
-                    <EmptyState
-                      icon={<CalendarPlus className="w-10 h-10 text-slate-400" />}
-                      title="No back orders"
-                      description="There are currently no items queued for next delivery."
-                    />
-                  </Td>
-                </Tr>
-              )}
-            </TBody>
-          </Table>
+                  </THead>
+                  <TBody>
+                    {pagedBackOrders.map((b) => {
+                      const statusConf = BACK_ORDER_STATUS_CONFIG[b.status] || BACK_ORDER_STATUS_CONFIG.PENDING;
+                      return (
+                        <Tr key={b.id} className="hover:bg-slate-50 transition-colors">
+                          <Td>
+                            <span className="font-extrabold text-slate-900 block">{b.customer?.company_name || 'Customer'}</span>
+                          </Td>
+                          <Td>
+                            <div className="text-xs">
+                              <span className="font-extrabold text-slate-900 block">{b.product_name_snapshot}</span>
+                              {b.sku_snapshot && <span className="font-mono text-slate-500 text-[11px]">{b.sku_snapshot}</span>}
+                            </div>
+                          </Td>
+                          <Td>
+                            <span className="font-mono font-bold text-slate-900">{b.quantity}</span>
+                          </Td>
+                          <Td>
+                            <span className="text-xs text-slate-700 max-w-[200px] truncate block">{b.reason}</span>
+                          </Td>
+                          <Td>
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-teal-800 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-200">
+                              <Truck className="w-3.5 h-3.5 text-teal-600" />
+                              {formatDateShort(b.next_delivery_date)}
+                            </span>
+                          </Td>
+                          <Td>
+                            <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-bold border ${statusConf.badgeClass}`}>
+                              {statusConf.label}
+                            </span>
+                          </Td>
+                          <Td align="right">
+                            <Select
+                              value={b.status}
+                              onChange={(e) => handleUpdateBackOrderStatus(b.id, e.target.value as BackOrderStatus)}
+                              className="w-36 text-xs"
+                            >
+                              <option value="PENDING">Pending</option>
+                              <option value="SCHEDULED">Scheduled</option>
+                              <option value="SENT">Sent</option>
+                              <option value="COMPLETED">Completed</option>
+                            </Select>
+                          </Td>
+                        </Tr>
+                      );
+                    })}
+                  </TBody>
+                </Table>
+              </div>
+            </>
+          ) : (
+            <EmptyState
+              icon={<CalendarPlus className="w-10 h-10 text-slate-400" />}
+              title="No back orders"
+              description="There are currently no items queued for next delivery."
+            />
+          )}
         </Card>
       )}
 

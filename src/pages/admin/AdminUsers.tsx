@@ -158,136 +158,201 @@ export const AdminUsers: React.FC = () => {
         </div>
       </TableToolbar>
 
-      <Card flush>
-        <Table minWidth={1030}>
-          <THead>
-            <Tr hover={false}>
-              <Th width={260}>Full Name & Email</Th>
-              <Th width={130}>Role</Th>
-              <Th width={220}>Operational Team</Th>
-              <Th width={130}>Status</Th>
-              <Th width={150}>Created Date</Th>
-              <Th width={140} align="right">Actions</Th>
-            </Tr>
-          </THead>
-          <TBody>
-            {filteredUsers.length > 0 ? (
-              filteredUsers.map((u) => (
-                <Tr key={u.id}>
-                  <Td width={260} truncate maxWidth={260}>
-                    <div className="flex items-center gap-3">
+      <Card flush className="p-3 md:p-0">
+        {filteredUsers.length > 0 ? (
+          <>
+            {/* Mobile View User Cards */}
+            <div className="grid grid-cols-1 gap-3 md:hidden">
+              {filteredUsers.map((u) => (
+                <div key={u.id} className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
                       <Avatar name={u.full_name} size="sm" />
                       <div className="min-w-0">
-                        <Link to={`/admin/users/${u.id}`} className="font-bold text-slate-900 hover:text-brand-600 block truncate">
+                        <Link to={`/admin/users/${u.id}`} className="font-extrabold text-sm text-slate-900 hover:text-brand-600 block truncate">
                           {u.full_name}
                         </Link>
-                        <span className="font-mono text-[11px] text-slate-500">{u.email}</span>
+                        <span className="font-mono text-[11px] text-slate-500 block truncate">{u.email}</span>
                       </div>
                     </div>
-                  </Td>
-
-                  <Td width={130}>
                     <Badge badge={getRoleBadge(u.role)} />
-                  </Td>
+                  </div>
 
-                  <Td width={220} truncate maxWidth={220}>
-                    {u.team ? (
-                      <span className="inline-flex items-center gap-1.5 text-slate-800 font-semibold">
-                        <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                        {u.team.name}
-                      </span>
-                    ) : (
-                      <span className="text-slate-400 italic">No Team</span>
-                    )}
-                  </Td>
+                  <div className="flex items-center justify-between text-xs text-slate-600 pt-2 border-t border-slate-100">
+                    <span className="flex items-center gap-1 font-semibold">
+                      <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                      {u.team?.name || 'No Team'}
+                    </span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${u.is_active ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                      {u.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
 
-                  <Td width={130}>
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-slate-600 hover:text-violet-600 hover:bg-violet-50 px-2 min-h-[38px]"
+                      title="Edit User Details & Role"
+                      icon={<Edit className="w-4 h-4" />}
+                      onClick={() => {
+                        setEditingUser(u);
+                        setIsFormModalOpen(true);
+                      }}
+                    >
+                      Edit
+                    </Button>
+
                     {u.is_active ? (
-                      <Badge
-                        badge={{
-                          subtle: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-                          solid: 'bg-emerald-600 text-white',
-                          dot: 'bg-emerald-500',
-                          label: 'Active',
-                        }}
-                      />
-                    ) : (
-                      <Badge
-                        badge={{
-                          subtle: 'bg-red-50 text-red-700 ring-red-200',
-                          solid: 'bg-red-600 text-white',
-                          dot: 'bg-red-500',
-                          label: 'Inactive',
-                        }}
-                      />
-                    )}
-                  </Td>
-
-                  <Td width={150} className="font-mono text-xs text-slate-500">{formatDate(u.created_at)}</Td>
-
-                  <Td width={140} align="right" className="whitespace-nowrap">
-                    <div className="inline-flex items-center gap-1">
-                      <Link
-                        to={`/admin/users/${u.id}`}
-                        title="View Full User Profile"
-                        className="p-1.5 text-slate-600 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors inline-flex"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Link>
-
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-slate-600 hover:text-violet-600 hover:bg-violet-50 px-2"
-                        title="Edit User Details & Role"
-                        icon={<Edit className="w-4 h-4" />}
-                        onClick={() => {
-                          setEditingUser(u);
-                          setIsFormModalOpen(true);
-                        }}
-                      />
-
-                      {u.is_active ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-600 hover:bg-red-50 px-2"
-                          title="Deactivate Account"
-                          icon={<UserX className="w-4 h-4" />}
-                          onClick={() => setDeactivatingUser(u)}
-                        />
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-emerald-600 hover:bg-emerald-50 px-2"
-                          title="Activate Account"
-                          icon={<UserCheck className="w-4 h-4" />}
-                          onClick={() => handleActivateUser(u)}
-                        />
-                      )}
-                    </div>
-                  </Td>
-                </Tr>
-              ))
-            ) : (
-              <Tr hover={false}>
-                <Td colSpan={6} className="p-0">
-                  <EmptyState
-                    icon={<UserPlus className="w-6 h-6" />}
-                    title="No users found"
-                    description="No users matched your filter criteria. Try adjusting the filters or create a new user account."
-                    action={
-                      <Button variant="secondary" size="sm" icon={<Plus className="w-4 h-4" />} onClick={openCreateModal}>
-                        Create New User Account
+                        className="text-red-600 hover:bg-red-50 px-2 min-h-[38px]"
+                        title="Deactivate Account"
+                        icon={<UserX className="w-4 h-4" />}
+                        onClick={() => setDeactivatingUser(u)}
+                      >
+                        Deactivate
                       </Button>
-                    }
-                  />
-                </Td>
-              </Tr>
-            )}
-          </TBody>
-        </Table>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-emerald-600 hover:bg-emerald-50 px-2 min-h-[38px]"
+                        title="Activate Account"
+                        icon={<UserCheck className="w-4 h-4" />}
+                        onClick={() => handleActivateUser(u)}
+                      >
+                        Activate
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop View Table */}
+            <div className="hidden md:block">
+              <Table minWidth={1030}>
+                <THead>
+                  <Tr hover={false}>
+                    <Th width={260}>Full Name & Email</Th>
+                    <Th width={130}>Role</Th>
+                    <Th width={220}>Operational Team</Th>
+                    <Th width={130}>Status</Th>
+                    <Th width={150}>Created Date</Th>
+                    <Th width={140} align="right">Actions</Th>
+                  </Tr>
+                </THead>
+                <TBody>
+                  {filteredUsers.map((u) => (
+                    <Tr key={u.id}>
+                      <Td width={260} truncate maxWidth={260}>
+                        <div className="flex items-center gap-3">
+                          <Avatar name={u.full_name} size="sm" />
+                          <div className="min-w-0">
+                            <Link to={`/admin/users/${u.id}`} className="font-bold text-slate-900 hover:text-brand-600 block truncate">
+                              {u.full_name}
+                            </Link>
+                            <span className="font-mono text-[11px] text-slate-500">{u.email}</span>
+                          </div>
+                        </div>
+                      </Td>
+
+                      <Td width={130}>
+                        <Badge badge={getRoleBadge(u.role)} />
+                      </Td>
+
+                      <Td width={220} truncate maxWidth={220}>
+                        {u.team ? (
+                          <span className="inline-flex items-center gap-1.5 text-slate-800 font-semibold">
+                            <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                            {u.team.name}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 italic">No Team</span>
+                        )}
+                      </Td>
+
+                      <Td width={130}>
+                        {u.is_active ? (
+                          <Badge
+                            badge={{
+                              subtle: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+                              solid: 'bg-emerald-600 text-white',
+                              dot: 'bg-emerald-500',
+                              label: 'Active',
+                            }}
+                          />
+                        ) : (
+                          <Badge
+                            badge={{
+                              subtle: 'bg-red-50 text-red-700 ring-red-200',
+                              solid: 'bg-red-600 text-white',
+                              dot: 'bg-red-500',
+                              label: 'Inactive',
+                            }}
+                          />
+                        )}
+                      </Td>
+
+                      <Td width={150} className="font-mono text-xs text-slate-500">{formatDate(u.created_at)}</Td>
+
+                      <Td width={140} align="right" className="whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1">
+                          <Link
+                            to={`/admin/users/${u.id}`}
+                            title="View Full User Profile"
+                            className="p-1.5 text-slate-600 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors inline-flex"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Link>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-slate-600 hover:text-violet-600 hover:bg-violet-50 px-2"
+                            title="Edit User Details & Role"
+                            icon={<Edit className="w-4 h-4" />}
+                            onClick={() => {
+                              setEditingUser(u);
+                              setIsFormModalOpen(true);
+                            }}
+                          />
+
+                          {u.is_active ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:bg-red-50 px-2"
+                              title="Deactivate Account"
+                              icon={<UserX className="w-4 h-4" />}
+                              onClick={() => setDeactivatingUser(u)}
+                            />
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-emerald-600 hover:bg-emerald-50 px-2"
+                              title="Activate Account"
+                              icon={<UserCheck className="w-4 h-4" />}
+                              onClick={() => handleActivateUser(u)}
+                            />
+                          )}
+                        </div>
+                      </Td>
+                    </Tr>
+                  ))}
+                </TBody>
+              </Table>
+            </div>
+          </>
+        ) : (
+          <div className="p-12 text-center text-slate-500 text-xs">
+            <UserPlus className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+            <p className="font-semibold text-slate-700">No users found.</p>
+          </div>
+        )}
       </Card>
 
       <UserFormModal

@@ -5,6 +5,32 @@ All notable changes to the **J&T Supplies CRM** project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to Semantic Versioning.
 
+## [1.39.0] - 2026-08-14
+
+### Rebuilt — Complete Mobile UI/UX Renovation & Architecture
+- **Mobile-First Card Architecture across CRM**:
+  - Replaced desktop tables on mobile screens (`< 640px`) with touch-friendly stacked operational cards.
+  - Desktop multi-column layout preserved cleanly on screens (`> 1024px`).
+  - Total elimination of horizontal overflow (`overflow-x`) across 320px, 360px, 375px, 390px, 414px, 430px, and 768px viewports.
+- **Orders Workspace Mobile Optimization (`/orders`)**:
+  - Purpose-built `<MobileOrderCard>` with vertical progress workflow timeline (Order Received $\rightarrow$ Sales Order $\rightarrow$ Invoiced $\rightarrow$ Dispatched).
+  - Touch targets guaranteed to be $\ge 44\text{px}$ for quick status toggling, Order Match updates, and exception reporting.
+- **Customer Directory & Quick Contact (`/customers`)**:
+  - Enhanced `<MobileCustomerCard>` with instant action buttons:
+    - 📞 **Direct Phone Call** tap target (`tel:` link).
+    - 💬 **WhatsApp Quick Chat** tap target (`https://wa.me/` link).
+- **Queries & Back Orders Mobile Workspace (`/queries`)**:
+  - Mobile query cards (`<MobileQueryCard>`) with visual category badges and reference tags.
+  - Dedicated `<MobileBackOrderCard>` for tracking pending back order items with 1-tap status progression.
+- **Catalog Products & Out-of-Stock Alerts (`/products`, `/out-of-stock`)**:
+  - Added `<MobileProductCard>` and `<MobileOutOfStockCard>` with expected return dates, unit prices, and 1-tap availability restoration.
+- **User Roster & Route Schedules (`/admin/users`, `/admin/route-schedules`)**:
+  - Added mobile cards for managing user profiles, team assignments, and route schedules.
+- **Input Focus Protection**:
+  - Controlled inputs maintain continuous DOM state binding to prevent focus loss during single-character typing.
+- **Documentation**:
+  - Created `MOBILE_UI_UX.md` detailing operational card architecture, touch target standards, and supported device viewports.
+
 ## [1.38.0] - 2026-08-13
 
 ### Rebuilt — Simplified 4-Field Customer Issue Report (Queries Module)
